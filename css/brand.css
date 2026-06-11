@@ -1,0 +1,448 @@
+/* Johnston Media — Brand System CSS */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Montserrat:wght@300;400;500;600;700&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  /* Base blacks */
+  --jm-black:      #000000;   /* Primary background */
+  --jm-surface:    #0d0d0d;   /* Cards, panels — barely lifted */
+  --jm-charcoal:   #141414;   /* Nested surfaces, modals */
+
+  /* Brand */
+  --jm-navy:       #000000;   /* Legacy alias */
+  --jm-teal:       #1F6F88;   /* Primary brand colour */
+  --jm-blue:       #3F95A8;   /* Highlights */
+
+  /* Accent */
+  --jm-copper:     #C15A32;
+  --jm-amber:      #F2C88D;
+  --jm-peach:      #F6D6BE;
+
+  /* Neutrals */
+  --jm-slate:      #66737D;
+  --jm-lightgrey:  #E8E8E8;
+  --jm-white:      #FFFFFF;
+
+  /* Gradients */
+  --jm-gradient:        linear-gradient(135deg, #000000 0%, #1F6F88 50%, #C15A32 100%);
+  --jm-gradient-subtle: linear-gradient(135deg, #000000 0%, #1a4a5c 100%);
+
+  /* Typography */
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-body:    'Montserrat', system-ui, sans-serif;
+
+  /* Type scale */
+  --text-xs:   0.75rem;
+  --text-sm:   0.875rem;
+  --text-base: 1rem;
+  --text-lg:   1.25rem;
+  --text-xl:   1.5rem;
+  --text-2xl:  2rem;
+  --text-3xl:  2.75rem;
+  --text-hero: clamp(3rem, 6vw, 5.5rem);
+
+  /* Spacing */
+  --space-xs:  0.5rem;
+  --space-sm:  1rem;
+  --space-md:  1.5rem;
+  --space-lg:  2.5rem;
+  --space-xl:  4rem;
+  --space-2xl: 6rem;
+  --space-3xl: 10rem;
+
+  /* Shape */
+  --radius-sm:   4px;
+  --radius-md:   8px;
+  --radius-lg:   16px;
+  --radius-pill: 999px;
+
+  /* Layout */
+  --max-width:     1280px;
+  --content-width: 760px;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-body);
+  background: #000000;
+  color: var(--jm-lightgrey);
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Buttons ─────────────────────────────────────── */
+.jm-btn-primary {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  background: var(--jm-copper);
+  color: var(--jm-white);
+  font-family: var(--font-body);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: var(--text-xs);
+  padding: 0.85rem 2rem;
+  border-radius: var(--radius-pill);
+  border: none;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: background 0.3s ease, transform 0.2s ease;
+  text-decoration: none;
+}
+.jm-btn-primary::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: rgba(255,255,255,0.12);
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+.jm-btn-primary:hover::after { opacity: 1; }
+.jm-btn-primary:hover { transform: scale(1.03); }
+
+.jm-btn-ghost {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  background: transparent;
+  border: 1.5px solid var(--jm-copper);
+  color: var(--jm-copper);
+  font-family: var(--font-body);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: var(--text-xs);
+  padding: 0.85rem 2rem;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: background 0.3s, color 0.3s;
+  text-decoration: none;
+}
+.jm-btn-ghost:hover {
+  background: var(--jm-copper);
+  color: var(--jm-white);
+}
+
+.jm-btn-sm {
+  padding: 0.5rem 1.25rem;
+  font-size: 0.7rem;
+}
+
+/* ─── Cards ─────────────────────────────────────────── */
+.jm-card {
+  background: var(--jm-black);
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(255,255,255,0.06);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.jm-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 0 1px var(--jm-copper);
+}
+
+/* ─── Scroll Reveal ──────────────────────────────────── */
+.jm-reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.65s ease, transform 0.65s ease;
+}
+.jm-reveal.jm-revealed { opacity: 1; transform: translateY(0); }
+.jm-reveal-stagger > * {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.jm-reveal-stagger.jm-revealed > *:nth-child(1) { transition-delay: 0s;    opacity: 1; transform: none; }
+.jm-reveal-stagger.jm-revealed > *:nth-child(2) { transition-delay: 0.1s;  opacity: 1; transform: none; }
+.jm-reveal-stagger.jm-revealed > *:nth-child(3) { transition-delay: 0.2s;  opacity: 1; transform: none; }
+.jm-reveal-stagger.jm-revealed > *:nth-child(4) { transition-delay: 0.3s;  opacity: 1; transform: none; }
+.jm-reveal-stagger.jm-revealed > *:nth-child(5) { transition-delay: 0.4s;  opacity: 1; transform: none; }
+.jm-reveal-stagger.jm-revealed > *:nth-child(6) { transition-delay: 0.5s;  opacity: 1; transform: none; }
+
+/* ─── Badges ─────────────────────────────────────────── */
+.jm-badge {
+  display: inline-block;
+  padding: 0.2rem 0.75rem;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.jm-badge--active    { background: rgba(193,90,50,0.15);  color: var(--jm-copper); }
+.jm-badge--pending   { background: rgba(242,200,141,0.15); color: var(--jm-amber); }
+.jm-badge--complete  { background: rgba(31,111,136,0.2);   color: var(--jm-blue); }
+.jm-badge--prospective { background: rgba(102,115,125,0.2); color: var(--jm-slate); }
+.jm-badge--client    { background: rgba(63,149,168,0.15);  color: var(--jm-blue); }
+.jm-badge--admin     { background: rgba(193,90,50,0.2);    color: var(--jm-amber); }
+.jm-badge--owner     { background: var(--jm-gradient);     color: var(--jm-white); }
+
+/* ─── Toast ──────────────────────────────────────────── */
+.jm-toast {
+  position: fixed; bottom: 2rem; right: 2rem; z-index: 9999;
+  background: var(--jm-black);
+  border-left: 3px solid var(--jm-copper);
+  color: var(--jm-white);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  padding: 0.85rem 1.5rem;
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  opacity: 0; transform: translateY(12px);
+  transition: opacity 0.3s, transform 0.3s;
+  max-width: 320px;
+}
+.jm-toast--visible { opacity: 1; transform: translateY(0); }
+.jm-toast--error   { border-left-color: #e05252; }
+.jm-toast--success { border-left-color: var(--jm-copper); }
+
+/* ─── Section Utility ───────────────────────────────── */
+.jm-section {
+  padding: var(--space-2xl) var(--space-lg);
+  max-width: var(--max-width);
+  margin: 0 auto;
+}
+.jm-eyebrow {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--jm-copper);
+  display: block;
+  margin-bottom: var(--space-sm);
+}
+.jm-section-title {
+  font-family: var(--font-display);
+  font-size: var(--text-3xl);
+  color: var(--jm-white);
+  line-height: 1.15;
+  margin-bottom: var(--space-md);
+}
+.jm-divider {
+  width: 48px; height: 2px;
+  background: var(--jm-copper);
+  border: none;
+  margin: var(--space-md) 0;
+}
+
+/* ─── Form Elements ─────────────────────────────────── */
+.jm-input, .jm-select, .jm-textarea {
+  width: 100%;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: var(--jm-white);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  transition: border-color 0.2s;
+  outline: none;
+}
+.jm-input:focus, .jm-select:focus, .jm-textarea:focus {
+  border-color: var(--jm-copper);
+}
+.jm-input::placeholder, .jm-textarea::placeholder { color: var(--jm-slate); }
+.jm-select option { background: var(--jm-black); }
+.jm-form-label {
+  display: block;
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--jm-slate);
+  margin-bottom: var(--space-xs);
+}
+.jm-form-group { margin-bottom: var(--space-md); }
+
+/* ─── Modal ──────────────────────────────────────────── */
+.jm-modal-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(0,0,0,0.85);
+  backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.3s;
+  padding: var(--space-md);
+}
+.jm-modal-overlay.active { opacity: 1; pointer-events: all; }
+.jm-modal {
+  background: var(--jm-black);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  width: 100%; max-width: 560px;
+  max-height: 90vh; overflow-y: auto;
+  transform: translateY(20px); transition: transform 0.3s;
+}
+.jm-modal-overlay.active .jm-modal { transform: translateY(0); }
+.jm-modal-header {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  margin-bottom: var(--space-lg);
+}
+.jm-modal-title {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  color: var(--jm-white);
+}
+.jm-modal-close {
+  background: none; border: none; color: var(--jm-slate);
+  font-size: 1.5rem; cursor: pointer; padding: 0.25rem;
+  transition: color 0.2s;
+}
+.jm-modal-close:hover { color: var(--jm-white); }
+
+/* ─── Table ──────────────────────────────────────────── */
+.jm-table { width: 100%; border-collapse: collapse; }
+.jm-table th {
+  background: var(--jm-black);
+  color: var(--jm-slate);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: var(--space-sm) var(--space-md);
+  text-align: left;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.jm-table td {
+  padding: var(--space-sm) var(--space-md);
+  color: var(--jm-lightgrey);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.jm-table tr:hover td { background: rgba(31,111,136,0.08); }
+
+/* ─── Portal Sidebar ─────────────────────────────────── */
+.jm-sidebar {
+  width: 260px; min-height: 100vh;
+  background: var(--jm-black);
+  border-right: 1px solid rgba(255,255,255,0.06);
+  position: fixed; left: 0; top: 0;
+  display: flex; flex-direction: column;
+  padding: var(--space-lg) 0;
+  z-index: 100;
+}
+.jm-sidebar__logo {
+  padding: 0 var(--space-lg) var(--space-lg);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  margin-bottom: var(--space-md);
+}
+.jm-sidebar__logo img, .jm-sidebar__logo svg { width: 48px; height: 48px; }
+.jm-sidebar__brand {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  color: var(--jm-white);
+  margin-top: var(--space-xs);
+}
+.jm-sidebar__subbrand {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--jm-slate);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.jm-sidebar__nav { flex: 1; padding: 0 var(--space-sm); }
+.jm-sidebar__nav-item {
+  display: flex; align-items: center; gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  color: var(--jm-slate);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none; background: none; width: 100%; text-align: left;
+  text-decoration: none;
+}
+.jm-sidebar__nav-item:hover { color: var(--jm-white); background: rgba(255,255,255,0.05); }
+.jm-sidebar__nav-item.active {
+  color: var(--jm-white);
+  background: rgba(193,90,50,0.15);
+  border-left: 2px solid var(--jm-copper);
+}
+.jm-sidebar__nav-item .nav-icon { font-size: 1.1rem; width: 20px; text-align: center; }
+.jm-sidebar__footer {
+  padding: var(--space-md) var(--space-lg);
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.jm-main-content {
+  margin-left: 260px;
+  padding: var(--space-xl);
+  background: var(--jm-black);
+  min-height: 100vh;
+}
+
+/* ─── Logo SVG inline ────────────────────────────────── */
+.jm-logo-mark { fill: var(--jm-copper); }
+
+/* ─── Reduced motion ─────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .jm-reveal, .jm-card, * { transition: none !important; animation: none !important; }
+}
+
+/* ─── Scrollbar ──────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--jm-black); }
+::-webkit-scrollbar-thumb { background: var(--jm-teal); border-radius: 3px; }
+
+/* ─── Auth Screen ─────────────────────────────────────── */
+.jm-auth-screen {
+  min-height: 100vh;
+  background: #000000;
+  background-image: linear-gradient(135deg, #000000 0%, #1a4a5c 100%);
+  display: flex; align-items: center; justify-content: center;
+}
+.jm-auth-card {
+  background: rgba(255,255,255,0.04);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  width: 100%; max-width: 420px;
+  text-align: center;
+}
+.jm-auth-card h2 {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  color: var(--jm-white);
+  margin: var(--space-md) 0 var(--space-xs);
+}
+.jm-auth-card p {
+  font-size: var(--text-sm);
+  color: var(--jm-slate);
+  margin-bottom: var(--space-lg);
+}
+.jm-google-btn {
+  display: flex; align-items: center; justify-content: center; gap: 0.75rem;
+  width: 100%; padding: 0.85rem 1.5rem;
+  background: var(--jm-white);
+  color: #333;
+  border: none; border-radius: var(--radius-pill);
+  font-family: var(--font-body);
+  font-weight: 600; font-size: var(--text-sm);
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.2s;
+}
+.jm-google-btn:hover { opacity: 0.92; transform: scale(1.02); }
+.jm-divider-text {
+  display: flex; align-items: center; gap: 1rem;
+  color: var(--jm-slate); font-size: var(--text-xs);
+  margin: var(--space-md) 0;
+}
+.jm-divider-text::before, .jm-divider-text::after {
+  content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.08);
+}
+
+/* ─── Mobile ──────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .jm-sidebar { transform: translateX(-100%); transition: transform 0.3s; }
+  .jm-sidebar.open { transform: translateX(0); }
+  .jm-main-content { margin-left: 0; padding: var(--space-lg) var(--space-md); }
+  .jm-section { padding: var(--space-xl) var(--space-md); }
+}

@@ -1,0 +1,185 @@
+/* Johnston Media — Portal CSS */
+
+#app-view {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ─── Auth extras ────────────────────────────────────── */
+.jm-auth-switch {
+  margin-top: var(--space-md);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--jm-slate);
+  text-align: center;
+}
+.jm-text-btn {
+  background: none; border: none; cursor: pointer;
+  color: var(--jm-copper);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-decoration: underline;
+  padding: 0;
+}
+.jm-back-link {
+  display: block; margin-top: var(--space-lg);
+  color: var(--jm-slate); font-family: var(--font-body);
+  font-size: var(--text-sm); text-align: center;
+  text-decoration: none; transition: color 0.2s;
+}
+.jm-back-link:hover { color: var(--jm-copper); }
+
+/* ─── User info ──────────────────────────────────────── */
+.jm-user-info {
+  display: flex; align-items: center; gap: 0.75rem;
+  margin-bottom: var(--space-sm);
+}
+.jm-user-avatar {
+  width: 38px; height: 38px;
+  background: var(--jm-gradient);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display);
+  font-size: 1rem; color: var(--jm-white);
+  font-weight: 700; flex-shrink: 0;
+}
+.jm-user-name {
+  font-family: var(--font-body); font-weight: 600;
+  color: var(--jm-white); font-size: var(--text-sm);
+}
+.jm-user-role {
+  font-family: var(--font-body); font-size: var(--text-xs);
+  color: var(--jm-copper); letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ─── Panel ──────────────────────────────────────────── */
+.jm-panel { animation: panelFadeIn 0.35s ease; }
+@keyframes panelFadeIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+.jm-panel-header { margin-bottom: var(--space-xl); }
+.jm-panel-title {
+  font-family: var(--font-display);
+  font-size: var(--text-3xl);
+  color: var(--jm-white);
+  line-height: 1.15;
+}
+.jm-sub-title {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  color: var(--jm-white);
+  margin-bottom: var(--space-md);
+}
+
+/* ─── Dashboard cards ────────────────────────────────── */
+.jm-dash-cards {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-md);
+}
+.jm-dash-card {
+  background: var(--jm-black);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  text-align: center;
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+.jm-dash-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.3), 0 0 0 1px var(--jm-copper);
+}
+.jm-dash-card__icon { font-size: 2rem; margin-bottom: var(--space-sm); }
+.jm-dash-card__label { font-family: var(--font-body); font-size: var(--text-xs); color: var(--jm-slate); letter-spacing: 0.1em; text-transform: uppercase; }
+.jm-dash-card__val { font-family: var(--font-display); font-size: var(--text-3xl); color: var(--jm-copper); font-weight: 700; margin-top: var(--space-xs); }
+
+/* ─── Project card ───────────────────────────────────── */
+.jm-project-card {
+  padding: var(--space-lg);
+  margin-bottom: var(--space-md);
+}
+.jm-project-card__header {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  margin-bottom: var(--space-lg);
+}
+.jm-project-card__name { font-family: var(--font-display); font-size: var(--text-xl); color: var(--jm-white); }
+.jm-project-card__type { font-family: var(--font-body); font-size: var(--text-sm); color: var(--jm-slate); margin-top: 0.25rem; }
+
+/* ─── Timeline ───────────────────────────────────────── */
+.jm-timeline {
+  display: flex; gap: 0; position: relative;
+}
+.jm-timeline::before {
+  content: ''; position: absolute;
+  top: 14px; left: 14px; right: 14px; height: 2px;
+  background: rgba(255,255,255,0.08);
+  z-index: 0;
+}
+.jm-timeline__step {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+  position: relative; z-index: 1;
+}
+.jm-timeline__dot {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: var(--jm-black);
+  border: 2px solid rgba(255,255,255,0.12);
+  transition: all 0.3s;
+}
+.jm-timeline__step.done .jm-timeline__dot {
+  background: rgba(193,90,50,0.2);
+  border-color: var(--jm-copper);
+}
+.jm-timeline__step.current .jm-timeline__dot {
+  background: var(--jm-copper);
+  border-color: var(--jm-copper);
+  box-shadow: 0 0 12px rgba(193,90,50,0.5);
+}
+.jm-timeline__label {
+  font-family: var(--font-body); font-size: 0.7rem;
+  color: var(--jm-slate); text-align: center;
+  letter-spacing: 0.06em;
+}
+.jm-timeline__step.done .jm-timeline__label,
+.jm-timeline__step.current .jm-timeline__label { color: var(--jm-lightgrey); }
+
+/* ─── Gallery ────────────────────────────────────────── */
+.jm-gallery-grid { display: flex; flex-direction: column; gap: var(--space-xl); }
+.jm-files-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-md);
+}
+.jm-file-card {
+  background: var(--jm-black);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+.jm-file-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,0.3); }
+.jm-file-thumb { height: 160px; position: relative; background: var(--jm-black); overflow: hidden; }
+.jm-file-info {
+  padding: var(--space-sm);
+  display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;
+}
+.jm-file-name {
+  font-family: var(--font-body); font-size: var(--text-xs);
+  color: var(--jm-lightgrey); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* ─── Contact info box ───────────────────────────────── */
+.jm-contact-info-box {
+  background: rgba(193,90,50,0.08);
+  border: 1px solid rgba(193,90,50,0.3);
+  border-radius: var(--radius-md);
+  padding: var(--space-md) var(--space-lg);
+  margin-bottom: var(--space-xl);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--jm-lightgrey);
+}
+
+/* ─── Responsive ─────────────────────────────────────── */
+@media (max-width: 768px) {
+  #app-view { flex-direction: column; }
+  .jm-dash-cards { grid-template-columns: 1fr; }
+}

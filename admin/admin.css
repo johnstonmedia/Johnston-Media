@@ -1,0 +1,238 @@
+/* Johnston Media — Admin CSS */
+
+#app-view {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ─── User info ──────────────────────────────────────── */
+.jm-user-info {
+  display: flex; align-items: center; gap: 0.75rem;
+}
+.jm-user-avatar {
+  width: 38px; height: 38px;
+  background: var(--jm-gradient);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display);
+  font-size: 1rem; color: var(--jm-white);
+  font-weight: 700; flex-shrink: 0;
+}
+.jm-user-name  { font-family: var(--font-body); font-weight: 600; color: var(--jm-white); font-size: var(--text-sm); }
+.jm-user-role  { font-family: var(--font-body); font-size: var(--text-xs); color: var(--jm-copper); letter-spacing: 0.08em; text-transform: uppercase; }
+
+/* ─── Panel ──────────────────────────────────────────── */
+.jm-panel { animation: panelFadeIn 0.35s ease; }
+@keyframes panelFadeIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+.jm-panel-header { margin-bottom: var(--space-xl); }
+.jm-panel-title  { font-family: var(--font-display); font-size: var(--text-3xl); color: var(--jm-white); line-height: 1.15; }
+
+/* ─── Dashboard cards ────────────────────────────────── */
+.jm-dash-cards {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-md);
+}
+.jm-dash-card {
+  background: var(--jm-black);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg); text-align: center;
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+.jm-dash-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,0.3), 0 0 0 1px var(--jm-copper); }
+.jm-dash-card__icon  { font-size: 2rem; margin-bottom: var(--space-sm); }
+.jm-dash-card__label { font-family: var(--font-body); font-size: var(--text-xs); color: var(--jm-slate); letter-spacing: 0.1em; text-transform: uppercase; }
+.jm-dash-card__val   { font-family: var(--font-display); font-size: var(--text-3xl); color: var(--jm-copper); font-weight: 700; margin-top: var(--space-xs); }
+
+/* ─── Admin sections grid ────────────────────────────── */
+.jm-admin-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-xl);
+}
+.jm-admin-section {
+  background: var(--jm-black);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+}
+.jm-admin-section-title {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  color: var(--jm-white);
+  margin-bottom: var(--space-lg);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid rgba(193,90,50,0.25);
+}
+.jm-form-hint {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--jm-slate);
+  margin-top: var(--space-xs);
+}
+
+/* ─── Portfolio row ──────────────────────────────────── */
+.jm-portfolio-row {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm);
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  font-family: var(--font-body); font-size: var(--text-sm);
+  color: var(--jm-lightgrey);
+}
+
+/* ─── Tab bar ────────────────────────────────────────── */
+.jm-tabs-bar {
+  display: flex; gap: var(--space-xs);
+  margin-bottom: var(--space-xl);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  padding-bottom: var(--space-sm);
+  flex-wrap: wrap;
+}
+.jm-tab-btn {
+  background: none; border: none; cursor: pointer;
+  font-family: var(--font-body); font-size: var(--text-sm);
+  font-weight: 500; color: var(--jm-slate);
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-md);
+  transition: all 0.2s;
+}
+.jm-tab-btn:hover { color: var(--jm-white); background: rgba(255,255,255,0.05); }
+.jm-tab-btn.active { color: var(--jm-white); background: rgba(193,90,50,0.15); color: var(--jm-copper); }
+
+/* ─── List rows ──────────────────────────────────────── */
+.jm-list-row {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  margin-bottom: var(--space-sm);
+  flex-wrap: wrap;
+}
+.jm-list-row__info { flex: 1; min-width: 0; }
+.jm-list-row__name { font-family: var(--font-display); font-size: var(--text-base); color: var(--jm-white); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.jm-list-row__meta { font-family: var(--font-body); font-size: var(--text-xs); color: var(--jm-slate); margin-top: 2px; }
+
+/* ─── Detail grid ────────────────────────────────────── */
+.jm-detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-sm); }
+.jm-detail-row {
+  display: flex; flex-direction: column; gap: 0.25rem;
+  padding: var(--space-sm);
+  background: rgba(255,255,255,0.03);
+  border-radius: var(--radius-sm);
+}
+.jm-detail-row--full { grid-column: 1 / -1; }
+.jm-detail-label {
+  font-family: var(--font-body); font-size: var(--text-xs);
+  color: var(--jm-slate); letter-spacing: 0.08em; text-transform: uppercase;
+}
+.jm-detail-row span, .jm-detail-row p {
+  font-family: var(--font-body); font-size: var(--text-sm); color: var(--jm-lightgrey);
+  line-height: 1.6;
+}
+
+/* ─── Client cards ───────────────────────────────────── */
+.jm-client-card {
+  margin-bottom: var(--space-md);
+  overflow: hidden;
+}
+.jm-client-card__header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: var(--space-lg);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.jm-client-card__header:hover { background: rgba(255,255,255,0.03); }
+.jm-client-card__name { font-family: var(--font-display); font-size: var(--text-xl); color: var(--jm-white); }
+.jm-client-card__meta { font-family: var(--font-body); font-size: var(--text-sm); color: var(--jm-slate); margin-top: 2px; }
+.jm-client-projects {
+  border-top: 1px solid rgba(255,255,255,0.06);
+  padding: var(--space-md) var(--space-lg);
+}
+.jm-project-row {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-md);
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  flex-wrap: wrap;
+}
+.jm-project-row:last-child { border-bottom: none; }
+.jm-project-row__name { font-family: var(--font-body); font-weight: 600; color: var(--jm-lightgrey); font-size: var(--text-sm); }
+.jm-project-row__type { font-family: var(--font-body); font-size: var(--text-xs); color: var(--jm-slate); }
+
+/* ─── Timeline ───────────────────────────────────────── */
+.jm-timeline {
+  display: flex; position: relative;
+}
+.jm-timeline::before {
+  content: ''; position: absolute;
+  top: 14px; left: 14px; right: 14px; height: 2px;
+  background: rgba(255,255,255,0.08); z-index: 0;
+}
+.jm-timeline__step {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+  position: relative; z-index: 1;
+}
+.jm-timeline__dot {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--jm-black);
+  border: 2px solid rgba(255,255,255,0.12);
+  transition: all 0.3s;
+}
+.jm-timeline__step.done .jm-timeline__dot    { background: rgba(193,90,50,0.2); border-color: var(--jm-copper); }
+.jm-timeline__step.current .jm-timeline__dot { background: var(--jm-copper); border-color: var(--jm-copper); box-shadow: 0 0 12px rgba(193,90,50,0.5); }
+.jm-timeline__label {
+  font-family: var(--font-body); font-size: 0.7rem; color: var(--jm-slate);
+  text-align: center; letter-spacing: 0.06em;
+}
+.jm-timeline__step.done .jm-timeline__label,
+.jm-timeline__step.current .jm-timeline__label { color: var(--jm-lightgrey); }
+
+/* ─── File pill ──────────────────────────────────────── */
+.jm-file-pill {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: var(--radius-pill);
+  padding: 0.3rem 0.9rem;
+  font-family: var(--font-body); font-size: var(--text-xs);
+  color: var(--jm-lightgrey);
+  margin: 0.25rem;
+}
+
+/* ─── Message card ───────────────────────────────────── */
+.jm-message-card {
+  padding: var(--space-lg);
+  margin-bottom: var(--space-md);
+}
+.jm-message-card.unread {
+  border-color: rgba(193,90,50,0.35);
+  box-shadow: 0 0 0 1px rgba(193,90,50,0.2);
+}
+.jm-message-card__header {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  margin-bottom: var(--space-sm);
+}
+.jm-message-card__name  { font-family: var(--font-display); font-size: var(--text-base); color: var(--jm-white); display: flex; align-items: center; gap: 0.5rem; }
+.jm-message-card__meta  { font-family: var(--font-body); font-size: var(--text-xs); color: var(--jm-slate); margin-top: 2px; }
+.jm-message-card__body  { font-family: var(--font-body); font-size: var(--text-sm); color: var(--jm-lightgrey); line-height: 1.7; margin-bottom: var(--space-md); }
+
+/* ─── User rows ──────────────────────────────────────── */
+.jm-user-row {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  margin-bottom: var(--space-sm);
+  flex-wrap: wrap;
+}
+.jm-user-row__info  { flex: 1; min-width: 0; }
+.jm-user-row__name  { font-family: var(--font-body); font-weight: 600; color: var(--jm-white); font-size: var(--text-sm); }
+.jm-user-row__email { font-family: var(--font-body); font-size: var(--text-xs); color: var(--jm-slate); margin-top: 2px; }
+
+/* ─── Responsive ─────────────────────────────────────── */
+@media (max-width: 1200px) {
+  .jm-admin-grid { grid-template-columns: 1fr; }
+  .jm-dash-cards { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 768px) {
+  #app-view { flex-direction: column; }
+  .jm-dash-cards { grid-template-columns: 1fr 1fr; }
+  .jm-detail-grid { grid-template-columns: 1fr; }
+  .jm-list-row { flex-direction: column; align-items: flex-start; }
+  .jm-user-row { flex-direction: column; align-items: flex-start; }
+}

@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Client Portal — Johnston Media</title>
+  <link rel="stylesheet" href="../css/brand.css" />
+  <link rel="stylesheet" href="portal.css" />
+</head>
+<body style="background:#000000;">
+
+<!-- ─── LOGIN VIEW ───────────────────────────────────── -->
+<div id="login-view" class="jm-auth-screen">
+  <div class="jm-auth-card">
+    <img src="../assets/logo.png" alt="Johnston Media" style="height:52px;width:auto;margin:0 auto 1rem;display:block;" />
+    <h2>Client Portal</h2>
+    <p>Sign in or create an account to manage your projects with Johnston Media.</p>
+    <button class="jm-google-btn" onclick="signInGoogle()">
+      <svg width="18" height="18" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+      Continue with Google
+    </button>
+    <div class="jm-divider-text">or</div>
+    <div id="emailSignIn">
+      <div class="jm-form-group">
+        <label class="jm-form-label">Email</label>
+        <input type="email" class="jm-input" id="authEmail" placeholder="you@example.com" />
+      </div>
+      <div class="jm-form-group">
+        <label class="jm-form-label">Password</label>
+        <input type="password" class="jm-input" id="authPassword" placeholder="••••••••" />
+      </div>
+      <button class="jm-btn-primary" style="width:100%;" onclick="signInEmail()">Sign In</button>
+      <p class="jm-auth-switch">No account? <button onclick="showSignUp()" class="jm-text-btn">Create one</button></p>
+    </div>
+    <div id="emailSignUp" style="display:none;">
+      <div class="jm-form-group">
+        <label class="jm-form-label">Full Name</label>
+        <input type="text" class="jm-input" id="signupName" placeholder="Jane Smith" />
+      </div>
+      <div class="jm-form-group">
+        <label class="jm-form-label">Email</label>
+        <input type="email" class="jm-input" id="signupEmail" placeholder="you@example.com" />
+      </div>
+      <div class="jm-form-group">
+        <label class="jm-form-label">Phone Number</label>
+        <input type="tel" class="jm-input" id="signupPhone" placeholder="+61 400 000 000" />
+      </div>
+      <div class="jm-form-group">
+        <label class="jm-form-label">Password</label>
+        <input type="password" class="jm-input" id="signupPassword" placeholder="Min. 8 characters" />
+      </div>
+      <button class="jm-btn-primary" style="width:100%;" onclick="signUpEmail()">Create Account</button>
+      <p class="jm-auth-switch">Already have one? <button onclick="showSignIn()" class="jm-text-btn">Sign in</button></p>
+    </div>
+    <a href="../index.html" class="jm-back-link">← Back to Johnston Media</a>
+  </div>
+</div>
+
+<!-- ─── APP VIEW ─────────────────────────────────────── -->
+<div id="app-view" style="display:none;">
+  <aside class="jm-sidebar">
+    <div class="jm-sidebar__logo">
+      <div style="display:flex;align-items:center;gap:0.75rem;">
+        <img src="../assets/logo.png" alt="Johnston Media" style="height:32px;width:auto;" />
+        <div>
+          <div class="jm-sidebar__brand">Johnston Media</div>
+          <div class="jm-sidebar__subbrand">Client Portal</div>
+        </div>
+      </div>
+    </div>
+    <nav class="jm-sidebar__nav">
+      <button class="jm-sidebar__nav-item active" onclick="showTab('dashboard')" id="tab-dashboard">
+        <span class="nav-icon">🏠</span> Dashboard
+      </button>
+      <button class="jm-sidebar__nav-item" onclick="showTab('request-quote')" id="tab-request-quote">
+        <span class="nav-icon">✏️</span> Request a Quote
+      </button>
+      <button class="jm-sidebar__nav-item" onclick="showTab('my-quotes')" id="tab-my-quotes">
+        <span class="nav-icon">💬</span> My Quotes
+      </button>
+      <button class="jm-sidebar__nav-item" onclick="showTab('projects')" id="tab-projects">
+        <span class="nav-icon">📁</span> My Projects
+      </button>
+      <button class="jm-sidebar__nav-item" onclick="showTab('gallery')" id="tab-gallery" style="display:none;">
+        <span class="nav-icon">🖼</span> My Gallery
+      </button>
+    </nav>
+    <div class="jm-sidebar__footer">
+      <div class="jm-user-info">
+        <div class="jm-user-avatar" id="userAvatar">W</div>
+        <div>
+          <div class="jm-user-name" id="userName">Loading...</div>
+          <div class="jm-user-role" id="userRole">Prospective</div>
+        </div>
+      </div>
+      <button class="jm-btn-ghost jm-btn-sm" style="width:100%;margin-top:0.75rem;" onclick="doSignOut()">Sign Out</button>
+    </div>
+  </aside>
+
+  <main class="jm-main-content">
+
+    <!-- DASHBOARD -->
+    <div id="panel-dashboard" class="jm-panel">
+      <div class="jm-panel-header">
+        <span class="jm-eyebrow">Welcome Back</span>
+        <h1 class="jm-panel-title" id="dashWelcome">Hey there 👋</h1>
+      </div>
+      <div class="jm-dash-cards">
+        <div class="jm-dash-card">
+          <div class="jm-dash-card__icon">💬</div>
+          <div class="jm-dash-card__label">Quotes</div>
+          <div class="jm-dash-card__val" id="dashQuoteCount">0</div>
+        </div>
+        <div class="jm-dash-card">
+          <div class="jm-dash-card__icon">🔔</div>
+          <div class="jm-dash-card__label">Awaiting Action</div>
+          <div class="jm-dash-card__val" id="dashActionCount">0</div>
+        </div>
+        <div class="jm-dash-card">
+          <div class="jm-dash-card__icon">🎬</div>
+          <div class="jm-dash-card__label">Active Projects</div>
+          <div class="jm-dash-card__val" id="dashProjectCount">0</div>
+        </div>
+        <div class="jm-dash-card">
+          <div class="jm-dash-card__icon">✅</div>
+          <div class="jm-dash-card__label">Delivered</div>
+          <div class="jm-dash-card__val" id="dashDeliveredCount">0</div>
+        </div>
+      </div>
+
+      <!-- Action required banner -->
+      <div id="actionBanner" style="display:none;margin-top:2rem;">
+        <div style="background:rgba(193,90,50,0.1);border:1px solid rgba(193,90,50,0.4);border-radius:8px;padding:1.25rem 1.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
+          <div>
+            <div style="font-family:var(--font-display);color:var(--jm-white);font-size:1rem;margin-bottom:0.25rem;">You have a quote ready to review</div>
+            <div style="font-family:var(--font-body);font-size:0.8rem;color:var(--jm-slate);">Johnston Media has sent you a quote — review and accept it to get started.</div>
+          </div>
+          <button class="jm-btn-primary" onclick="showTab('my-quotes')">Review Quote →</button>
+        </div>
+      </div>
+
+      <div id="activeProjectsSection" style="margin-top:2.5rem;display:none;">
+        <h2 class="jm-sub-title">Active Projects</h2>
+        <div id="activeProjectsList"></div>
+      </div>
+      <div style="margin-top:2rem;">
+        <button class="jm-btn-primary" onclick="showTab('request-quote')">Request a Quote →</button>
+      </div>
+    </div>
+
+    <!-- REQUEST QUOTE -->
+    <div id="panel-request-quote" class="jm-panel" style="display:none;">
+      <div class="jm-panel-header">
+        <span class="jm-eyebrow">Get Started</span>
+        <h1 class="jm-panel-title">Request a Quote</h1>
+      </div>
+      <div class="jm-card" style="padding:var(--space-xl);max-width:640px;">
+        <div class="jm-form-group">
+          <label class="jm-form-label">Service Type</label>
+          <select class="jm-select" id="quoteService">
+            <option value="">Select a service...</option>
+            <option>Sports Videography</option>
+            <option>Sports Photography</option>
+            <option>Commercial Photography</option>
+            <option>Commercial Videography</option>
+            <option>Event Coverage</option>
+            <option>Aerial Photography/Videography</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="jm-form-group">
+          <label class="jm-form-label">Event / Project Name</label>
+          <input type="text" class="jm-input" id="quoteName" placeholder="e.g. Grand Final Coverage" />
+        </div>
+        <div class="jm-form-group">
+          <label class="jm-form-label">Preferred Date(s)</label>
+          <input type="text" class="jm-input" id="quoteDate" placeholder="e.g. 15 August 2025 or flexible" />
+        </div>
+        <div class="jm-form-group">
+          <label class="jm-form-label">Location</label>
+          <input type="text" class="jm-input" id="quoteLocation" placeholder="e.g. Sydney Olympic Park" />
+        </div>
+        <div class="jm-form-group">
+          <label class="jm-form-label">Budget Range</label>
+          <select class="jm-select" id="quoteBudget">
+            <option value="">Select...</option>
+            <option>Under $500</option>
+            <option>$500 – $1,000</option>
+            <option>$1,000 – $2,500</option>
+            <option>$2,500 – $5,000</option>
+            <option>$5,000+</option>
+          </select>
+        </div>
+        <div class="jm-form-group">
+          <label class="jm-form-label">Project Details</label>
+          <textarea class="jm-textarea" id="quoteDetails" rows="5" placeholder="Tell me more about what you need..."></textarea>
+        </div>
+        <button class="jm-btn-primary" style="width:100%;" onclick="submitQuote()">Submit Quote Request</button>
+      </div>
+    </div>
+
+    <!-- MY QUOTES -->
+    <div id="panel-my-quotes" class="jm-panel" style="display:none;">
+      <div class="jm-panel-header">
+        <span class="jm-eyebrow">Your Quotes</span>
+        <h1 class="jm-panel-title">My Quotes</h1>
+      </div>
+      <div id="myQuotesList">
+        <p style="color:var(--jm-slate);font-family:var(--font-body);">No quotes yet. Submit a request to get started.</p>
+      </div>
+    </div>
+
+    <!-- MY PROJECTS -->
+    <div id="panel-projects" class="jm-panel" style="display:none;">
+      <div class="jm-panel-header">
+        <span class="jm-eyebrow">Your Work</span>
+        <h1 class="jm-panel-title">My Projects</h1>
+      </div>
+      <div id="projectsList">
+        <p style="color:var(--jm-slate);font-family:var(--font-body);">No active projects yet.</p>
+      </div>
+    </div>
+
+    <!-- GALLERY -->
+    <div id="panel-gallery" class="jm-panel" style="display:none;">
+      <div class="jm-panel-header">
+        <span class="jm-eyebrow">Your Deliverables</span>
+        <h1 class="jm-panel-title">My Gallery</h1>
+      </div>
+      <div id="clientContactBox" style="display:none;margin-bottom:1.5rem;"></div>
+      <div id="galleryGrid" class="jm-gallery-grid"></div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ─── QUOTE DETAIL MODAL ───────────────────────────── -->
+<div class="jm-modal-overlay" id="quoteDetailModal">
+  <div class="jm-modal" style="max-width:600px;">
+    <div class="jm-modal-header">
+      <h2 class="jm-modal-title" id="quoteDetailTitle">Quote</h2>
+      <button class="jm-modal-close" onclick="closeModal('quoteDetailModal')">×</button>
+    </div>
+    <div id="quoteDetailBody"></div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp }    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import {
+    getFirestore, doc, getDoc, setDoc, addDoc, updateDoc,
+    collection, query, where, getDocs, orderBy
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import {
+    getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider,
+    createUserWithEmailAndPassword, signInWithEmailAndPassword,
+    signOut as fbSignOut, updateProfile
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey:            "AIzaSyCL8rfdyKUJxEgFRY2NH-V-270NL5GnXqg",
+    authDomain:        "johnston-media-website.firebaseapp.com",
+    projectId:         "johnston-media-website",
+    storageBucket:     "johnston-media-website.firebasestorage.app",
+    messagingSenderId: "603898378479",
+    appId:             "1:603898378479:web:a0312f2d7a9bcde0ec831a"
+  };
+
+  const OWNER_EMAIL   = "wjohnston.media@gmail.com";
+  const PROJECT_STAGES = ['Planning', 'Shooting', 'Editing', 'Delivering', 'Delivered'];
+
+  const app  = initializeApp(firebaseConfig);
+  const db   = getFirestore(app);
+  const auth = getAuth(app);
+
+  let currentUser    = null;
+  let currentProfile = null;
+
+  // ─── Auth state ───────────────────────────────────────
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      currentUser = user;
+      await ensureUserProfile(user);
+      document.getElementById('login-view').style.display = 'none';
+      document.getElementById('app-view').style.display  = 'flex';
+      await loadDashboard();
+    } else {
+      document.getElementById('login-view').style.display = 'flex';
+      document.getElementById('app-view').style.display   = 'none';
+    }
+  });
+
+  async function ensureUserProfile(user) {
+    const ref  = doc(db, 'users', user.uid);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) {
+      const role = user.email === OWNER_EMAIL ? 'Owner' : 'Prospective';
+      await setDoc(ref, {
+        uid: user.uid, name: user.displayName || '',
+        email: user.email, phone: '', role,
+        createdAt: new Date().toISOString(), blocked: false
+      });
+    }
+    const fresh = await getDoc(ref);
+    currentProfile = fresh.data();
+    if (currentProfile.blocked) { await fbSignOut(auth); showToast('Your account has been blocked.', 'error'); return; }
+
+    const name = currentProfile.name || user.displayName || user.email;
+    document.getElementById('userName').textContent    = name;
+    document.getElementById('userRole').textContent    = currentProfile.role;
+    document.getElementById('userAvatar').textContent  = name.charAt(0).toUpperCase();
+    document.getElementById('dashWelcome').textContent = `Hey, ${name.split(' ')[0]} 👋`;
+
+    if (['Client','Admin','Master Admin','Owner'].includes(currentProfile.role)) {
+      document.getElementById('tab-gallery').style.display = 'flex';
+    }
+  }
+
+  // ─── Dashboard ────────────────────────────────────────
+  async function loadDashboard() {
+    const uid    = currentUser.uid;
+    const quotes   = await getMyDocs('quotes', uid);
+    const projects = await getMyDocs('projects', uid);
+    const active   = projects.filter(p => p.status !== 'Delivered');
+    const delivered = projects.filter(p => p.status === 'Delivered');
+    // Quotes that have been priced by admin and are awaiting client action
+    const awaitingAction = quotes.filter(q => q.status === 'Sent');
+
+    document.getElementById('dashQuoteCount').textContent    = quotes.length;
+    document.getElementById('dashActionCount').textContent   = awaitingAction.length;
+    document.getElementById('dashProjectCount').textContent  = active.length;
+    document.getElementById('dashDeliveredCount').textContent = delivered.length;
+
+    // Show action banner if there's a quote waiting
+    document.getElementById('actionBanner').style.display = awaitingAction.length > 0 ? 'block' : 'none';
+
+    if (active.length > 0) {
+      document.getElementById('activeProjectsSection').style.display = 'block';
+      renderProjectCards(active, 'activeProjectsList');
+    }
+  }
+
+  async function getMyDocs(col, uid) {
+    try {
+      const q    = query(collection(db, col), where('clientId', '==', uid));
+      const snap = await getDocs(q);
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch { return []; }
+  }
+
+  // ─── Quotes tab ───────────────────────────────────────
+  async function loadMyQuotes() {
+    const quotes = await getMyDocs('quotes', currentUser.uid);
+    const list   = document.getElementById('myQuotesList');
+    list.innerHTML = '';
+
+    if (!quotes.length) {
+      list.innerHTML = '<p style="color:var(--jm-slate);font-family:var(--font-body);">No quotes yet. Submit a request to get started.</p>';
+      return;
+    }
+
+    // Sort newest first
+    quotes.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    quotes.forEach(q => {
+      const isSent     = q.status === 'Sent';     // Admin has sent a priced quote back
+      const isAccepted = q.status === 'Accepted'; // Client accepted, waiting admin approval
+      const isApproved = q.status === 'Approved'; // Fully approved, project created
+      const isPending  = q.status === 'Pending';  // Client submitted, waiting for Will
+
+      const card = document.createElement('div');
+      card.className = 'jm-card';
+      card.style.padding = 'var(--space-lg)';
+      card.style.marginBottom = 'var(--space-md)';
+      card.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;margin-bottom:1rem;">
+          <div>
+            <div style="font-family:var(--font-display);font-size:1.1rem;color:var(--jm-white);margin-bottom:0.25rem;">${q.name || 'Quote Request'}</div>
+            <div style="font-family:var(--font-body);font-size:0.78rem;color:var(--jm-slate);">${q.serviceType} · Submitted ${new Date(q.createdAt).toLocaleDateString('en-AU')}</div>
+          </div>
+          <span class="jm-badge jm-badge--${isSent ? 'active' : isApproved ? 'complete' : isPending ? 'pending' : 'client'}">
+            ${isSent ? '💰 Quote Ready' : isAccepted ? '⏳ Awaiting Approval' : isApproved ? '✅ Approved' : '⏳ Under Review'}
+          </span>
+        </div>
+
+        ${isSent && q.quotedPrice ? `
+          <div style="background:rgba(31,111,136,0.1);border:1px solid rgba(31,111,136,0.3);border-radius:8px;padding:1.25rem;margin-bottom:1rem;">
+            <div style="font-family:var(--font-body);font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--jm-teal);margin-bottom:0.5rem;">Quote from Johnston Media</div>
+            <div style="font-family:var(--font-display);font-size:2rem;color:var(--jm-white);margin-bottom:0.5rem;">$${Number(q.quotedPrice).toLocaleString()}</div>
+            ${q.quoteNote ? `<div style="font-family:var(--font-body);font-size:0.85rem;color:var(--jm-muted);line-height:1.7;">${q.quoteNote}</div>` : ''}
+          </div>
+          <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+            <button class="jm-btn-primary" onclick="acceptQuote('${q.id}')">Accept Quote</button>
+            <button class="jm-btn-ghost" onclick="openQuoteDetail('${q.id}')">View Details</button>
+          </div>
+        ` : `
+          <button class="jm-btn-ghost jm-btn-sm" onclick="openQuoteDetail('${q.id}')">View Details</button>
+        `}
+
+        ${isAccepted ? `
+          <div style="font-family:var(--font-body);font-size:0.82rem;color:var(--jm-slate);margin-top:0.75rem;">
+            You've accepted this quote — waiting on Johnston Media to confirm and create your project.
+          </div>` : ''}
+
+        ${isApproved ? `
+          <div style="font-family:var(--font-body);font-size:0.82rem;color:var(--jm-teal);margin-top:0.75rem;">
+            ✓ Project created — check My Projects to track progress.
+          </div>` : ''}`;
+      list.appendChild(card);
+    });
+  }
+
+  window.acceptQuote = async function(quoteId) {
+    if (!confirm('Accept this quote? Johnston Media will be notified to confirm your project.')) return;
+    try {
+      await updateDoc(doc(db, 'quotes', quoteId), {
+        status: 'Accepted',
+        acceptedAt: new Date().toISOString()
+      });
+      showToast('Quote accepted! Johnston Media will be in touch to confirm.');
+      await loadMyQuotes();
+      await loadDashboard();
+    } catch(e) { showToast('Failed to accept. Try again.', 'error'); }
+  };
+
+  window.openQuoteDetail = async function(quoteId) {
+    const snap = await getDoc(doc(db, 'quotes', quoteId));
+    if (!snap.exists()) return;
+    const q = snap.data();
+    document.getElementById('quoteDetailTitle').textContent = q.name || 'Quote Details';
+    document.getElementById('quoteDetailBody').innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1.5rem;">
+        ${[['Service', q.serviceType], ['Date', q.date||'—'], ['Location', q.location||'—'], ['Budget', q.budget||'—']].map(([l,v]) => `
+          <div style="background:rgba(255,255,255,0.03);border-radius:6px;padding:0.75rem;">
+            <div style="font-family:var(--font-body);font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--jm-slate);margin-bottom:0.25rem;">${l}</div>
+            <div style="font-family:var(--font-body);font-size:0.88rem;color:var(--jm-lightgrey);">${v}</div>
+          </div>`).join('')}
+      </div>
+      <div style="margin-bottom:1.5rem;">
+        <div style="font-family:var(--font-body);font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--jm-slate);margin-bottom:0.5rem;">Project Details</div>
+        <div style="font-family:var(--font-body);font-size:0.88rem;color:var(--jm-lightgrey);line-height:1.7;">${q.details}</div>
+      </div>
+      ${q.quotedPrice ? `
+        <div style="background:rgba(31,111,136,0.1);border:1px solid rgba(31,111,136,0.3);border-radius:8px;padding:1.25rem;margin-bottom:1.5rem;">
+          <div style="font-family:var(--font-body);font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--jm-teal);margin-bottom:0.5rem;">Quoted Price</div>
+          <div style="font-family:var(--font-display);font-size:1.75rem;color:var(--jm-white);">$${Number(q.quotedPrice).toLocaleString()}</div>
+          ${q.quoteNote ? `<div style="font-family:var(--font-body);font-size:0.82rem;color:var(--jm-muted);margin-top:0.5rem;">${q.quoteNote}</div>` : ''}
+        </div>` : ''}
+      <div style="display:flex;justify-content:flex-end;">
+        <button class="jm-btn-ghost" onclick="closeModal('quoteDetailModal')">Close</button>
+      </div>`;
+    document.getElementById('quoteDetailModal').classList.add('active');
+  };
+
+  // ─── Projects ─────────────────────────────────────────
+  async function loadMyProjects() {
+    const projects = await getMyDocs('projects', currentUser.uid);
+    const list     = document.getElementById('projectsList');
+    if (!projects.length) {
+      list.innerHTML = '<p style="color:var(--jm-slate);font-family:var(--font-body);">No active projects yet.</p>';
+      return;
+    }
+    renderProjectCards(projects, 'projectsList');
+  }
+
+  function renderProjectCards(projects, containerId) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = '';
+    projects.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+    projects.forEach(proj => {
+      const stageIdx = Math.max(0, PROJECT_STAGES.indexOf(proj.status));
+      const card     = document.createElement('div');
+      card.className = 'jm-project-card jm-card';
+      card.innerHTML = `
+        <div class="jm-project-card__header">
+          <div>
+            <div class="jm-project-card__name">${proj.name || 'Untitled Project'}</div>
+            <div class="jm-project-card__type">${proj.serviceType || ''}</div>
+          </div>
+          <span class="jm-badge jm-badge--${proj.status === 'Delivered' ? 'complete' : 'active'}">${proj.status}</span>
+        </div>
+        <div class="jm-timeline">
+          ${PROJECT_STAGES.map((s, i) => `
+            <div class="jm-timeline__step ${i <= stageIdx ? 'done' : ''} ${i === stageIdx ? 'current' : ''}">
+              <div class="jm-timeline__dot"></div>
+              <div class="jm-timeline__label">${s}</div>
+            </div>`).join('')}
+        </div>`;
+      container.appendChild(card);
+    });
+  }
+
+  // ─── Gallery ──────────────────────────────────────────
+  async function loadGallery() {
+    try {
+      const snap = await getDoc(doc(db, 'settings', 'site'));
+      if (snap.exists() && snap.data().secondaryEmail) {
+        const box = document.getElementById('clientContactBox');
+        box.style.display = 'block';
+        box.innerHTML = `<div style="background:rgba(193,90,50,0.08);border:1px solid rgba(193,90,50,0.25);border-radius:8px;padding:1rem 1.25rem;font-family:var(--font-body);font-size:0.85rem;color:var(--jm-lightgrey);">Need help? Contact Will directly at <a href="mailto:${snap.data().secondaryEmail}" style="color:var(--jm-copper);">${snap.data().secondaryEmail}</a></div>`;
+      }
+    } catch {}
+
+    const projects  = await getMyDocs('projects', currentUser.uid);
+    const delivered = projects.filter(p => p.status === 'Delivered');
+    const grid      = document.getElementById('galleryGrid');
+    grid.innerHTML  = '';
+
+    if (!delivered.length) {
+      grid.innerHTML = '<p style="color:var(--jm-slate);font-family:var(--font-body);">No delivered files yet. Check back when your project is complete.</p>';
+      return;
+    }
+    for (const proj of delivered) {
+      if (!proj.files?.length) continue;
+      const section   = document.createElement('div');
+      section.style.marginBottom = '3rem';
+      section.innerHTML = `<h3 style="font-family:var(--font-display);color:var(--jm-white);margin-bottom:1.5rem;">${proj.name}</h3>`;
+      const filesGrid = document.createElement('div');
+      filesGrid.className = 'jm-files-grid';
+      proj.files.forEach(file => {
+        const isVideo = file.type?.startsWith('video') || file.url?.match(/\.(mp4|mov|webm)/i);
+        const card    = document.createElement('div');
+        card.className = 'jm-file-card';
+        card.innerHTML = `
+          <div class="jm-file-thumb">
+            ${isVideo
+              ? `<video src="${file.url}" style="width:100%;height:100%;object-fit:cover;" muted></video><div class="jm-play-icon" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:44px;height:44px;background:rgba(31,111,136,0.8);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;">▶</div>`
+              : `<img src="${file.url}" alt="${file.name}" style="width:100%;height:100%;object-fit:cover;" />`}
+          </div>
+          <div class="jm-file-info">
+            <div class="jm-file-name">${file.name || 'File'}</div>
+            <a href="${file.url}" download target="_blank" class="jm-btn-primary jm-btn-sm">Download</a>
+          </div>`;
+        filesGrid.appendChild(card);
+      });
+      section.appendChild(filesGrid);
+      grid.appendChild(section);
+    }
+  }
+
+  // ─── Auth ─────────────────────────────────────────────
+  window.signInGoogle = async function() {
+    try { await signInWithPopup(auth, new GoogleAuthProvider()); }
+    catch(e) { showToast('Sign-in failed. Please try again.', 'error'); }
+  };
+
+  window.signInEmail = async function() {
+    const email = document.getElementById('authEmail').value.trim();
+    const pass  = document.getElementById('authPassword').value;
+    if (!email || !pass) { showToast('Enter email and password.', 'error'); return; }
+    try { await signInWithEmailAndPassword(auth, email, pass); }
+    catch(e) { showToast('Sign-in failed: ' + e.message, 'error'); }
+  };
+
+  window.signUpEmail = async function() {
+    const name  = document.getElementById('signupName').value.trim();
+    const email = document.getElementById('signupEmail').value.trim();
+    const phone = document.getElementById('signupPhone').value.trim();
+    const pass  = document.getElementById('signupPassword').value;
+    if (!name || !email || !phone || !pass) { showToast('Please fill all fields.', 'error'); return; }
+    if (pass.length < 8) { showToast('Password must be at least 8 characters.', 'error'); return; }
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, email, pass);
+      await updateProfile(cred.user, { displayName: name });
+      await setDoc(doc(db, 'users', cred.user.uid), {
+        uid: cred.user.uid, name, email, phone,
+        role: 'Prospective', createdAt: new Date().toISOString(), blocked: false
+      });
+    } catch(e) { showToast('Sign-up failed: ' + e.message, 'error'); }
+  };
+
+  window.doSignOut = async function() { await fbSignOut(auth); };
+
+  // ─── Quote submission ─────────────────────────────────
+  window.submitQuote = async function() {
+    const service  = document.getElementById('quoteService').value;
+    const name     = document.getElementById('quoteName').value.trim();
+    const date     = document.getElementById('quoteDate').value.trim();
+    const location = document.getElementById('quoteLocation').value.trim();
+    const budget   = document.getElementById('quoteBudget').value;
+    const details  = document.getElementById('quoteDetails').value.trim();
+    if (!service || !name || !details) { showToast('Please fill in required fields.', 'error'); return; }
+    try {
+      await addDoc(collection(db, 'quotes'), {
+        clientId:    currentUser.uid,
+        clientName:  currentProfile.name || currentUser.displayName || '',
+        clientEmail: currentUser.email,
+        clientPhone: currentProfile.phone || '',
+        serviceType: service,
+        name, date, location, budget, details,
+        status: 'Pending',
+        createdAt: new Date().toISOString()
+      });
+      showToast('Quote request submitted! Will will be in touch soon.');
+      // Clear form
+      ['quoteService','quoteName','quoteDate','quoteLocation','quoteBudget','quoteDetails'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.value = '';
+      });
+      showTab('my-quotes');
+    } catch(e) { showToast('Failed to submit: ' + e.message, 'error'); }
+  };
+
+  // ─── Tab nav ──────────────────────────────────────────
+  window.showTab = function(tab) {
+    document.querySelectorAll('.jm-panel').forEach(p => p.style.display = 'none');
+    document.querySelectorAll('.jm-sidebar__nav-item').forEach(b => b.classList.remove('active'));
+    document.getElementById('panel-' + tab).style.display = 'block';
+    document.getElementById('tab-' + tab)?.classList.add('active');
+    if (tab === 'my-quotes')  loadMyQuotes();
+    if (tab === 'projects')   loadMyProjects();
+    if (tab === 'gallery')    loadGallery();
+    if (tab === 'dashboard')  loadDashboard();
+  };
+
+  window.closeModal = (id) => document.getElementById(id).classList.remove('active');
+  document.querySelectorAll('.jm-modal-overlay').forEach(m => {
+    m.addEventListener('click', e => { if (e.target === m) m.classList.remove('active'); });
+  });
+
+  function showToast(msg, type = 'success') {
+    const t = document.createElement('div');
+    t.className = `jm-toast jm-toast--${type}`;
+    t.textContent = msg;
+    document.body.appendChild(t);
+    requestAnimationFrame(() => t.classList.add('jm-toast--visible'));
+    setTimeout(() => { t.classList.remove('jm-toast--visible'); setTimeout(() => t.remove(), 300); }, 3500);
+  }
+</script>
+
+<script>
+  function showSignUp() { document.getElementById('emailSignIn').style.display='none'; document.getElementById('emailSignUp').style.display='block'; }
+  function showSignIn()  { document.getElementById('emailSignUp').style.display='none'; document.getElementById('emailSignIn').style.display='block'; }
+</script>
+</body>
+</html>

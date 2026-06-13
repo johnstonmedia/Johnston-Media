@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — Johnston Media</title>
+  <link rel="stylesheet" href="../css/brand.css" />
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body style="background:#000000;">
+
+<!-- ─── LOGIN VIEW ──────────────────────────────────── -->
+<div id="login-view" class="jm-auth-screen">
+  <div class="jm-auth-card">
+    <img src="../assets/logo.png" alt="Johnston Media" style="height:52px;width:auto;margin:0 auto 0.5rem;" />
+    <h2>Admin Access</h2>
+    <p>Johnston Media administration portal. Authorised personnel only.</p>
+    <button class="jm-google-btn" onclick="signInGoogle()">
+      <svg width="18" height="18" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+      Sign in with Google
+    </button>
+    <p style="margin-top:var(--space-lg);font-size:var(--text-xs);color:var(--jm-slate);font-family:var(--font-body);">Access restricted to authorised administrators.</p>
+    <a href="../index.html" style="display:block;margin-top:var(--space-md);color:var(--jm-slate);font-family:var(--font-body);font-size:var(--text-sm);text-align:center;text-decoration:none;">← Back to site</a>
+  </div>
+</div>
+
+<!-- ─── APP VIEW ─────────────────────────────────────── -->
+<div id="app-view" style="display:none;">
+  <aside class="jm-sidebar">
+    <div class="jm-sidebar__logo">
+      <div style="display:flex;align-items:center;gap:0.75rem;">
+        <img src="../assets/logo.png" alt="Johnston Media" style="height:32px;width:auto;" />
+        <div>
+          <div class="jm-sidebar__brand">Johnston Media</div>
+          <div class="jm-sidebar__subbrand" id="adminRoleLabel">Admin Panel</div>
+        </div>
+      </div>
+    </div>
+    <nav class="jm-sidebar__nav" id="adminNav">
+      <button class="jm-sidebar__nav-item active" onclick="showTab('dashboard')" id="tab-dashboard" data-perm="all">
+        <span class="nav-icon">📊</span> Dashboard
+      </button>
+      <button class="jm-sidebar__nav-item" onclick="showTab('homepage')" id="tab-homepage" data-perm="editHomepage">
+        <span class="nav-icon">🌐</span> Homepage
+      </button>
+      <button class="jm-sidebar__nav-item" onclick="showTab('quotes')" id="tab-quotes" data-perm="all">
+        <span class="nav-icon">💬</span> Quotes
+      </button>
+      <button class="jm-sidebar__nav-item" onclick="showTab('clients')" id="tab-clients" data-perm="all">
+        <span class="nav-icon">👥</span> Clients
+      </button>
+      <button class="jm-sidebar__nav-item" onclick="showTab('messages')" id="tab-messages" data-perm="all">
+        <span class="nav-icon">✉️</span> Messages
+      </button>
+      <button class="jm-sidebar__nav-item" onclick="showTab('users')" id="tab-users" data-perm="all">
+        <span class="nav-icon">🔐</span> Users
+      </button>
+    </nav>
+    <div class="jm-sidebar__footer">
+      <div class="jm-user-info">
+        <div class="jm-user-avatar" id="adminAvatar">A</div>
+        <div>
+          <div class="jm-user-name" id="adminName">Loading...</div>
+          <div class="jm-user-role" id="adminRoleBadge">Admin</div>
+        </div>
+      </div>
+      <button class="jm-btn-ghost jm-btn-sm" style="width:100%;margin-top:0.75rem;" onclick="doSignOut()">Sign Out</button>
+    </div>
+  </aside>
+
+  <main class="jm-main-content" id="adminMainContent">
+
+    <!-- DASHBOARD -->
+    <div id="panel-dashboard" class="jm-panel">
+      <div class="jm-panel-header">
+        <span class="jm-eyebrow">Overview</span>
+        <h1 class="jm-panel-title">Dashboard</h1>
+      </div>
+      <div class="jm-dash-cards">
+        <div class="jm-dash-card"><div class="jm-dash-card__icon">💬</div><div class="jm-dash-card__label">Pending Quotes</div><div class="jm-dash-card__val" id="dPendingQ">—</div></div>
+        <div class="jm-dash-card"><div class="jm-dash-card__icon">🎬</div><div class="jm-dash-card__label">Active Projects</div><div class="jm-dash-card__val" id="dActiveP">—</div></div>
+        <div class="jm-dash-card"><div class="jm-dash-card__icon">✉️</div><div class="jm-dash-card__label">Unread Messages</div><div class="jm-dash-card__val" id="dUnreadM">—</div></div>
+        <div class="jm-dash-card"><div class="jm-dash-card__icon">👥</div><div class="jm-dash-card__label">Total Clients</div><div class="jm-dash-card__val" id="dClients">—</div></div>
+      </div>
+    </div>
+
+    <!-- HOMEPAGE -->
+    <div id="panel-homepage" class="jm-panel" style="display:none;">
+      <div class="jm-panel-header">
+        <span class="jm-eyebrow">Site Customisation</span>
+        <h1 class="jm-panel-title">Homepage & Settings</h1>
+      </div>
+      <div class="jm-admin-grid">
+        <!-- Hero Section -->
+        <div class="jm-admin-section">
+          <h2 class="jm-admin-section-title">Hero Section</h2>
+          <div class="jm-form-group"><label class="jm-form-label">Eyebrow Text</label><input class="jm-input" id="sHeroEyebrow" placeholder="e.g. Sydney · NSW · Australia"/></div>
+          <div class="jm-form-group"><label class="jm-form-label">Hero Title (HTML allowed for line breaks)</label><input class="jm-input" id="sHeroTitle" placeholder="Cinematic Stories&lt;br/&gt;Built to Last"/></div>
+          <div class="jm-form-group"><label class="jm-form-label">Hero Subtitle</label><input class="jm-input" id="sHeroSubtitle" placeholder="Sports · Commercial · Events"/></div>
+          <div class="jm-form-group">
+            <label class="jm-form-label">Hero Video</label>
+            <input type="file" class="jm-input" id="heroVideoFile" accept="video/*" />
+            <p class="jm-form-hint">Upload a video file above, or paste a direct URL below:</p>
+            <input class="jm-input" id="sHeroVideoUrl" placeholder="https://..." style="margin-top:0.5rem;"/>
+            <p id="heroVideoSavedHint" style="display:none;margin-top:0.5rem;font-family:var(--font-body);font-size:0.72rem;color:var(--jm-teal);word-break:break-all;"></p>
+          </div>
+        </div>
+        <!-- Portfolio -->
+        <div class="jm-admin-section">
+          <h2 class="jm-admin-section-title">Portfolio</h2>
+          <div class="jm-form-group">
+            <label class="jm-form-label">Category</label>
+            <select class="jm-select" id="portfolioCategory">
+              <option value="sports-video">Sports Videography</option>
+              <option value="sports-photo">Sports Photography</option>
+              <option value="commercial">Commercial</option>
+            </select>
+          </div>
+          <div class="jm-form-group"><label class="jm-form-label">Title</label><input class="jm-input" id="portfolioItemTitle" placeholder="Item title"/></div>
+          <div class="jm-form-group">
+            <label class="jm-form-label">Upload Image / Video</label>
+            <input type="file" class="jm-input" id="portfolioFile" accept="image/*,video/*" />
+          </div>
+          <div class="jm-form-group"><label class="jm-form-label">Or enter URL directly</label><input class="jm-input" id="portfolioUrl" placeholder="https://..."/></div>
+          <button class="jm-btn-primary" onclick="addPortfolioItem()">Add to Portfolio</button>
+          <div id="portfolioList" style="margin-top:var(--space-lg);"></div>
+        </div>
+        <!-- About -->
+        <div class="jm-admin-section">
+          <h2 class="jm-admin-section-title">About Section</h2>
+          <div class="jm-form-group"><label class="jm-form-label">Pull Quote</label><input class="jm-input" id="sAboutTitle" placeholder="&quot;Every frame is a decision.&quot;"/></div>
+          <div class="jm-form-group"><label class="jm-form-label">About Text</label><textarea class="jm-textarea" id="sAboutText" rows="4"></textarea></div>
+        </div>
+        <!-- Contact & Social -->
+        <div class="jm-admin-section">
+          <h2 class="jm-admin-section-title">Contact & Social</h2>
+          <div class="jm-form-group"><label class="jm-form-label">Primary Email (shown publicly)</label><input class="jm-input" id="sPrimaryEmail" type="email"/></div>
+          <div class="jm-form-group"><label class="jm-form-label">Secondary Email (shown to clients)</label><input class="jm-input" id="sSecondaryEmail" type="email"/></div>
+          <div class="jm-form-group"><label class="jm-form-label">Instagram URL</label><input class="jm-input" id="sIgUrl" placeholder="https://instagram.com/..."/></div>
+          <div class="jm-form-group"><label class="jm-form-label">TikTok URL</label><input class="jm-input" id="sTtUrl" placeholder="https://tiktok.com/@..."/></div>
+          <div class="jm-form-group"><label class="jm-form-label">YouTube URL</label><input class="jm-input" id="sYtUrl" placeholder="https://youtube.com/..."/></div>
+        </div>
+        <!-- Footer -->
+        <div class="jm-admin-section">
+          <h2 class="jm-admin-section-title">Footer</h2>
+          <div class="jm-form-group"><label class="jm-form-label">Footer Note / Copyright Line</label><input class="jm-input" id="sFooterNote" placeholder="e.g. ABN 12 345 678 901"/></div>
+        </div>
+      </div>
+      <div style="margin-top:var(--space-xl);">
+        <button class="jm-btn-primary" onclick="saveSiteSettings()">Save All Settings</button>
+      </div>
+    </div>
+
+    <!-- QUOTES -->
+    <div id="panel-quotes" class="jm-panel" style="display:none;">
+      <div class="jm-panel-header">
+        <span class="jm-eyebrow">Inbound Requests</span>
+        <h1 class="jm-panel-title">Quotes</h1>
+      </div>
+      <div class="jm-tabs-bar">
+        <button class="jm-tab-btn active" onclick="filterQuotes('all', this)">All</button>
+        <button class="jm-tab-btn" onclick="filterQuotes('Pending', this)">Pending</button>
+        <button class="jm-tab-btn" onclick="filterQuotes('Sent', this)">Sent</button>
+        <button class="jm-tab-btn" onclick="filterQuotes('Accepted', this)">Accepted</button>
+        <button class="jm-tab-btn" onclick="filterQuotes('Approved', this)">Approved</button>
+      </div>
+      <div id="quotesList"></div>
+    </div>
+
+    <!-- CLIENTS -->
+    <div id="panel-clients" class="jm-panel" style="display:none;">
+      <div class="jm-panel-header">
+        <span class="jm-eyebrow">Manage</span>
+        <h1 class="jm-panel-title">Clients</h1>
+      </div>
+      <div class="jm-tabs-bar">
+        <button class="jm-tab-btn active" onclick="filterClients('current', this)">Current</button>
+        <button class="jm-tab-btn" onclick="filterClients('past', this)">Past</button>
+      </div>
+      <div id="clientsList"></div>
+    </div>
+
+    <!-- MESSAGES -->
+    <div id="panel-messages" class="jm-panel" style="display:none;">
+      <div class="jm-panel-header">
+        <span class="jm-eyebrow">Contact Form</span>
+        <h1 class="jm-panel-title">Messages</h1>
+      </div>
+      <div id="messagesList"></div>
+    </div>
+
+    <!-- USERS -->
+    <div id="panel-users" class="jm-panel" style="display:none;">
+      <div class="jm-panel-header">
+        <span class="jm-eyebrow">Access Control</span>
+        <h1 class="jm-panel-title">Users</h1>
+      </div>
+      <div id="usersList"></div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ─── QUOTE MODAL ──────────────────────────────────── -->
+<div class="jm-modal-overlay" id="quoteModal">
+  <div class="jm-modal">
+    <div class="jm-modal-header">
+      <h2 class="jm-modal-title" id="quoteModalTitle">Quote Details</h2>
+      <button class="jm-modal-close" onclick="closeModal('quoteModal')">×</button>
+    </div>
+    <div id="quoteModalBody"></div>
+  </div>
+</div>
+
+<!-- ─── PROJECT MODAL ────────────────────────────────── -->
+<div class="jm-modal-overlay" id="projectModal">
+  <div class="jm-modal" style="max-width:700px;">
+    <div class="jm-modal-header">
+      <h2 class="jm-modal-title" id="projectModalTitle">Project</h2>
+      <button class="jm-modal-close" onclick="closeModal('projectModal')">×</button>
+    </div>
+    <div id="projectModalBody"></div>
+  </div>
+</div>
+
+<!-- ─── ADMIN PERMS MODAL ────────────────────────────── -->
+<div class="jm-modal-overlay" id="permsModal">
+  <div class="jm-modal">
+    <div class="jm-modal-header">
+      <h2 class="jm-modal-title">Admin Permissions</h2>
+      <button class="jm-modal-close" onclick="closeModal('permsModal')">×</button>
+    </div>
+    <div id="permsModalBody"></div>
+  </div>
+</div>
+
+<!-- 🔥 FIREBASE: SDK -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import {
+    getFirestore, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc,
+    collection, query, where, getDocs, orderBy, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import {
+    getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut as fbSignOut
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import {
+    getStorage, ref, uploadBytes, getDownloadURL
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+
+  const firebaseConfig = {
+    apiKey:            "AIzaSyCL8rfdyKUJxEgFRY2NH-V-270NL5GnXqg",
+    authDomain:        "johnston-media-website.firebaseapp.com",
+    projectId:         "johnston-media-website",
+    storageBucket:     "johnston-media-website.firebasestorage.app",
+    messagingSenderId: "603898378479",
+    appId:             "1:603898378479:web:a0312f2d7a9bcde0ec831a"
+  };
+  const OWNER_EMAIL = "wjohnston.media@gmail.com";
+  const ADMIN_ROLES = ['Admin', 'Master Admin', 'Owner'];
+  const PROJECT_STAGES = ['Planning', 'Shooting', 'Editing', 'Delivering', 'Delivered'];
+
+  const app     = initializeApp(firebaseConfig);
+  const db      = getFirestore(app);
+  const auth    = getAuth(app);
+  const storage = getStorage(app);
+
+  let currentUser    = null;
+  let currentProfile = null;
+  let allQuotes      = [];
+  let allClients     = [];
+
+  // 🔥 FIREBASE: Auth gate
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      const ref = doc(db, 'users', user.uid);
+      const snap = await getDoc(ref);
+      if (!snap.exists() || !ADMIN_ROLES.includes(snap.data().role)) {
+        await fbSignOut(auth);
+        showToast('Access denied. Admin accounts only.', 'error');
+        return;
+      }
+      currentUser    = user;
+      currentProfile = snap.data();
+      document.getElementById('login-view').style.display = 'none';
+      document.getElementById('app-view').style.display   = 'flex';
+      setupAdminUI();
+      loadDashboard();
+    } else {
+      document.getElementById('login-view').style.display = 'flex';
+      document.getElementById('app-view').style.display   = 'none';
+    }
+  });
+
+  function setupAdminUI() {
+    const name = currentProfile.name || currentUser.displayName || currentUser.email;
+    document.getElementById('adminName').textContent    = name;
+    document.getElementById('adminAvatar').textContent  = name.charAt(0).toUpperCase();
+    document.getElementById('adminRoleBadge').textContent  = currentProfile.role;
+    document.getElementById('adminRoleLabel').textContent  = currentProfile.role;
+
+    // Hide homepage tab for admin unless they have permission
+    const role = currentProfile.role;
+    const perms = currentProfile.permissions || {};
+    const isOwnerOrMaster = role === 'Owner' || role === 'Master Admin';
+
+    if (!isOwnerOrMaster && !perms.editHomepage) {
+      document.getElementById('tab-homepage').style.display = 'none';
+    }
+    if (!isOwnerOrMaster && !perms.blockDeleteUsers) {
+      // Flag for later use
+      window._canBlockDelete = false;
+    } else {
+      window._canBlockDelete = true;
+    }
+  }
+
+  // ─── Dashboard ──────────────────────────────────────
+  async function loadDashboard() {
+    const [qSnap, pSnap, mSnap, uSnap] = await Promise.all([
+      getDocs(query(collection(db, 'quotes'),   where('status', '==', 'Pending'))),
+      getDocs(query(collection(db, 'projects'), where('status', '!=', 'Delivered'))),
+      getDocs(query(collection(db, 'messages'), where('read', '==', false))),
+      getDocs(query(collection(db, 'users'),    where('role', '==', 'Client')))
+    ]).catch(() => [null,null,null,null]);
+    document.getElementById('dPendingQ').textContent = qSnap?.size ?? '—';
+    document.getElementById('dActiveP').textContent  = pSnap?.size ?? '—';
+    document.getElementById('dUnreadM').textContent  = mSnap?.size ?? '—';
+    document.getElementById('dClients').textContent  = uSnap?.size ?? '—';
+  }
+
+  // ─── Site Settings ───────────────────────────────────
+  async function loadSiteSettings() {
+    try {
+      const snap = await getDoc(doc(db, 'settings', 'site'));
+      if (!snap.exists()) return;
+      const s = snap.data();
+      document.getElementById('sHeroEyebrow').value   = s.heroEyebrow   || '';
+      document.getElementById('sHeroTitle').value     = s.heroTitle     || '';
+      document.getElementById('sHeroSubtitle').value  = s.heroSubtitle  || '';
+      document.getElementById('sHeroVideoUrl').value  = s.heroVideoUrl  || '';
+      document.getElementById('sAboutTitle').value    = s.aboutTitle    || '';
+      document.getElementById('sAboutText').value     = s.aboutText     || '';
+      document.getElementById('sPrimaryEmail').value  = s.primaryEmail  || '';
+      document.getElementById('sSecondaryEmail').value = s.secondaryEmail || '';
+      document.getElementById('sIgUrl').value         = s.igUrl         || '';
+      document.getElementById('sTtUrl').value         = s.ttUrl         || '';
+      document.getElementById('sYtUrl').value         = s.ytUrl         || '';
+      document.getElementById('sFooterNote').value    = s.footerNote    || '';
+    } catch(e) { console.log('Settings load error:', e); }
+  }
+
+  window.saveSiteSettings = async function() {
+    const btn = document.querySelector('[onclick="saveSiteSettings()"]');
+    if (btn) { btn.textContent = 'Saving...'; btn.disabled = true; }
+
+    try {
+      // ── Hero video: upload file if selected, else keep existing URL ──
+      const videoFile      = document.getElementById('heroVideoFile').files[0];
+      const manualUrl      = document.getElementById('sHeroVideoUrl').value.trim();
+      let   heroVideoUrl   = manualUrl;
+
+      if (videoFile) {
+        showToast('Uploading hero video — please wait...');
+        heroVideoUrl = await uploadFile(videoFile, 'hero');
+        document.getElementById('sHeroVideoUrl').value = heroVideoUrl;
+        showToast('Video uploaded successfully!');
+      }
+
+      // ── If neither a new file nor a manual URL was provided,
+      //    read the existing value from Firestore so we don't wipe it ──
+      if (!heroVideoUrl) {
+        const existing = await getDoc(doc(db, 'settings', 'site'));
+        if (existing.exists()) heroVideoUrl = existing.data().heroVideoUrl || '';
+      }
+
+      const settings = {
+        heroEyebrow:    document.getElementById('sHeroEyebrow').value.trim(),
+        heroTitle:      document.getElementById('sHeroTitle').value.trim(),
+        heroSubtitle:   document.getElementById('sHeroSubtitle').value.trim(),
+        heroVideoUrl,
+        aboutTitle:     document.getElementById('sAboutTitle').value.trim(),
+        aboutText:      document.getElementById('sAboutText').value.trim(),
+        primaryEmail:   document.getElementById('sPrimaryEmail').value.trim(),
+        secondaryEmail: document.getElementById('sSecondaryEmail').value.trim(),
+        igUrl:          document.getElementById('sIgUrl').value.trim(),
+        ttUrl:          document.getElementById('sTtUrl').value.trim(),
+        ytUrl:          document.getElementById('sYtUrl').value.trim(),
+        footerNote:     document.getElementById('sFooterNote').value.trim(),
+        updatedAt:      new Date().toISOString()
+      };
+
+      await setDoc(doc(db, 'settings', 'site'), settings, { merge: true });
+      showToast('✓ Settings saved — homepage updated.');
+
+      // Show the saved video URL so you can confirm it's there
+      if (heroVideoUrl) {
+        document.getElementById('sHeroVideoUrl').value = heroVideoUrl;
+        const hint = document.getElementById('heroVideoSavedHint');
+        if (hint) { hint.textContent = '✓ Video URL saved: ' + heroVideoUrl.substring(0, 60) + '...'; hint.style.display = 'block'; }
+      }
+    } catch(e) {
+      showToast('Save failed: ' + e.message, 'error');
+    } finally {
+      if (btn) { btn.textContent = 'Save All Settings'; btn.disabled = false; }
+    }
+  };
+
+  // ─── Portfolio ───────────────────────────────────────
+  window.addPortfolioItem = async function() {
+    const category = document.getElementById('portfolioCategory').value;
+    const title    = document.getElementById('portfolioItemTitle').value.trim();
+    const file     = document.getElementById('portfolioFile').files[0];
+    let url        = document.getElementById('portfolioUrl').value.trim();
+    if (!title) { showToast('Enter a title.', 'error'); return; }
+    if (file) {
+      showToast('Uploading...');
+      url = await uploadFile(file, `portfolio/${category}`);
+    }
+    if (!url) { showToast('Provide a file or URL.', 'error'); return; }
+    const type = (file?.type?.startsWith('video') || url.match(/\.(mp4|mov|webm)/i)) ? 'video' : 'image';
+    await addDoc(collection(db, 'portfolio', category, 'items'), {
+      title, url, type, order: Date.now(), createdAt: new Date().toISOString()
+    });
+    showToast('Item added to portfolio.');
+    document.getElementById('portfolioItemTitle').value = '';
+    document.getElementById('portfolioFile').value = '';
+    document.getElementById('portfolioUrl').value = '';
+    loadPortfolioList(category);
+  };
+
+  async function loadPortfolioList(category) {
+    const snap = await getDocs(collection(db, 'portfolio', category, 'items'));
+    const list = document.getElementById('portfolioList');
+    list.innerHTML = `<h3 style="font-family:var(--font-body);font-size:var(--text-xs);color:var(--jm-slate);letter-spacing:.1em;text-transform:uppercase;margin-bottom:var(--space-sm);">Current Items</h3>`;
+    snap.forEach(d => {
+      const item = d.data();
+      const row = document.createElement('div');
+      row.className = 'jm-portfolio-row';
+      row.innerHTML = `
+        <span>${item.title}</span>
+        <span class="jm-badge jm-badge--${item.type === 'video' ? 'active' : 'pending'}">${item.type}</span>
+        <button class="jm-btn-ghost jm-btn-sm" onclick="deletePortfolioItem('${category}','${d.id}')">Delete</button>`;
+      list.appendChild(row);
+    });
+  }
+
+  window.deletePortfolioItem = async function(category, id) {
+    if (!confirm('Delete this portfolio item?')) return;
+    await deleteDoc(doc(db, 'portfolio', category, 'items', id));
+    showToast('Item deleted.');
+    loadPortfolioList(category);
+  };
+
+  document.getElementById('portfolioCategory')?.addEventListener('change', (e) => {
+    loadPortfolioList(e.target.value);
+  });
+
+  // ─── Quotes ─────────────────────────────────────────
+  async function loadQuotes() {
+    const snap = await getDocs(query(collection(db, 'quotes'), orderBy('createdAt', 'desc')));
+    allQuotes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderQuotes(allQuotes);
+  }
+
+  function renderQuotes(quotes) {
+    const list = document.getElementById('quotesList');
+    if (!quotes.length) { list.innerHTML = '<p style="color:var(--jm-slate);font-family:var(--font-body);">No quotes found.</p>'; return; }
+    list.innerHTML = '';
+    quotes.forEach(q => {
+      const row = document.createElement('div');
+      row.className = 'jm-list-row jm-card';
+      row.innerHTML = `
+        <div class="jm-list-row__info">
+          <div class="jm-list-row__name">${q.name || 'Untitled'}</div>
+          <div class="jm-list-row__meta">${q.clientName} · ${q.serviceType} · ${new Date(q.createdAt).toLocaleDateString('en-AU')}</div>
+        </div>
+        <span class="jm-badge jm-badge--${q.status === 'Pending' ? 'pending' : q.status === 'Approved' ? 'complete' : 'active'}">${q.status}</span>
+        <button class="jm-btn-primary jm-btn-sm" onclick="openQuoteModal('${q.id}')">View</button>`;
+      list.appendChild(row);
+    });
+  }
+
+  window.filterQuotes = function(status, btn) {
+    document.querySelectorAll('#panel-quotes .jm-tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderQuotes(status === 'all' ? allQuotes : allQuotes.filter(q => q.status === status));
+  };
+
+  window.openQuoteModal = function(id) {
+    const q = allQuotes.find(x => x.id === id);
+    if (!q) return;
+    document.getElementById('quoteModalTitle').textContent = q.name || 'Quote Request';
+
+    const isPending  = q.status === 'Pending';
+    const isSent     = q.status === 'Sent';
+    const isAccepted = q.status === 'Accepted';
+
+    document.getElementById('quoteModalBody').innerHTML = `
+      <div class="jm-detail-grid">
+        <div class="jm-detail-row"><span class="jm-detail-label">Client</span><span>${q.clientName}</span></div>
+        <div class="jm-detail-row"><span class="jm-detail-label">Email</span><span>${q.clientEmail}</span></div>
+        <div class="jm-detail-row"><span class="jm-detail-label">Phone</span><span>${q.clientPhone || '—'}</span></div>
+        <div class="jm-detail-row"><span class="jm-detail-label">Service</span><span>${q.serviceType}</span></div>
+        <div class="jm-detail-row"><span class="jm-detail-label">Date</span><span>${q.date || '—'}</span></div>
+        <div class="jm-detail-row"><span class="jm-detail-label">Location</span><span>${q.location || '—'}</span></div>
+        <div class="jm-detail-row"><span class="jm-detail-label">Budget</span><span>${q.budget || '—'}</span></div>
+        <div class="jm-detail-row jm-detail-row--full"><span class="jm-detail-label">Project Details</span><p>${q.details}</p></div>
+        <div class="jm-detail-row"><span class="jm-detail-label">Status</span><span class="jm-badge jm-badge--${isPending ? 'pending' : isAccepted ? 'active' : 'complete'}">${q.status}</span></div>
+        ${q.quotedPrice ? `<div class="jm-detail-row"><span class="jm-detail-label">Quoted Price</span><span style="color:var(--jm-teal);font-weight:600;">$${Number(q.quotedPrice).toLocaleString()}</span></div>` : ''}
+      </div>
+
+      ${isPending || isSent ? `
+        <div style="margin-top:1.5rem;padding:1.25rem;background:rgba(31,111,136,0.08);border:1px solid rgba(31,111,136,0.2);border-radius:8px;">
+          <div style="font-family:var(--font-body);font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--jm-teal);margin-bottom:1rem;">
+            ${isSent ? 'Update Quote' : 'Send Quote to Client'}
+          </div>
+          <div class="jm-form-group">
+            <label class="jm-form-label">Your Price (AUD)</label>
+            <input type="number" class="jm-input" id="modalQuotePrice" placeholder="e.g. 1200" value="${q.quotedPrice || ''}" style="max-width:200px;" />
+          </div>
+          <div class="jm-form-group">
+            <label class="jm-form-label">Note to Client (optional)</label>
+            <textarea class="jm-textarea" id="modalQuoteNote" rows="3" placeholder="e.g. Includes 2 hours coverage, edited highlights reel delivered within 7 days...">${q.quoteNote || ''}</textarea>
+          </div>
+        </div>` : ''}
+
+      <div style="margin-top:1.5rem;display:flex;gap:0.75rem;flex-wrap:wrap;">
+        ${(isPending || isSent) ? `<button class="jm-btn-primary" onclick="sendQuote('${q.id}')">📤 Send Quote to Client</button>` : ''}
+        ${isAccepted ? `<button class="jm-btn-primary" onclick="approveQuoteCreateProject('${q.id}')">✓ Approve & Create Project</button>` : ''}
+        <button class="jm-btn-ghost" onclick="generateQuotePDF('${q.id}')">Download PDF</button>
+        <button class="jm-btn-ghost" onclick="closeModal('quoteModal')">Close</button>
+      </div>`;
+    document.getElementById('quoteModal').classList.add('active');
+  };
+
+  window.sendQuote = async function(id) {
+    const price = document.getElementById('modalQuotePrice')?.value?.trim();
+    const note  = document.getElementById('modalQuoteNote')?.value?.trim();
+    if (!price || isNaN(price) || Number(price) <= 0) {
+      showToast('Enter a valid price before sending.', 'error'); return;
+    }
+    try {
+      await updateDoc(doc(db, 'quotes', id), {
+        status:      'Sent',
+        quotedPrice: Number(price),
+        quoteNote:   note || '',
+        sentAt:      new Date().toISOString()
+      });
+      showToast('Quote sent to client — they can now review and accept it.');
+      closeModal('quoteModal');
+      loadQuotes();
+    } catch(e) { showToast('Failed to send: ' + e.message, 'error'); }
+  };
+
+  window.approveQuoteCreateProject = async function(quoteId) {
+    const q = allQuotes.find(x => x.id === quoteId);
+    if (!q) return;
+    // Create project
+    await addDoc(collection(db, 'projects'), {
+      clientId:    q.clientId,
+      clientName:  q.clientName,
+      clientEmail: q.clientEmail,
+      name:        q.name,
+      serviceType: q.serviceType,
+      status:      'Planning',
+      quoteId,
+      files:       [],
+      createdAt:   new Date().toISOString()
+    });
+    // Update quote status
+    await updateDoc(doc(db, 'quotes', quoteId), { status: 'Approved' });
+    // Update user role to Client
+    const usersSnap = await getDocs(query(collection(db, 'users'), where('email', '==', q.clientEmail)));
+    usersSnap.forEach(async (u) => {
+      await updateDoc(doc(db, 'users', u.id), { role: 'Client' });
+    });
+    showToast('Project created! Client role updated.');
+    closeModal('quoteModal');
+    loadQuotes();
+  };
+
+  window.generateQuotePDF = function(id) {
+    const q = allQuotes.find(x => x.id === id);
+    if (!q) return;
+    // Generate on-brand HTML quote and trigger print
+    const win = window.open('', '_blank');
+    win.document.write(`<!DOCTYPE html><html><head>
+      <meta charset="UTF-8"/><title>Quote — ${q.name}</title>
+      <style>
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Montserrat:wght@400;600&display=swap');
+        body { font-family: 'Montserrat', sans-serif; color: #0d0d0d; margin: 0; padding: 0; }
+        .page { max-width: 720px; margin: 0 auto; padding: 48px; }
+        .header { background: #000000; color: white; padding: 40px 48px; margin: -48px -48px 40px; }
+        .brand { font-family: 'Playfair Display', serif; font-size: 28px; color: white; }
+        .tagline { font-size: 12px; color: #F2C88D; letter-spacing: .15em; text-transform: uppercase; margin-top: 4px; }
+        .doc-title { font-family: 'Playfair Display', serif; font-size: 36px; color: #000000; margin-bottom: 8px; }
+        .chip { display: inline-block; background: #C15A32; color: white; padding: 4px 14px; border-radius: 999px; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 32px; }
+        table { width: 100%; border-collapse: collapse; margin: 24px 0; }
+        th { text-align: left; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: #66737D; padding: 8px 12px; background: #f4f4f4; border-bottom: 1px solid #ddd; }
+        td { padding: 10px 12px; border-bottom: 1px solid #eee; font-size: 14px; }
+        .footer { margin-top: 48px; padding-top: 24px; border-top: 2px solid #C15A32; font-size: 12px; color: #66737D; }
+        @media print { body { -webkit-print-color-adjust: exact; } }
+      </style>
+    </head><body style="background:#000000;">
+      <div class="page">
+        <div class="header">
+          <div class="brand">Johnston Media</div>
+          <div class="tagline">Your Vision. My Lens.</div>
+        </div>
+        <h1 class="doc-title">Quote Proposal</h1>
+        <div class="chip">${q.serviceType}</div>
+        <table>
+          <tr><th>Field</th><th>Details</th></tr>
+          <tr><td>Project Name</td><td><strong>${q.name}</strong></td></tr>
+          <tr><td>Client</td><td>${q.clientName}</td></tr>
+          <tr><td>Email</td><td>${q.clientEmail}</td></tr>
+          <tr><td>Date</td><td>${q.date || '—'}</td></tr>
+          <tr><td>Location</td><td>${q.location || '—'}</td></tr>
+          <tr><td>Budget Range</td><td>${q.budget || '—'}</td></tr>
+        </table>
+        <h3 style="font-family:Playfair Display,serif;color:#000000;margin-bottom:8px;">Project Details</h3>
+        <p style="line-height:1.7;color:#333;">${q.details}</p>
+        <div class="footer">
+          Johnston Media · New South Wales, Australia · johnstonmedia.com.au<br/>
+          Quote generated ${new Date().toLocaleDateString('en-AU')}
+        </div>
+      </div>
+      <script>window.onload=()=>{window.print();}<\/script>
+    </body></html>`);
+    win.document.close();
+  };
+
+  // ─── Clients ─────────────────────────────────────────
+  async function loadClients() {
+    const snap = await getDocs(query(collection(db, 'users'), where('role', '==', 'Client')));
+    allClients = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    // Also get all projects
+    const projSnap = await getDocs(collection(db, 'projects'));
+    const allProjects = projSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    renderClients(allClients, allProjects, false);
+  }
+
+  function renderClients(clients, allProjects, pastOnly) {
+    const list = document.getElementById('clientsList');
+    list.innerHTML = '';
+    clients.forEach(client => {
+      const projects = allProjects.filter(p => p.clientId === client.uid);
+      const current  = projects.filter(p => p.status !== 'Delivered');
+      const past     = projects.filter(p => p.status === 'Delivered');
+      const show     = pastOnly ? past : current;
+      if (pastOnly && !past.length) return;
+
+      const card = document.createElement('div');
+      card.className = 'jm-client-card jm-card';
+      card.innerHTML = `
+        <div class="jm-client-card__header" onclick="toggleClientProjects('${client.uid}')">
+          <div>
+            <div class="jm-client-card__name">${client.name}</div>
+            <div class="jm-client-card__meta">${client.email} · ${client.phone || 'No phone'}</div>
+          </div>
+          <div style="display:flex;gap:var(--space-sm);align-items:center;">
+            <span class="jm-badge jm-badge--client">${current.length} active</span>
+            <span style="color:var(--jm-slate);font-size:1.2rem;" id="toggle-${client.uid}">▼</span>
+          </div>
+        </div>
+        <div id="projects-${client.uid}" class="jm-client-projects" style="display:none;">
+          ${(pastOnly ? past : projects).map(p => `
+            <div class="jm-project-row">
+              <div>
+                <div class="jm-project-row__name">${p.name}</div>
+                <div class="jm-project-row__type">${p.serviceType}</div>
+              </div>
+              <span class="jm-badge jm-badge--${p.status === 'Delivered' ? 'complete' : 'active'}">${p.status}</span>
+              <button class="jm-btn-primary jm-btn-sm" onclick="openProjectModal('${p.id}')">Manage</button>
+            </div>`).join('') || '<p style="color:var(--jm-slate);font-family:var(--font-body);font-size:var(--text-sm);padding:var(--space-sm);">No projects yet.</p>'}
+        </div>`;
+      list.appendChild(card);
+    });
+  }
+
+  window.toggleClientProjects = function(uid) {
+    const el = document.getElementById('projects-' + uid);
+    const tog = document.getElementById('toggle-' + uid);
+    if (el.style.display === 'none') { el.style.display = 'block'; tog.textContent = '▲'; }
+    else { el.style.display = 'none'; tog.textContent = '▼'; }
+  };
+
+  window.filterClients = async function(filter, btn) {
+    document.querySelectorAll('#panel-clients .jm-tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const projSnap = await getDocs(collection(db, 'projects'));
+    const allProjects = projSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderClients(allClients, allProjects, filter === 'past');
+  };
+
+  window.openProjectModal = async function(projectId) {
+    const snap = await getDoc(doc(db, 'projects', projectId));
+    if (!snap.exists()) return;
+    const p = { id: snap.id, ...snap.data() };
+    const stageIdx = PROJECT_STAGES.indexOf(p.status) || 0;
+
+    document.getElementById('projectModalTitle').textContent = p.name;
+    document.getElementById('projectModalBody').innerHTML = `
+      <div class="jm-detail-grid">
+        <div class="jm-detail-row"><span class="jm-detail-label">Client</span><span>${p.clientName}</span></div>
+        <div class="jm-detail-row"><span class="jm-detail-label">Service</span><span>${p.serviceType}</span></div>
+      </div>
+      <div class="jm-timeline" style="margin:var(--space-lg) 0;">
+        ${PROJECT_STAGES.map((s, i) => `
+          <div class="jm-timeline__step ${i <= stageIdx ? 'done' : ''} ${i === stageIdx ? 'current' : ''}">
+            <div class="jm-timeline__dot"></div>
+            <div class="jm-timeline__label">${s}</div>
+          </div>`).join('')}
+      </div>
+      <div class="jm-form-group">
+        <label class="jm-form-label">Update Status</label>
+        <select class="jm-select" id="projectStatus">
+          ${PROJECT_STAGES.map(s => `<option value="${s}" ${s === p.status ? 'selected' : ''}>${s}</option>`).join('')}
+        </select>
+      </div>
+      <div class="jm-form-group">
+        <label class="jm-form-label">Upload Delivered Files</label>
+        <input type="file" class="jm-input" id="projectFiles" multiple accept="image/*,video/*"/>
+      </div>
+      <div id="existingFiles" style="margin-top:var(--space-sm);">
+        ${(p.files || []).map(f => `<div class="jm-file-pill">${f.name} <a href="${f.url}" target="_blank" style="color:var(--jm-copper);">View</a></div>`).join('')}
+      </div>
+      <div style="display:flex;gap:var(--space-sm);margin-top:var(--space-lg);flex-wrap:wrap;">
+        <button class="jm-btn-primary" onclick="saveProject('${projectId}')">Save Changes</button>
+        <button class="jm-btn-ghost" onclick="closeModal('projectModal')">Cancel</button>
+      </div>`;
+    document.getElementById('projectModal').classList.add('active');
+  };
+
+  window.saveProject = async function(projectId) {
+    const status = document.getElementById('projectStatus').value;
+    const fileInput = document.getElementById('projectFiles');
+    const snap = await getDoc(doc(db, 'projects', projectId));
+    const existing = snap.data().files || [];
+
+    let newFiles = [];
+    for (const file of fileInput.files) {
+      showToast(`Uploading ${file.name}...`);
+      const url = await uploadFile(file, `projects/${projectId}`);
+      newFiles.push({ name: file.name, url, type: file.type });
+    }
+
+    await updateDoc(doc(db, 'projects', projectId), {
+      status,
+      files: [...existing, ...newFiles],
+      updatedAt: new Date().toISOString()
+    });
+    showToast('Project updated!');
+    closeModal('projectModal');
+    loadClients();
+  };
+
+  // ─── Messages ────────────────────────────────────────
+  async function loadMessages() {
+    const snap = await getDocs(query(collection(db, 'messages'), orderBy('createdAt', 'desc')));
+    const list = document.getElementById('messagesList');
+    list.innerHTML = '';
+    snap.forEach(d => {
+      const m = d.data();
+      const row = document.createElement('div');
+      row.className = `jm-message-card jm-card ${m.read ? '' : 'unread'}`;
+      row.innerHTML = `
+        <div class="jm-message-card__header">
+          <div>
+            <div class="jm-message-card__name">${m.name} ${!m.read ? '<span class="jm-badge jm-badge--active">New</span>' : ''}</div>
+            <div class="jm-message-card__meta">${m.email} · ${new Date(m.createdAt).toLocaleDateString('en-AU')}</div>
+          </div>
+          ${!m.read ? `<button class="jm-btn-ghost jm-btn-sm" onclick="markMessageRead('${d.id}')">Mark Read</button>` : ''}
+        </div>
+        <p class="jm-message-card__body">${m.message}</p>
+        <a href="mailto:${m.email}" class="jm-btn-primary jm-btn-sm">Reply via Email</a>`;
+      list.appendChild(row);
+    });
+  }
+
+  window.markMessageRead = async function(id) {
+    await updateDoc(doc(db, 'messages', id), { read: true });
+    loadMessages();
+  };
+
+  // ─── Users ───────────────────────────────────────────
+  async function loadUsers() {
+    const snap = await getDocs(collection(db, 'users'));
+    const users = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const list = document.getElementById('usersList');
+    list.innerHTML = '';
+
+    const roleOrder = ['Owner','Master Admin','Admin','Client','Prospective'];
+    users.sort((a, b) => roleOrder.indexOf(a.role) - roleOrder.indexOf(b.role));
+
+    users.forEach(u => {
+      const isOwnerEmail = u.email === OWNER_EMAIL;
+      const myRole = currentProfile.role;
+      const canChangeRole = myRole === 'Owner' || myRole === 'Master Admin';
+      const canBlock = window._canBlockDelete && !isOwnerEmail;
+      const canDelete = window._canBlockDelete && !isOwnerEmail;
+
+      const row = document.createElement('div');
+      row.className = 'jm-user-row jm-card';
+      row.innerHTML = `
+        <div class="jm-user-row__info">
+          <div class="jm-user-row__name">${u.name || u.email}</div>
+          <div class="jm-user-row__email">${u.email}</div>
+        </div>
+        <span class="jm-badge jm-badge--${u.role === 'Owner' ? 'owner' : u.role === 'Client' ? 'client' : u.role === 'Prospective' ? 'prospective' : 'admin'}">${u.role}</span>
+        ${u.blocked ? '<span class="jm-badge" style="background:rgba(224,82,82,0.15);color:#e05252;">Blocked</span>' : ''}
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+          ${canChangeRole && !isOwnerEmail ? `
+            <select class="jm-select" style="width:140px;padding:0.4rem 0.75rem;" onchange="changeUserRole('${u.id}','${u.email}',this.value)">
+              ${['Prospective','Client','Admin','Master Admin','Owner'].map(r =>
+                `<option value="${r}" ${r === u.role ? 'selected' : ''}>${r}</option>`
+              ).join('')}
+            </select>` : ''}
+          ${(myRole === 'Owner' || myRole === 'Master Admin') && u.role === 'Admin' ? `<button class="jm-btn-ghost jm-btn-sm" onclick="openPermsModal('${u.id}')">Permissions</button>` : ''}
+          ${canBlock ? `<button class="jm-btn-ghost jm-btn-sm" onclick="toggleBlock('${u.id}','${u.blocked}')">${u.blocked ? 'Unblock' : 'Block'}</button>` : ''}
+          ${canDelete ? `<button class="jm-btn-ghost jm-btn-sm" style="border-color:#e05252;color:#e05252;" onclick="deleteUser('${u.id}')">Delete</button>` : ''}
+        </div>`;
+      list.appendChild(row);
+    });
+  }
+
+  window.changeUserRole = async function(uid, email, role) {
+    if (email === OWNER_EMAIL && role !== 'Owner') { showToast('The Owner email cannot have its role changed.', 'error'); return; }
+    if (role === 'Owner' && currentProfile.role !== 'Owner') { showToast('Only an Owner can assign the Owner role.', 'error'); return; }
+    await updateDoc(doc(db, 'users', uid), { role });
+    showToast(`Role updated to ${role}.`);
+    loadUsers();
+  };
+
+  window.toggleBlock = async function(uid, blocked) {
+    const newVal = blocked === 'true' ? false : true;
+    await updateDoc(doc(db, 'users', uid), { blocked: newVal });
+    showToast(newVal ? 'User blocked.' : 'User unblocked.');
+    loadUsers();
+  };
+
+  window.deleteUser = async function(uid) {
+    if (!confirm('Permanently delete this user? This cannot be undone.')) return;
+    await deleteDoc(doc(db, 'users', uid));
+    showToast('User deleted.');
+    loadUsers();
+  };
+
+  window.openPermsModal = async function(uid) {
+    const snap = await getDoc(doc(db, 'users', uid));
+    const u = snap.data();
+    const perms = u.permissions || {};
+    document.getElementById('permsModalBody').innerHTML = `
+      <p style="color:var(--jm-slate);font-family:var(--font-body);font-size:var(--text-sm);margin-bottom:var(--space-lg);">
+        Configure what <strong style="color:var(--jm-white);">${u.name || u.email}</strong> can access and do as Admin.
+      </p>
+      ${[
+        ['editHomepage', 'Edit Homepage & Site Settings'],
+        ['blockDeleteUsers', 'Block & Delete Users'],
+        ['manageAdminRoles', 'Manage Admin Roles'],
+      ].map(([key, label]) => `
+        <div class="jm-form-group" style="display:flex;justify-content:space-between;align-items:center;">
+          <label class="jm-form-label" style="margin:0;">${label}</label>
+          <input type="checkbox" ${perms[key] ? 'checked' : ''} id="perm-${key}" style="width:18px;height:18px;accent-color:var(--jm-copper);" />
+        </div>`).join('')}
+      <div style="margin-top:var(--space-lg);display:flex;gap:var(--space-sm);">
+        <button class="jm-btn-primary" onclick="savePerms('${uid}')">Save Permissions</button>
+        <button class="jm-btn-ghost" onclick="closeModal('permsModal')">Cancel</button>
+      </div>`;
+    document.getElementById('permsModal').classList.add('active');
+  };
+
+  window.savePerms = async function(uid) {
+    const perms = {
+      editHomepage:     document.getElementById('perm-editHomepage').checked,
+      blockDeleteUsers: document.getElementById('perm-blockDeleteUsers').checked,
+      manageAdminRoles: document.getElementById('perm-manageAdminRoles').checked,
+    };
+    await updateDoc(doc(db, 'users', uid), { permissions: perms });
+    showToast('Permissions saved.');
+    closeModal('permsModal');
+    loadUsers();
+  };
+
+  // ─── Auth ─────────────────────────────────────────────
+  window.signInGoogle = async function() {
+    const provider = new GoogleAuthProvider();
+    try { await signInWithPopup(auth, provider); }
+    catch(e) { showToast('Sign-in failed.', 'error'); }
+  };
+
+  window.doSignOut = async function() { await fbSignOut(auth); };
+
+  // ─── Tab nav ──────────────────────────────────────────
+  window.showTab = function(tab) {
+    document.querySelectorAll('.jm-panel').forEach(p => p.style.display = 'none');
+    document.querySelectorAll('.jm-sidebar__nav-item').forEach(b => b.classList.remove('active'));
+    document.getElementById('panel-' + tab).style.display = 'block';
+    document.getElementById('tab-' + tab)?.classList.add('active');
+
+    if (tab === 'homepage') { loadSiteSettings(); loadPortfolioList(document.getElementById('portfolioCategory').value); }
+    if (tab === 'quotes')   loadQuotes();
+    if (tab === 'clients')  loadClients();
+    if (tab === 'messages') loadMessages();
+    if (tab === 'users')    loadUsers();
+  };
+
+  // ─── Modal helpers ────────────────────────────────────
+  window.openModal  = (id) => document.getElementById(id).classList.add('active');
+  window.closeModal = (id) => document.getElementById(id).classList.remove('active');
+
+  document.querySelectorAll('.jm-modal-overlay').forEach(m => {
+    m.addEventListener('click', (e) => { if (e.target === m) m.classList.remove('active'); });
+  });
+
+  // ─── File upload ──────────────────────────────────────
+  async function uploadFile(file, path) {
+    const fileRef = ref(storage, `${path}/${Date.now()}_${file.name}`);
+    const snap = await uploadBytes(fileRef, file);
+    return await getDownloadURL(snap.ref);
+  }
+
+  // ─── Toast ────────────────────────────────────────────
+  function showToast(msg, type = 'success') {
+    const t = document.createElement('div');
+    t.className = `jm-toast jm-toast--${type}`;
+    t.textContent = msg;
+    document.body.appendChild(t);
+    requestAnimationFrame(() => t.classList.add('jm-toast--visible'));
+    setTimeout(() => { t.classList.remove('jm-toast--visible'); setTimeout(() => t.remove(), 300); }, 3500);
+  }
+  window.showToast = showToast;
+</script>
+</body>
+</html>

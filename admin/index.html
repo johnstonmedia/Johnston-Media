@@ -194,9 +194,12 @@
 
     <!-- USERS -->
     <div id="panel-users" class="jm-panel" style="display:none;">
-      <div class="jm-panel-header">
-        <span class="jm-eyebrow">Access Control</span>
-        <h1 class="jm-panel-title">Users</h1>
+      <div class="jm-panel-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;">
+        <div>
+          <span class="jm-eyebrow">Access Control</span>
+          <h1 class="jm-panel-title">Users</h1>
+        </div>
+        <button class="jm-btn-primary" onclick="openCreateClientModal()">+ Create Client</button>
       </div>
       <div id="usersList"></div>
     </div>
@@ -223,6 +226,46 @@
       <button class="jm-modal-close" onclick="closeModal('projectModal')">×</button>
     </div>
     <div id="projectModalBody"></div>
+  </div>
+</div>
+
+<!-- ─── CREATE CLIENT MODAL ──────────────────────────── -->
+<div class="jm-modal-overlay" id="createClientModal">
+  <div class="jm-modal" style="max-width:480px;">
+    <div class="jm-modal-header">
+      <h2 class="jm-modal-title">Create Client Profile</h2>
+      <button class="jm-modal-close" onclick="closeModal('createClientModal')">×</button>
+    </div>
+    <p style="font-family:var(--font-body);font-size:0.82rem;color:var(--jm-slate);margin-bottom:1.5rem;line-height:1.7;">
+      Create a profile for a client before they sign up. As soon as they log in with this email, their account will automatically link to this profile.
+    </p>
+    <div class="jm-form-group">
+      <label class="jm-form-label">Full Name</label>
+      <input type="text" class="jm-input" id="ccName" placeholder="Jane Smith" />
+    </div>
+    <div class="jm-form-group">
+      <label class="jm-form-label">Email Address</label>
+      <input type="email" class="jm-input" id="ccEmail" placeholder="jane@example.com" />
+    </div>
+    <div class="jm-form-group">
+      <label class="jm-form-label">Phone Number</label>
+      <input type="tel" class="jm-input" id="ccPhone" placeholder="+61 400 000 000" />
+    </div>
+    <div class="jm-form-group">
+      <label class="jm-form-label">Role</label>
+      <select class="jm-select" id="ccRole">
+        <option value="Prospective">Prospective</option>
+        <option value="Client" selected>Client</option>
+      </select>
+    </div>
+    <div class="jm-form-group">
+      <label class="jm-form-label">Notes (internal)</label>
+      <textarea class="jm-textarea" id="ccNotes" rows="2" placeholder="Any notes about this client..."></textarea>
+    </div>
+    <div style="display:flex;gap:0.75rem;margin-top:1.5rem;flex-wrap:wrap;">
+      <button class="jm-btn-primary" onclick="createClient()">Create Client</button>
+      <button class="jm-btn-ghost" onclick="closeModal('createClientModal')">Cancel</button>
+    </div>
   </div>
 </div>
 
@@ -612,28 +655,32 @@
   window.approveQuoteCreateProject = async function(quoteId) {
     const q = allQuotes.find(x => x.id === quoteId);
     if (!q) return;
-    // Create project
-    await addDoc(collection(db, 'projects'), {
-      clientId:    q.clientId,
-      clientName:  q.clientName,
-      clientEmail: q.clientEmail,
-      name:        q.name,
-      serviceType: q.serviceType,
-      status:      'Planning',
-      quoteId,
-      files:       [],
-      createdAt:   new Date().toISOString()
-    });
-    // Update quote status
-    await updateDoc(doc(db, 'quotes', quoteId), { status: 'Approved' });
-    // Update user role to Client
-    const usersSnap = await getDocs(query(collection(db, 'users'), where('email', '==', q.clientEmail)));
-    usersSnap.forEach(async (u) => {
-      await updateDoc(doc(db, 'users', u.id), { role: 'Client' });
-    });
-    showToast('Project created! Client role updated.');
-    closeModal('quoteModal');
-    loadQuotes();
+    try {
+      // Create project
+      await addDoc(collection(db, 'projects'), {
+        clientId:    q.clientId,
+        clientName:  q.clientName,
+        clientEmail: q.clientEmail,
+        name:        q.name,
+        serviceType: q.serviceType,
+        status:      'Planning',
+        adminNote:   '',
+        clientNote:  '',
+        quoteId,
+        files:       [],
+        createdAt:   new Date().toISOString()
+      });
+      // Update quote status
+      await updateDoc(doc(db, 'quotes', quoteId), { status: 'Approved' });
+      // Update user role to Client — use for...of so await works correctly
+      const usersSnap = await getDocs(query(collection(db, 'users'), where('email', '==', q.clientEmail)));
+      for (const u of usersSnap.docs) {
+        await updateDoc(doc(db, 'users', u.id), { role: 'Client' });
+      }
+      showToast('Project created! Client role updated.');
+      closeModal('quoteModal');
+      loadQuotes();
+    } catch(e) { showToast('Failed to approve: ' + e.message, 'error'); }
   };
 
   window.generateQuotePDF = function(id) {
@@ -949,29 +996,115 @@
     loadMessages();
   };
 
-  // ─── Users ───────────────────────────────────────────
+  // ─── Create Client ────────────────────────────────────
+  window.openCreateClientModal = function() {
+    document.getElementById('ccName').value  = '';
+    document.getElementById('ccEmail').value = '';
+    document.getElementById('ccPhone').value = '';
+    document.getElementById('ccRole').value  = 'Client';
+    document.getElementById('ccNotes').value = '';
+    document.getElementById('createClientModal').classList.add('active');
+  };
+
+  window.createClient = async function() {
+    const name  = document.getElementById('ccName').value.trim();
+    const email = document.getElementById('ccEmail').value.trim().toLowerCase();
+    const phone = document.getElementById('ccPhone').value.trim();
+    const role  = document.getElementById('ccRole').value;
+    const notes = document.getElementById('ccNotes').value.trim();
+
+    if (!name)  { showToast('Enter a name.', 'error');  return; }
+    if (!email) { showToast('Enter an email.', 'error'); return; }
+
+    try {
+      // Check if a user with this email already exists in Firestore
+      const existing = await getDocs(query(collection(db, 'users'), where('email', '==', email)));
+      if (!existing.empty) {
+        // User already exists — just update their profile
+        const userDoc = existing.docs[0];
+        await updateDoc(doc(db, 'users', userDoc.id), {
+          name, phone, role, adminNotes: notes,
+          updatedAt: new Date().toISOString()
+        });
+        showToast(`Profile updated for existing user ${name}.`);
+        closeModal('createClientModal');
+        loadUsers();
+        return;
+      }
+
+      // No existing user — create a pre-built profile using email as the doc ID key
+      // We store it in a separate 'pendingClients' collection keyed by email
+      // When they log in, the portal checks this collection and links it
+      await setDoc(doc(db, 'pendingClients', email), {
+        name, email, phone, role,
+        adminNotes: notes,
+        createdAt:  new Date().toISOString(),
+        createdBy:  currentUser.email
+      });
+
+      showToast(`Client profile created for ${name}. They'll be linked when they sign in with ${email}.`);
+      closeModal('createClientModal');
+      loadUsers();
+    } catch(e) { showToast('Failed to create client: ' + e.message, 'error'); }
+  };
+
+  // ─── Load Users ───────────────────────────────────────
   async function loadUsers() {
     const snap = await getDocs(collection(db, 'users'));
     const users = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    // Also load pending clients (pre-created, not yet signed in)
+    const pendingSnap = await getDocs(collection(db, 'pendingClients'));
+    const pending = pendingSnap.docs.map(d => ({ id: d.id, ...d.data(), _pending: true }));
+
     const list = document.getElementById('usersList');
     list.innerHTML = '';
+
+    // Show pending clients first with a distinct style
+    if (pending.length > 0) {
+      const pendingHeader = document.createElement('div');
+      pendingHeader.innerHTML = `<div style="font-family:var(--font-body);font-size:0.68rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--jm-slate);margin-bottom:0.75rem;margin-top:0.25rem;">Pending — Not Yet Signed In</div>`;
+      list.appendChild(pendingHeader);
+
+      pending.forEach(u => {
+        const row = document.createElement('div');
+        row.className = 'jm-user-row jm-card';
+        row.style.borderColor = 'rgba(242,200,141,0.15)';
+        row.innerHTML = `
+          <div class="jm-user-row__info">
+            <div class="jm-user-row__name">${u.name} <span style="font-size:0.65rem;color:var(--jm-amber);font-weight:400;">⏳ Awaiting sign-in</span></div>
+            <div class="jm-user-row__email">${u.email}${u.phone ? ' · ' + u.phone : ''}</div>
+          </div>
+          <span class="jm-badge jm-badge--pending">${u.role}</span>
+          <button class="jm-btn-ghost jm-btn-sm" style="border-color:#e05252;color:#e05252;" onclick="deletePendingClient('${u.email}')">Delete</button>`;
+        list.appendChild(row);
+      });
+
+      const divider = document.createElement('div');
+      divider.style.cssText = 'height:1px;background:rgba(255,255,255,0.05);margin:1.5rem 0;';
+      list.appendChild(divider);
+
+      const activeHeader = document.createElement('div');
+      activeHeader.innerHTML = `<div style="font-family:var(--font-body);font-size:0.68rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--jm-slate);margin-bottom:0.75rem;">Active Users</div>`;
+      list.appendChild(activeHeader);
+    }
 
     const roleOrder = ['Owner','Master Admin','Admin','Client','Prospective'];
     users.sort((a, b) => roleOrder.indexOf(a.role) - roleOrder.indexOf(b.role));
 
     users.forEach(u => {
       const isOwnerEmail = u.email === OWNER_EMAIL;
-      const myRole = currentProfile.role;
+      const myRole       = currentProfile.role;
       const canChangeRole = myRole === 'Owner' || myRole === 'Master Admin';
-      const canBlock = window._canBlockDelete && !isOwnerEmail;
-      const canDelete = window._canBlockDelete && !isOwnerEmail;
+      const canBlock      = window._canBlockDelete && !isOwnerEmail;
+      const canDelete     = window._canBlockDelete && !isOwnerEmail;
 
       const row = document.createElement('div');
       row.className = 'jm-user-row jm-card';
       row.innerHTML = `
         <div class="jm-user-row__info">
           <div class="jm-user-row__name">${u.name || u.email}</div>
-          <div class="jm-user-row__email">${u.email}</div>
+          <div class="jm-user-row__email">${u.email}${u.phone ? ' · ' + u.phone : ''}</div>
         </div>
         <span class="jm-badge jm-badge--${u.role === 'Owner' ? 'owner' : u.role === 'Client' ? 'client' : u.role === 'Prospective' ? 'prospective' : 'admin'}">${u.role}</span>
         ${u.blocked ? '<span class="jm-badge" style="background:rgba(224,82,82,0.15);color:#e05252;">Blocked</span>' : ''}
@@ -989,6 +1122,13 @@
       list.appendChild(row);
     });
   }
+
+  window.deletePendingClient = async function(email) {
+    if (!confirm(`Delete the pending profile for ${email}?`)) return;
+    await deleteDoc(doc(db, 'pendingClients', email));
+    showToast('Pending client removed.');
+    loadUsers();
+  };
 
   window.changeUserRole = async function(uid, email, role) {
     if (email === OWNER_EMAIL && role !== 'Owner') { showToast('The Owner email cannot have its role changed.', 'error'); return; }
@@ -1095,7 +1235,108 @@
     requestAnimationFrame(() => t.classList.add('jm-toast--visible'));
     setTimeout(() => { t.classList.remove('jm-toast--visible'); setTimeout(() => t.remove(), 300); }, 3500);
   }
+
+  // ─── Create Client ────────────────────────────────────
+  window.openCreateClientModal = function() {
+    document.getElementById('ccName').value  = '';
+    document.getElementById('ccEmail').value = '';
+    document.getElementById('ccPhone').value = '';
+    document.getElementById('ccRole').value  = 'Client';
+    document.getElementById('ccNotes').value = '';
+    document.getElementById('createClientModal').classList.add('active');
+  };
+
+  window.createClient = async function() {
+    const name  = document.getElementById('ccName').value.trim();
+    const email = document.getElementById('ccEmail').value.trim().toLowerCase();
+    const phone = document.getElementById('ccPhone').value.trim();
+    const role  = document.getElementById('ccRole').value;
+    const notes = document.getElementById('ccNotes').value.trim();
+
+    if (!name)  { showToast('Enter a name.', 'error'); return; }
+    if (!email) { showToast('Enter an email address.', 'error'); return; }
+    if (!email.includes('@')) { showToast('Enter a valid email.', 'error'); return; }
+
+    try {
+      // Check if a user with this email already exists
+      const existing = await getDocs(query(collection(db, 'users'), where('email', '==', email)));
+      if (!existing.empty) {
+        // User already exists — just update their role/details
+        const existingDoc = existing.docs[0];
+        await updateDoc(doc(db, 'users', existingDoc.id), { name, phone, role, adminNotes: notes, updatedAt: new Date().toISOString() });
+        showToast(`Client profile updated for ${email}.`);
+      } else {
+        // Pre-create the profile — use email as the document ID placeholder
+        // When they sign in, the portal will find this by email and link it to their UID
+        const profileRef = doc(collection(db, 'users'));
+        await setDoc(profileRef, {
+          uid:        null,          // will be filled in when they sign in
+          name,
+          email,
+          phone,
+          role,
+          adminNotes: notes,
+          preCreated: true,          // flag so portal knows to link on first login
+          blocked:    false,
+          createdAt:  new Date().toISOString(),
+          createdBy:  currentUser.email
+        });
+        showToast(`Client profile created for ${email}. They'll be linked when they sign in.`);
+      }
+      closeModal('createClientModal');
+      loadUsers();
+    } catch(e) { showToast('Failed to create client: ' + e.message, 'error'); }
+  };
+
   window.showToast = showToast;
 </script>
+
+<!-- ─── CREATE CLIENT MODAL ──────────────────────────── -->
+<div class="jm-modal-overlay" id="createClientModal">
+  <div class="jm-modal" style="max-width:520px;">
+    <div class="jm-modal-header">
+      <h2 class="jm-modal-title">Create Client</h2>
+      <button class="jm-modal-close" onclick="closeModal('createClientModal')">×</button>
+    </div>
+    <div>
+      <p style="font-family:var(--font-body);font-size:0.85rem;color:var(--jm-slate);margin-bottom:1.5rem;line-height:1.7;">
+        Create a client profile by email. When they sign in to the portal with this email address, their account will automatically be linked with the role and details you set here.
+      </p>
+      <div class="jm-form-group">
+        <label class="jm-form-label">Full Name</label>
+        <input type="text" class="jm-input" id="ccName" placeholder="Jane Smith" />
+      </div>
+      <div class="jm-form-group">
+        <label class="jm-form-label">Email Address</label>
+        <input type="email" class="jm-input" id="ccEmail" placeholder="jane@example.com" />
+      </div>
+      <div class="jm-form-group">
+        <label class="jm-form-label">Phone Number</label>
+        <input type="tel" class="jm-input" id="ccPhone" placeholder="+61 400 000 000" />
+      </div>
+      <div class="jm-form-group">
+        <label class="jm-form-label">Role</label>
+        <select class="jm-select" id="ccRole">
+          <option value="Prospective">Prospective</option>
+          <option value="Client" selected>Client</option>
+        </select>
+      </div>
+      <div class="jm-form-group">
+        <label class="jm-form-label">Notes (internal)</label>
+        <textarea class="jm-textarea" id="ccNotes" rows="2" placeholder="Any internal notes about this client..."></textarea>
+      </div>
+      <div style="background:rgba(31,111,136,0.08);border:1px solid rgba(31,111,136,0.2);border-radius:8px;padding:1rem;margin-bottom:1.5rem;">
+        <p style="font-family:var(--font-body);font-size:0.78rem;color:var(--jm-teal);line-height:1.6;">
+          ℹ️ The profile is created immediately in Firestore. When the client signs in via Google or email using <strong>${ccEmail}</strong>, they will be automatically matched to this record.
+        </p>
+      </div>
+      <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+        <button class="jm-btn-primary" onclick="createClient()">Create Client</button>
+        <button class="jm-btn-ghost" onclick="closeModal('createClientModal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

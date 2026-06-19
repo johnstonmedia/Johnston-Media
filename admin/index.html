@@ -169,9 +169,12 @@
 
     <!-- CLIENTS -->
     <div id="panel-clients" class="jm-panel" style="display:none;">
-      <div class="jm-panel-header">
-        <span class="jm-eyebrow">Manage</span>
-        <h1 class="jm-panel-title">Clients</h1>
+      <div class="jm-panel-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;">
+        <div>
+          <span class="jm-eyebrow">Manage</span>
+          <h1 class="jm-panel-title">Clients</h1>
+        </div>
+        <button class="jm-btn-primary" onclick="openCreateProjectModal()">+ Create Project</button>
       </div>
       <div class="jm-tabs-bar">
         <button class="jm-tab-btn active" onclick="filterClients('current', this)">Current</button>
@@ -220,6 +223,59 @@
       <button class="jm-modal-close" onclick="closeModal('projectModal')">×</button>
     </div>
     <div id="projectModalBody"></div>
+  </div>
+</div>
+
+<!-- ─── CREATE PROJECT MODAL ─────────────────────────── -->
+<div class="jm-modal-overlay" id="createProjectModal">
+  <div class="jm-modal" style="max-width:560px;">
+    <div class="jm-modal-header">
+      <h2 class="jm-modal-title">Create New Project</h2>
+      <button class="jm-modal-close" onclick="closeModal('createProjectModal')">×</button>
+    </div>
+    <div id="createProjectBody">
+      <div class="jm-form-group">
+        <label class="jm-form-label">Assign Client</label>
+        <select class="jm-select" id="cpClientSelect">
+          <option value="">Select a client...</option>
+        </select>
+      </div>
+      <div class="jm-form-group">
+        <label class="jm-form-label">Project Name</label>
+        <input type="text" class="jm-input" id="cpName" placeholder="e.g. Grand Final Highlights" />
+      </div>
+      <div class="jm-form-group">
+        <label class="jm-form-label">Service Type</label>
+        <select class="jm-select" id="cpService">
+          <option value="">Select...</option>
+          <option>Sports Videography</option>
+          <option>Sports Photography</option>
+          <option>Commercial Photography</option>
+          <option>Commercial Videography</option>
+          <option>Event Coverage</option>
+          <option>Aerial Photography/Videography</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="jm-form-group">
+        <label class="jm-form-label">Initial Status</label>
+        <select class="jm-select" id="cpStatus">
+          <option value="Planning">Planning</option>
+          <option value="Shooting">Shooting</option>
+          <option value="Editing">Editing</option>
+          <option value="Delivering">Delivering</option>
+          <option value="Delivered">Delivered</option>
+        </select>
+      </div>
+      <div class="jm-form-group">
+        <label class="jm-form-label">Admin Notes (internal)</label>
+        <textarea class="jm-textarea" id="cpAdminNote" rows="3" placeholder="Internal notes about this project..."></textarea>
+      </div>
+      <div style="display:flex;gap:0.75rem;margin-top:1.5rem;flex-wrap:wrap;">
+        <button class="jm-btn-primary" onclick="createProject()">Create Project</button>
+        <button class="jm-btn-ghost" onclick="closeModal('createProjectModal')">Cancel</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -700,62 +756,169 @@
     const snap = await getDoc(doc(db, 'projects', projectId));
     if (!snap.exists()) return;
     const p = { id: snap.id, ...snap.data() };
-    const stageIdx = PROJECT_STAGES.indexOf(p.status) || 0;
+    const stageIdx = Math.max(0, PROJECT_STAGES.indexOf(p.status));
+    const files = p.files || [];
 
     document.getElementById('projectModalTitle').textContent = p.name;
     document.getElementById('projectModalBody').innerHTML = `
-      <div class="jm-detail-grid">
+      <div class="jm-detail-grid" style="margin-bottom:1.5rem;">
         <div class="jm-detail-row"><span class="jm-detail-label">Client</span><span>${p.clientName}</span></div>
-        <div class="jm-detail-row"><span class="jm-detail-label">Service</span><span>${p.serviceType}</span></div>
+        <div class="jm-detail-row"><span class="jm-detail-label">Service</span><span>${p.serviceType || '—'}</span></div>
       </div>
-      <div class="jm-timeline" style="margin:var(--space-lg) 0;">
+
+      <!-- Timeline -->
+      <div class="jm-timeline" style="margin-bottom:1.5rem;">
         ${PROJECT_STAGES.map((s, i) => `
           <div class="jm-timeline__step ${i <= stageIdx ? 'done' : ''} ${i === stageIdx ? 'current' : ''}">
             <div class="jm-timeline__dot"></div>
             <div class="jm-timeline__label">${s}</div>
           </div>`).join('')}
       </div>
+
+      <!-- Status -->
       <div class="jm-form-group">
         <label class="jm-form-label">Update Status</label>
         <select class="jm-select" id="projectStatus">
           ${PROJECT_STAGES.map(s => `<option value="${s}" ${s === p.status ? 'selected' : ''}>${s}</option>`).join('')}
         </select>
       </div>
+
+      <!-- Admin Notes -->
       <div class="jm-form-group">
-        <label class="jm-form-label">Upload Delivered Files</label>
-        <input type="file" class="jm-input" id="projectFiles" multiple accept="image/*,video/*"/>
+        <label class="jm-form-label">Admin Notes (internal — client cannot see)</label>
+        <textarea class="jm-textarea" id="projectAdminNote" rows="3" placeholder="Internal notes about this project...">${p.adminNote || ''}</textarea>
       </div>
-      <div id="existingFiles" style="margin-top:var(--space-sm);">
-        ${(p.files || []).map(f => `<div class="jm-file-pill">${f.name} <a href="${f.url}" target="_blank" style="color:var(--jm-copper);">View</a></div>`).join('')}
+
+      <!-- Client Notes (read-only for admin) -->
+      ${p.clientNote ? `
+        <div class="jm-form-group">
+          <label class="jm-form-label">Client Notes</label>
+          <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:0.75rem 1rem;font-family:var(--font-body);font-size:0.85rem;color:var(--jm-lightgrey);line-height:1.7;">${p.clientNote}</div>
+        </div>` : ''}
+
+      <!-- Files -->
+      <div class="jm-form-group">
+        <label class="jm-form-label">Upload Files</label>
+        <input type="file" class="jm-input" id="projectFiles" multiple accept="image/*,video/*,application/pdf"/>
       </div>
-      <div style="display:flex;gap:var(--space-sm);margin-top:var(--space-lg);flex-wrap:wrap;">
+      <div id="existingFiles" style="margin-bottom:1rem;">
+        ${files.length ? files.map((f, i) => `
+          <div class="jm-file-pill" style="display:inline-flex;align-items:center;gap:0.5rem;margin:0.25rem;">
+            ${f.name}
+            <a href="${f.url}" target="_blank" style="color:var(--jm-teal);">View</a>
+            <button onclick="deleteProjectFile('${projectId}', ${i})" style="background:none;border:none;color:#e05252;cursor:pointer;font-size:0.8rem;padding:0;" title="Delete file">✕</button>
+          </div>`).join('') : '<p style="color:var(--jm-slate);font-family:var(--font-body);font-size:0.8rem;">No files yet.</p>'}
+      </div>
+
+      <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
         <button class="jm-btn-primary" onclick="saveProject('${projectId}')">Save Changes</button>
         <button class="jm-btn-ghost" onclick="closeModal('projectModal')">Cancel</button>
       </div>`;
     document.getElementById('projectModal').classList.add('active');
   };
 
-  window.saveProject = async function(projectId) {
-    const status = document.getElementById('projectStatus').value;
-    const fileInput = document.getElementById('projectFiles');
+  window.deleteProjectFile = async function(projectId, fileIndex) {
+    if (!confirm('Remove this file from the project?')) return;
     const snap = await getDoc(doc(db, 'projects', projectId));
-    const existing = snap.data().files || [];
+    const files = [...(snap.data().files || [])];
+    files.splice(fileIndex, 1);
+    await updateDoc(doc(db, 'projects', projectId), { files, updatedAt: new Date().toISOString() });
+    showToast('File removed.');
+    openProjectModal(projectId); // refresh modal
+  };
 
-    let newFiles = [];
-    for (const file of fileInput.files) {
-      showToast(`Uploading ${file.name}...`);
-      const url = await uploadFile(file, `projects/${projectId}`);
-      newFiles.push({ name: file.name, url, type: file.type });
+  window.saveProject = async function(projectId) {
+    const btn = document.querySelector(`[onclick="saveProject('${projectId}')"]`);
+    if (btn) { btn.textContent = 'Saving...'; btn.disabled = true; }
+    try {
+      const status    = document.getElementById('projectStatus').value;
+      const adminNote = document.getElementById('projectAdminNote').value.trim();
+      const fileInput = document.getElementById('projectFiles');
+      const snap      = await getDoc(doc(db, 'projects', projectId));
+      const existing  = snap.data().files || [];
+
+      let newFiles = [];
+      for (const file of fileInput.files) {
+        showToast(`Uploading ${file.name}...`);
+        const url = await uploadFile(file, `projects/${projectId}`);
+        newFiles.push({ name: file.name, url, type: file.type });
+      }
+
+      await updateDoc(doc(db, 'projects', projectId), {
+        status, adminNote,
+        files: [...existing, ...newFiles],
+        updatedAt: new Date().toISOString()
+      });
+      showToast('Project updated!');
+      closeModal('projectModal');
+      loadClients();
+    } catch(e) {
+      showToast('Save failed: ' + e.message, 'error');
+    } finally {
+      if (btn) { btn.textContent = 'Save Changes'; btn.disabled = false; }
     }
+  };
 
-    await updateDoc(doc(db, 'projects', projectId), {
-      status,
-      files: [...existing, ...newFiles],
-      updatedAt: new Date().toISOString()
+  // ─── Create Project ───────────────────────────────────
+  window.openCreateProjectModal = async function() {
+    // Load all users with Client role or higher to assign
+    const snap  = await getDocs(collection(db, 'users'));
+    const users = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      .filter(u => ['Client','Prospective'].includes(u.role) || true) // show all non-admin users
+      .filter(u => !['Admin','Master Admin','Owner'].includes(u.role))
+      .sort((a,b) => (a.name||'').localeCompare(b.name||''));
+
+    const select = document.getElementById('cpClientSelect');
+    select.innerHTML = '<option value="">Select a client...</option>';
+    users.forEach(u => {
+      const opt = document.createElement('option');
+      opt.value = JSON.stringify({ uid: u.uid || u.id, name: u.name, email: u.email });
+      opt.textContent = `${u.name || u.email} (${u.role})`;
+      select.appendChild(opt);
     });
-    showToast('Project updated!');
-    closeModal('projectModal');
-    loadClients();
+
+    // Clear form
+    document.getElementById('cpName').value = '';
+    document.getElementById('cpService').value = '';
+    document.getElementById('cpStatus').value = 'Planning';
+    document.getElementById('cpAdminNote').value = '';
+
+    document.getElementById('createProjectModal').classList.add('active');
+  };
+
+  window.createProject = async function() {
+    const clientRaw = document.getElementById('cpClientSelect').value;
+    const name      = document.getElementById('cpName').value.trim();
+    const service   = document.getElementById('cpService').value;
+    const status    = document.getElementById('cpStatus').value;
+    const adminNote = document.getElementById('cpAdminNote').value.trim();
+
+    if (!clientRaw) { showToast('Please select a client.', 'error'); return; }
+    if (!name)      { showToast('Enter a project name.', 'error'); return; }
+    if (!service)   { showToast('Select a service type.', 'error'); return; }
+
+    const client = JSON.parse(clientRaw);
+    try {
+      await addDoc(collection(db, 'projects'), {
+        clientId:    client.uid,
+        clientName:  client.name,
+        clientEmail: client.email,
+        name, serviceType: service, status, adminNote,
+        clientNote:  '',
+        files:       [],
+        createdAt:   new Date().toISOString()
+      });
+      // Upgrade user to Client if they're Prospective
+      const userSnap = await getDocs(query(collection(db, 'users'), where('email', '==', client.email)));
+      userSnap.forEach(async (u) => {
+        if (u.data().role === 'Prospective') {
+          await updateDoc(doc(db, 'users', u.id), { role: 'Client' });
+        }
+      });
+      showToast(`Project "${name}" created for ${client.name}.`);
+      closeModal('createProjectModal');
+      loadClients();
+    } catch(e) { showToast('Failed to create project: ' + e.message, 'error'); }
   };
 
   // ─── Messages ────────────────────────────────────────

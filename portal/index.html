@@ -248,7 +248,7 @@
 <script type="module">
   import { initializeApp }    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import {
-    getFirestore, doc, getDoc, setDoc, addDoc, updateDoc,
+    getFirestore, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc,
     collection, query, where, getDocs, orderBy
   } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
   import {
@@ -293,14 +293,40 @@
   async function ensureUserProfile(user) {
     const ref  = doc(db, 'users', user.uid);
     const snap = await getDoc(ref);
+
     if (!snap.exists()) {
-      const role = user.email === OWNER_EMAIL ? 'Owner' : 'Prospective';
-      await setDoc(ref, {
-        uid: user.uid, name: user.displayName || '',
-        email: user.email, phone: '', role,
-        createdAt: new Date().toISOString(), blocked: false
-      });
+      // Check if admin pre-created a profile for this email in pendingClients
+      const email      = user.email.toLowerCase();
+      const pendingRef = doc(db, 'pendingClients', email);
+      const pending    = await getDoc(pendingRef);
+
+      if (pending.exists()) {
+        // Link pre-created profile to this Firebase Auth account
+        const pd = pending.data();
+        await setDoc(ref, {
+          uid:        user.uid,
+          name:       pd.name || user.displayName || '',
+          email:      user.email,
+          phone:      pd.phone || '',
+          role:       pd.role || 'Client',
+          adminNotes: pd.adminNotes || '',
+          createdAt:  new Date().toISOString(),
+          blocked:    false,
+          linkedAt:   new Date().toISOString()
+        });
+        // Remove from pendingClients now it's been claimed
+        await deleteDoc(pendingRef);
+      } else {
+        // Brand new user with no pre-created profile
+        const role = user.email === OWNER_EMAIL ? 'Owner' : 'Prospective';
+        await setDoc(ref, {
+          uid: user.uid, name: user.displayName || '',
+          email: user.email, phone: '', role,
+          createdAt: new Date().toISOString(), blocked: false
+        });
+      }
     }
+
     const fresh = await getDoc(ref);
     currentProfile = fresh.data();
     if (currentProfile.blocked) { await fbSignOut(auth); showToast('Your account has been blocked.', 'error'); return; }
@@ -510,20 +536,28 @@
             ${proj.clientNote
               ? `<p style="font-family:var(--font-body);font-size:0.85rem;color:var(--jm-lightgrey);line-height:1.7;margin-bottom:0.75rem;">${proj.clientNote}</p>`
               : `<p style="font-family:var(--font-body);font-size:0.82rem;color:var(--jm-slate);margin-bottom:0.75rem;">No notes yet.</p>`}
-            <button class="jm-btn-ghost jm-btn-sm" onclick="startEditNote('${proj.id}', \`${(proj.clientNote||'').replace(/`/g,"'")}\`)">
+            <button class="jm-btn-ghost jm-btn-sm jm-edit-note-btn" data-project-id="${proj.id}">
               ${proj.clientNote ? '✏️ Edit Note' : '+ Add Note'}
             </button>
           </div>
 
           <!-- Edit mode (hidden by default) -->
           <div id="${editingId}" style="display:none;">
-            <textarea class="jm-textarea" id="note-input-${proj.id}" rows="3" placeholder="Add a note visible to Johnston Media...">${proj.clientNote || ''}</textarea>
+            <textarea class="jm-textarea" id="note-input-${proj.id}" rows="3" placeholder="Add a note visible to Johnston Media..."></textarea>
             <div style="display:flex;gap:0.5rem;margin-top:0.5rem;">
               <button class="jm-btn-primary jm-btn-sm" onclick="saveClientNote('${proj.id}')">Save Note</button>
               <button class="jm-btn-ghost jm-btn-sm" onclick="cancelEditNote('${proj.id}')">Cancel</button>
             </div>
           </div>
         </div>`;
+
+      // Store existing note on the button via dataset — avoids inline string escaping issues
+      const editBtn = card.querySelector('.jm-edit-note-btn');
+      editBtn.dataset.currentNote = proj.clientNote || '';
+      editBtn.addEventListener('click', function() {
+        startEditNote(this.dataset.projectId, this.dataset.currentNote);
+      });
+
       container.appendChild(card);
     });
   }

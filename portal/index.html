@@ -468,10 +468,12 @@
     container.innerHTML = '';
     projects.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
     projects.forEach(proj => {
-      const stageIdx = Math.max(0, PROJECT_STAGES.indexOf(proj.status));
-      const card     = document.createElement('div');
-      card.className = 'jm-project-card jm-card';
-      card.innerHTML = `
+      const stageIdx  = Math.max(0, PROJECT_STAGES.indexOf(proj.status));
+      const card      = document.createElement('div');
+      card.className  = 'jm-project-card jm-card';
+      const editingId = `note-editing-${proj.id}`;
+      const viewId    = `note-view-${proj.id}`;
+      card.innerHTML  = `
         <div class="jm-project-card__header">
           <div>
             <div class="jm-project-card__name">${proj.name || 'Untitled Project'}</div>
@@ -485,10 +487,72 @@
               <div class="jm-timeline__dot"></div>
               <div class="jm-timeline__label">${s}</div>
             </div>`).join('')}
+        </div>
+
+        <!-- Files -->
+        ${proj.files?.length ? `
+          <div style="margin-top:1.25rem;">
+            <div style="font-family:var(--font-body);font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--jm-slate);margin-bottom:0.5rem;">Files</div>
+            <div style="display:flex;flex-wrap:wrap;gap:0.5rem;">
+              ${proj.files.map(f => `
+                <a href="${f.url}" target="_blank" class="jm-btn-ghost jm-btn-sm" style="font-size:0.68rem;">
+                  📎 ${f.name || 'File'}
+                </a>`).join('')}
+            </div>
+          </div>` : ''}
+
+        <!-- Client Notes -->
+        <div style="margin-top:1.5rem;border-top:1px solid rgba(255,255,255,0.05);padding-top:1.25rem;">
+          <div style="font-family:var(--font-body);font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--jm-slate);margin-bottom:0.75rem;">My Notes</div>
+
+          <!-- View mode -->
+          <div id="${viewId}">
+            ${proj.clientNote
+              ? `<p style="font-family:var(--font-body);font-size:0.85rem;color:var(--jm-lightgrey);line-height:1.7;margin-bottom:0.75rem;">${proj.clientNote}</p>`
+              : `<p style="font-family:var(--font-body);font-size:0.82rem;color:var(--jm-slate);margin-bottom:0.75rem;">No notes yet.</p>`}
+            <button class="jm-btn-ghost jm-btn-sm" onclick="startEditNote('${proj.id}', \`${(proj.clientNote||'').replace(/`/g,"'")}\`)">
+              ${proj.clientNote ? '✏️ Edit Note' : '+ Add Note'}
+            </button>
+          </div>
+
+          <!-- Edit mode (hidden by default) -->
+          <div id="${editingId}" style="display:none;">
+            <textarea class="jm-textarea" id="note-input-${proj.id}" rows="3" placeholder="Add a note visible to Johnston Media...">${proj.clientNote || ''}</textarea>
+            <div style="display:flex;gap:0.5rem;margin-top:0.5rem;">
+              <button class="jm-btn-primary jm-btn-sm" onclick="saveClientNote('${proj.id}')">Save Note</button>
+              <button class="jm-btn-ghost jm-btn-sm" onclick="cancelEditNote('${proj.id}')">Cancel</button>
+            </div>
+          </div>
         </div>`;
       container.appendChild(card);
     });
   }
+
+  window.startEditNote = function(projectId, currentNote) {
+    document.getElementById(`note-view-${projectId}`).style.display    = 'none';
+    document.getElementById(`note-editing-${projectId}`).style.display = 'block';
+    document.getElementById(`note-input-${projectId}`).value = currentNote;
+    document.getElementById(`note-input-${projectId}`).focus();
+  };
+
+  window.cancelEditNote = function(projectId) {
+    document.getElementById(`note-editing-${projectId}`).style.display = 'none';
+    document.getElementById(`note-view-${projectId}`).style.display    = 'block';
+  };
+
+  window.saveClientNote = async function(projectId) {
+    const note = document.getElementById(`note-input-${projectId}`).value.trim();
+    try {
+      await updateDoc(doc(db, 'projects', projectId), {
+        clientNote: note,
+        clientNoteUpdatedAt: new Date().toISOString()
+      });
+      showToast('Note saved.');
+      // Reload to reflect changes
+      if (document.getElementById('panel-projects').style.display !== 'none') loadMyProjects();
+      else loadDashboard();
+    } catch(e) { showToast('Failed to save note: ' + e.message, 'error'); }
+  };
 
   // ─── Gallery ──────────────────────────────────────────
   async function loadGallery() {

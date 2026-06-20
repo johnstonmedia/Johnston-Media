@@ -58,7 +58,11 @@
 
 <!-- ─── APP VIEW ─────────────────────────────────────── -->
 <div id="app-view" style="display:none;">
-  <aside class="jm-sidebar">
+  <!-- Mobile sidebar toggle -->
+  <button class="jm-mobile-menu-btn" id="portalMobileMenuBtn" onclick="togglePortalSidebar()" aria-label="Open menu">☰</button>
+  <div class="jm-sidebar-overlay" id="portalSidebarOverlay" onclick="togglePortalSidebar()"></div>
+
+  <aside class="jm-sidebar" id="portalSidebar">
     <div class="jm-sidebar__logo">
       <div style="display:flex;align-items:center;gap:0.75rem;">
         <img src="../assets/logo.png" alt="Johnston Media" style="height:32px;width:auto;" />
@@ -109,22 +113,22 @@
         <div class="jm-dash-card">
           <div class="jm-dash-card__icon">💬</div>
           <div class="jm-dash-card__label">Quotes</div>
-          <div class="jm-dash-card__val" id="dashQuoteCount">0</div>
+          <div class="jm-dash-card__val" id="dashQuoteCount"><span class="dash-loading">—</span></div>
         </div>
         <div class="jm-dash-card">
           <div class="jm-dash-card__icon">🔔</div>
           <div class="jm-dash-card__label">Awaiting Action</div>
-          <div class="jm-dash-card__val" id="dashActionCount">0</div>
+          <div class="jm-dash-card__val" id="dashActionCount"><span class="dash-loading">—</span></div>
         </div>
         <div class="jm-dash-card">
           <div class="jm-dash-card__icon">🎬</div>
           <div class="jm-dash-card__label">Active Projects</div>
-          <div class="jm-dash-card__val" id="dashProjectCount">0</div>
+          <div class="jm-dash-card__val" id="dashProjectCount"><span class="dash-loading">—</span></div>
         </div>
         <div class="jm-dash-card">
           <div class="jm-dash-card__icon">✅</div>
           <div class="jm-dash-card__label">Delivered</div>
-          <div class="jm-dash-card__val" id="dashDeliveredCount">0</div>
+          <div class="jm-dash-card__val" id="dashDeliveredCount"><span class="dash-loading">—</span></div>
         </div>
       </div>
 
@@ -728,6 +732,26 @@
 <script>
   function showSignUp() { document.getElementById('emailSignIn').style.display='none'; document.getElementById('emailSignUp').style.display='block'; }
   function showSignIn()  { document.getElementById('emailSignUp').style.display='none'; document.getElementById('emailSignIn').style.display='block'; }
+
+  // ─── Mobile sidebar ───────────────────────────────────
+  function togglePortalSidebar() {
+    const sidebar  = document.getElementById('portalSidebar');
+    const overlay  = document.getElementById('portalSidebarOverlay');
+    const isOpen   = sidebar.classList.contains('open');
+    sidebar.classList.toggle('open', !isOpen);
+    overlay.classList.toggle('open', !isOpen);
+  }
+  // Close sidebar when a nav item is clicked on mobile
+  document.addEventListener('click', function(e) {
+    if (e.target.closest('.jm-sidebar__nav-item')) {
+      const sidebar = document.getElementById('portalSidebar');
+      const overlay = document.getElementById('portalSidebarOverlay');
+      if (window.innerWidth <= 768) {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('open');
+      }
+    }
+  });
 </script>
 </body>
 </html>

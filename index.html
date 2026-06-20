@@ -149,15 +149,25 @@
       position: absolute; inset: 0;
       width: 100%; height: 100%;
       object-fit: cover;
-      opacity: 0.45;
     }
-    /* Placeholder gradient shown when no video is set */
-    .hero__video-wrap::before {
-      content: '';
+    /* Standard mode: rich gradient overlay — always on when no custom video */
+    .hero__gradient-overlay {
       position: absolute; inset: 0; z-index: 1;
       background: linear-gradient(160deg, #000000 0%, #1F6F88 55%, #000000 100%);
-      opacity: 0.82;
+      opacity: 0.88;
+      transition: opacity 0.6s ease;
     }
+    /* Custom mode: just a dark dim so video is readable */
+    .hero__dim-overlay {
+      position: absolute; inset: 0; z-index: 1;
+      background: rgba(0,0,0,0.45);
+      opacity: 0;
+      transition: opacity 0.6s ease;
+    }
+    /* When hero is in custom video mode */
+    .hero.hero--custom .hero__gradient-overlay { opacity: 0; pointer-events: none; }
+    .hero.hero--custom .hero__dim-overlay      { opacity: 1; }
+    .hero.hero--custom .hero__flare            { display: none; }
     .hero__grain {
       position: absolute; inset: 0; z-index: 2;
       opacity: 0.055;
@@ -165,7 +175,6 @@
       background-size: 250px;
       pointer-events: none;
     }
-    /* Warm lens flare */
     .hero__flare {
       position: absolute; z-index: 2;
       width: 700px; height: 700px;
@@ -181,6 +190,51 @@
       padding: 0 5vw;
       max-width: 860px;
     }
+
+    /* ─── CLIENT LOGO BANNER ────────────────────────── */
+    .client-logo-banner {
+      background: #000000;
+      border-top: 1px solid rgba(255,255,255,0.05);
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      padding: 2rem 0;
+      overflow: hidden;
+      position: relative;
+    }
+    .client-logo-banner::before,
+    .client-logo-banner::after {
+      content: '';
+      position: absolute; top: 0; bottom: 0;
+      width: 120px; z-index: 2;
+      pointer-events: none;
+    }
+    .client-logo-banner::before {
+      left: 0;
+      background: linear-gradient(to right, #000000, transparent);
+    }
+    .client-logo-banner::after {
+      right: 0;
+      background: linear-gradient(to left, #000000, transparent);
+    }
+    .client-logo-track {
+      display: flex; align-items: center; gap: 4rem;
+      width: max-content;
+      animation: scrollLeft 30s linear infinite;
+    }
+    .client-logo-track:hover { animation-play-state: paused; }
+    @keyframes scrollLeft {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-50%); }
+    }
+    .client-logo-item {
+      flex-shrink: 0;
+      height: 48px;
+      display: flex; align-items: center;
+      opacity: 0.5;
+      transition: opacity 0.3s;
+      filter: grayscale(100%) brightness(1.5);
+    }
+    .client-logo-item:hover { opacity: 1; filter: grayscale(0%); }
+    .client-logo-item img { height: 100%; width: auto; object-fit: contain; }
     .hero__eyebrow {
       display: block;
       font-family: var(--font-body);
@@ -427,59 +481,170 @@
       display: block; width: 24px; height: 1px;
       background: var(--jm-copper);
     }
-    .portfolio-grid {
+
+    /* Project cards grid */
+    .portfolio-projects {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
       gap: 2px;
     }
-    .portfolio-grid--wide {
-      grid-template-columns: 2fr 1fr 1fr;
-    }
-    .media-card {
+
+    /* Each project card */
+    .proj-card {
       position: relative;
-      aspect-ratio: 4/3;
+      aspect-ratio: 16/10;
       overflow: hidden;
-      background: var(--jm-black);
+      background: #0a0a0a;
       cursor: pointer;
     }
-    .media-card__img,
-    .media-card__video {
+    .proj-card__hero {
       position: absolute; inset: 0;
       width: 100%; height: 100%;
       object-fit: cover;
-      transition: transform 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.5s;
+      transition: transform 0.7s cubic-bezier(0.25,0.46,0.45,0.94);
     }
-    .media-card:hover .media-card__img,
-    .media-card:hover .media-card__video { transform: scale(1.06); }
-    .media-card__overlay {
+    .proj-card:hover .proj-card__hero { transform: scale(1.05); }
+    .proj-card__overlay {
       position: absolute; inset: 0;
-      background: linear-gradient(to top, rgba(0,0,0,0.88) 0%, transparent 55%);
-      opacity: 0; transition: opacity 0.4s;
+      background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.1) 50%, transparent 100%);
       display: flex; flex-direction: column; justify-content: flex-end;
       padding: 1.75rem;
     }
-    .media-card:hover .media-card__overlay { opacity: 1; }
-    .media-card__title {
+    .proj-card__title {
       font-family: var(--font-display);
-      font-size: 1rem; color: var(--jm-white);
+      font-size: 1.15rem; color: var(--jm-white);
+      margin-bottom: 0.4rem;
+      transform: translateY(8px);
+      transition: transform 0.35s ease;
     }
-    .media-card__play {
-      position: absolute; top: 50%; left: 50%;
-      transform: translate(-50%,-50%);
-      width: 48px; height: 48px;
-      background: rgba(31,111,136,0.8);
-      border-radius: 50%;
+    .proj-card__meta {
+      font-family: var(--font-body);
+      font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--jm-teal);
+      opacity: 0; transform: translateY(6px);
+      transition: opacity 0.3s ease 0.05s, transform 0.3s ease 0.05s;
+    }
+    .proj-card:hover .proj-card__title { transform: translateY(0); }
+    .proj-card:hover .proj-card__meta  { opacity: 1; transform: translateY(0); }
+    .proj-card__play {
+      position: absolute; top: 1rem; right: 1rem;
+      width: 40px; height: 40px;
+      background: rgba(0,0,0,0.5); border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
-      color: white; font-size: 0.9rem;
-      transition: background 0.25s, transform 0.25s;
+      color: rgba(255,255,255,0.8); font-size: 0.75rem;
+      border: 1px solid rgba(255,255,255,0.2);
+      transition: background 0.2s, border-color 0.2s;
     }
-    .media-card:hover .media-card__play { background: var(--jm-copper); transform: translate(-50%,-50%) scale(1.1); }
-    .media-skeleton {
-      background: linear-gradient(90deg, var(--jm-black) 25%, rgba(255,255,255,0.03) 50%, var(--jm-black) 75%);
+    .proj-card:hover .proj-card__play { background: var(--jm-copper); border-color: var(--jm-copper); }
+    .proj-card__count {
+      position: absolute; bottom: 1rem; right: 1rem;
+      font-family: var(--font-body); font-size: 0.65rem;
+      color: rgba(255,255,255,0.5); letter-spacing: 0.08em;
+    }
+    .proj-skeleton {
+      aspect-ratio: 16/10;
+      background: linear-gradient(90deg, #0a0a0a 25%, rgba(255,255,255,0.03) 50%, #0a0a0a 75%);
       background-size: 400%;
       animation: shimmer 2s infinite;
     }
     @keyframes shimmer { 0%{ background-position:200% 0; } 100%{ background-position:-200% 0; } }
+
+    /* ─── LIGHTBOX ──────────────────────────────────── */
+    .lb-overlay {
+      position: fixed; inset: 0; z-index: 1000;
+      background: rgba(0,0,0,0.96);
+      display: flex; align-items: center; justify-content: center;
+      padding: 1rem;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.35s ease;
+    }
+    .lb-overlay.open { opacity: 1; pointer-events: all; }
+    .lb-close {
+      position: fixed; top: 1.5rem; right: 1.5rem; z-index: 10;
+      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);
+      color: var(--jm-white); font-size: 1.5rem;
+      width: 44px; height: 44px; border-radius: 50%;
+      cursor: pointer; transition: background 0.2s;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .lb-close:hover { background: rgba(255,255,255,0.18); }
+    .lb-panel {
+      width: 100%; max-width: 1100px;
+      max-height: 92vh;
+      overflow-y: auto;
+      position: relative;
+    }
+    .lb-hero {
+      width: 100%;
+      aspect-ratio: 16/9;
+      background: #000;
+      position: relative;
+      overflow: hidden;
+      border-radius: 4px;
+    }
+    .lb-hero video,
+    .lb-hero img {
+      width: 100%; height: 100%;
+      object-fit: contain;
+    }
+    .lb-meta {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      gap: 2rem; padding: 1.5rem 0.25rem 1rem;
+      flex-wrap: wrap;
+    }
+    .lb-title {
+      font-family: var(--font-display);
+      font-size: clamp(1.3rem, 2.5vw, 1.8rem);
+      color: var(--jm-white); margin-bottom: 0.4rem;
+    }
+    .lb-desc {
+      font-family: var(--font-body);
+      font-size: 0.85rem; color: var(--jm-muted);
+      line-height: 1.7; max-width: 600px;
+    }
+    .lb-link {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      font-family: var(--font-body); font-size: 0.72rem;
+      font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--jm-teal); text-decoration: none;
+      border: 1px solid rgba(31,111,136,0.4);
+      padding: 0.6rem 1.2rem; border-radius: 999px;
+      white-space: nowrap;
+      transition: border-color 0.2s, color 0.2s, background 0.2s;
+    }
+    .lb-link:hover { border-color: var(--jm-teal); background: rgba(31,111,136,0.1); color: var(--jm-white); }
+    .lb-gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 3px;
+      margin-top: 0.5rem;
+    }
+    .lb-thumb {
+      position: relative;
+      aspect-ratio: 16/10;
+      overflow: hidden;
+      background: #0a0a0a;
+      cursor: pointer;
+      border-radius: 2px;
+    }
+    .lb-thumb video,
+    .lb-thumb img {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+      transition: transform 0.4s ease;
+    }
+    .lb-thumb:hover video,
+    .lb-thumb:hover img { transform: scale(1.04); }
+    .lb-thumb__play {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.3);
+      color: rgba(255,255,255,0.8); font-size: 1.1rem;
+      opacity: 0; transition: opacity 0.25s;
+    }
+    .lb-thumb:hover .lb-thumb__play { opacity: 1; }
+    .lb-thumb.active-thumb { outline: 2px solid var(--jm-copper); }
 
     /* ─── ABOUT ─────────────────────────────────────── */
     .about-grid {
@@ -771,12 +936,14 @@
 <!-- ─── HERO ─────────────────────────────────────── -->
 <section class="hero" id="hero">
   <div class="hero__video-wrap" id="heroVideoWrap">
-    <video class="hero__video" id="heroVideo" autoplay muted loop playsinline>
-      <source src="" type="video/mp4" id="heroVideoSrc" />
-    </video>
+    <video class="hero__video" id="heroVideo" autoplay muted loop playsinline></video>
+    <!-- Standard gradient overlay — shown in standard mode, hidden in custom mode -->
+    <div class="hero__gradient-overlay" id="heroGradientOverlay"></div>
+    <!-- Dim overlay — shown in custom mode to make video readable -->
+    <div class="hero__dim-overlay" id="heroDimOverlay"></div>
   </div>
   <div class="hero__grain"></div>
-  <div class="hero__flare"></div>
+  <div class="hero__flare" id="heroFlare"></div>
   <div class="hero__content">
     <span class="hero__eyebrow" id="heroEyebrow">Sydney · NSW · Australia</span>
     <h1 class="hero__title" id="heroTitle">Cinematic Stories<br/><em>Built to Last</em></h1>
@@ -791,6 +958,11 @@
     <div class="hero__scroll-line"></div>
   </div>
 </section>
+
+<!-- ─── CLIENT LOGO BANNER (position: after-hero) ─ -->
+<div id="clientBanner-after-hero" class="client-logo-banner" style="display:none;">
+  <div class="client-logo-track" id="track-after-hero"></div>
+</div>
 
 <!-- ─── BANNER ───────────────────────────────────── -->
 <div class="banner" id="siteBanner">
@@ -839,37 +1011,59 @@
     <hr class="section-rule reveal" />
 
     <!-- Sports Videography -->
-    <div class="portfolio-category" id="cat-sports-video">
-      <div class="category-label reveal">Sports Videography</div>
-      <div class="portfolio-grid reveal-stagger" id="grid-sports-video">
-        <div class="media-card media-skeleton"></div>
-        <div class="media-card media-skeleton"></div>
-        <div class="media-card media-skeleton"></div>
+    <div class="portfolio-category reveal" id="cat-sports-video">
+      <div class="category-label">Sports Videography</div>
+      <div class="portfolio-projects" id="grid-sports-video">
+        <div class="proj-skeleton"></div><div class="proj-skeleton"></div>
       </div>
     </div>
 
     <!-- Sports Photography -->
-    <div class="portfolio-category" id="cat-sports-photo">
-      <div class="category-label reveal">Sports Photography</div>
-      <div class="portfolio-grid portfolio-grid--wide reveal-stagger" id="grid-sports-photo">
-        <div class="media-card media-skeleton"></div>
-        <div class="media-card media-skeleton"></div>
-        <div class="media-card media-skeleton"></div>
+    <div class="portfolio-category reveal" id="cat-sports-photo">
+      <div class="category-label">Sports Photography</div>
+      <div class="portfolio-projects" id="grid-sports-photo">
+        <div class="proj-skeleton"></div><div class="proj-skeleton"></div>
       </div>
     </div>
 
     <!-- Commercial -->
-    <div class="portfolio-category" id="cat-commercial">
-      <div class="category-label reveal">Commercial</div>
-      <div class="portfolio-grid reveal-stagger" id="grid-commercial">
-        <div class="media-card media-skeleton"></div>
-        <div class="media-card media-skeleton"></div>
-        <div class="media-card media-skeleton"></div>
+    <div class="portfolio-category reveal" id="cat-commercial">
+      <div class="category-label">Commercial</div>
+      <div class="portfolio-projects" id="grid-commercial">
+        <div class="proj-skeleton"></div><div class="proj-skeleton"></div>
       </div>
     </div>
 
   </div>
 </section>
+
+<!-- ─── PORTFOLIO LIGHTBOX ────────────────────────── -->
+<div class="lb-overlay" id="lbOverlay" onclick="closeLightbox(event)">
+  <button class="lb-close" onclick="closeLightbox()" aria-label="Close">×</button>
+  <div class="lb-panel">
+    <!-- Hero video / image -->
+    <div class="lb-hero" id="lbHero"></div>
+    <!-- Project meta -->
+    <div class="lb-meta">
+      <div class="lb-meta__left">
+        <h2 class="lb-title" id="lbTitle"></h2>
+        <p class="lb-desc" id="lbDesc"></p>
+      </div>
+      <div class="lb-meta__right">
+        <a class="lb-link" id="lbLink" href="#" target="_blank" rel="noopener" style="display:none;">
+          View Project →
+        </a>
+      </div>
+    </div>
+    <!-- Additional clips/images -->
+    <div class="lb-gallery" id="lbGallery"></div>
+  </div>
+</div>
+
+<!-- ─── CLIENT LOGO BANNER (position: after-portfolio) -->
+<div id="clientBanner-after-portfolio" class="client-logo-banner" style="display:none;">
+  <div class="client-logo-track" id="track-after-portfolio"></div>
+</div>
 
 <!-- ─── ABOUT ────────────────────────────────────── -->
 <section id="about" class="section section--alt">
@@ -903,6 +1097,11 @@
     </div>
   </div>
 </section>
+
+<!-- ─── CLIENT LOGO BANNER (position: after-about) -->
+<div id="clientBanner-after-about" class="client-logo-banner" style="display:none;">
+  <div class="client-logo-track" id="track-after-about"></div>
+</div>
 
 <!-- ─── CTA STRIP ─────────────────────────────────── -->
 <div class="cta-strip">
@@ -1005,14 +1204,14 @@
   import { getFirestore, doc, getDoc, collection, addDoc, query, orderBy, getDocs }
     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-  // 🔥 FIREBASE: Config — replace with your project values
+  // 🔥 FIREBASE: Config
   const firebaseConfig = {
-  apiKey: "AIzaSyCL8rfdyKUJxEgFRY2NH-V-270NL5GnXqg",
-  authDomain: "johnston-media-website.firebaseapp.com",
-  projectId: "johnston-media-website",
-  storageBucket: "johnston-media-website.firebasestorage.app",
-  messagingSenderId: "603898378479",
-  appId: "1:603898378479:web:a0312f2d7a9bcde0ec831a",
+    apiKey:            "AIzaSyCL8rfdyKUJxEgFRY2NH-V-270NL5GnXqg",
+    authDomain:        "johnston-media-website.firebaseapp.com",
+    projectId:         "johnston-media-website",
+    storageBucket:     "johnston-media-website.firebasestorage.app",
+    messagingSenderId: "603898378479",
+    appId:             "1:603898378479:web:a0312f2d7a9bcde0ec831a"
   };
 
   const app = initializeApp(firebaseConfig);
@@ -1034,43 +1233,177 @@
         document.getElementById('primaryEmailLink').textContent = s.primaryEmail;
         document.getElementById('primaryEmailLink').href = 'mailto:' + s.primaryEmail;
       }
-      if (s.heroVideoUrl) {
-        document.getElementById('heroVideoSrc').src = s.heroVideoUrl;
-        document.getElementById('heroVideo').load();
-        document.getElementById('heroVideo').play();
+
+      // ── Hero mode logic ──────────────────────────────
+      const heroEl  = document.getElementById('hero');
+      const heroVid = document.getElementById('heroVideo');
+      const isCustom = s.heroMode === 'custom' && s.heroVideoUrl;
+
+      if (isCustom) {
+        // Custom video mode — show video, just dim it
+        heroEl.classList.add('hero--custom');
+        heroVid.src = s.heroVideoUrl;
+        heroVid.load();
+        heroVid.play().catch(() => {});
+      } else {
+        // Standard mode — gradient only, hide video element
+        heroEl.classList.remove('hero--custom');
+        heroVid.style.display = 'none';
       }
+
+      // ── Client logo banner ───────────────────────────
+      if (s.clientBannerEnabled && s.clientBannerLogos?.length) {
+        const pos     = s.clientBannerPosition || 'after-portfolio';
+        const bannerEl = document.getElementById(`clientBanner-${pos}`);
+        const trackEl  = document.getElementById(`track-${pos}`);
+        if (bannerEl && trackEl) {
+          // Duplicate logos for seamless scroll loop
+          const logos = s.clientBannerLogos;
+          const allLogos = [...logos, ...logos]; // duplicate for infinite loop
+          trackEl.innerHTML = allLogos.map(logo => `
+            <div class="client-logo-item">
+              <img src="${logo.url}" alt="${logo.name || 'Client'}" />
+            </div>`).join('');
+          bannerEl.style.display = 'block';
+        }
+      }
+
       const links = { igLink: s.igUrl, ttLink: s.ttUrl, ytLink: s.ytUrl, footerIg: s.igUrl, footerTt: s.ttUrl, footerYt: s.ytUrl };
       Object.entries(links).forEach(([id, url]) => { if (url) document.getElementById(id).href = url; });
-    } catch(e) { /* settings not yet set */ }
+    } catch(e) { console.log('Settings load error:', e); }
   }
 
-  // 🔥 FIREBASE: Load portfolio category
+  // 🔥 FIREBASE: Load portfolio projects for a category
   async function loadPortfolioCategory(category, gridId) {
+    const grid = document.getElementById(gridId);
     try {
-      const q = query(collection(db, 'portfolio', category, 'items'), orderBy('order', 'asc'));
+      const q    = query(collection(db, 'portfolio', category, 'projects'), orderBy('order', 'asc'));
       const snap = await getDocs(q);
-      const grid = document.getElementById(gridId);
-      if (snap.empty) { grid.innerHTML = '<p style="color:#66737D;font-family:Montserrat,sans-serif;font-size:.82rem;padding:2rem 0;">No items yet.</p>'; return; }
       grid.innerHTML = '';
+      if (snap.empty) {
+        grid.innerHTML = '<p style="color:#66737D;font-family:Montserrat,sans-serif;font-size:.82rem;padding:2rem 0;grid-column:1/-1;">No projects yet.</p>';
+        return;
+      }
       snap.forEach(d => {
-        const item = d.data();
-        const isVideo = item.type === 'video';
-        const card = document.createElement('div');
-        card.className = 'media-card';
-        card.innerHTML = isVideo
-          ? `<video class="media-card__video" src="${item.url}" muted loop></video>
-             <div class="media-card__play">▶</div>
-             <div class="media-card__overlay"><div class="media-card__title">${item.title||''}</div></div>`
-          : `<img class="media-card__img" src="${item.url}" alt="${item.title||''}" loading="lazy" />
-             <div class="media-card__overlay"><div class="media-card__title">${item.title||''}</div></div>`;
+        const proj    = { id: d.id, ...d.data() };
+        const isVideo = proj.heroType === 'video';
+        const clips   = proj.clips || [];
+        const card    = document.createElement('div');
+        card.className = 'proj-card';
+        card.innerHTML = `
+          ${isVideo
+            ? `<video class="proj-card__hero" src="${proj.heroUrl}" muted loop playsinline></video>`
+            : `<img class="proj-card__hero" src="${proj.heroUrl}" alt="${proj.title||''}" loading="lazy" />`}
+          <div class="proj-card__overlay">
+            <h3 class="proj-card__title">${proj.title || ''}</h3>
+            <div class="proj-card__meta">${proj.subtitle || 'View project'}</div>
+          </div>
+          ${isVideo ? `<div class="proj-card__play">▶</div>` : ''}
+          ${clips.length ? `<div class="proj-card__count">+${clips.length} clip${clips.length>1?'s':''}</div>` : ''}`;
+
+        // Hover play/pause for hero video
         if (isVideo) {
-          card.addEventListener('mouseenter', () => card.querySelector('video').play());
-          card.addEventListener('mouseleave', () => { const v = card.querySelector('video'); v.pause(); v.currentTime=0; });
+          card.addEventListener('mouseenter', () => card.querySelector('video')?.play());
+          card.addEventListener('mouseleave', () => { const v = card.querySelector('video'); if(v){v.pause();v.currentTime=0;} });
         }
+        // Click to open lightbox
+        card.addEventListener('click', () => openLightbox(proj));
         grid.appendChild(card);
       });
-    } catch(e) { console.log('Portfolio load error:', e); }
+    } catch(e) { grid.innerHTML = '<p style="color:#66737D;font-family:Montserrat,sans-serif;font-size:.82rem;padding:2rem 0;grid-column:1/-1;">Error loading projects.</p>'; }
   }
+
+  // ─── Lightbox ─────────────────────────────────────────
+  let _lbCurrentProj = null;
+
+  window.openLightbox = function(proj) {
+    _lbCurrentProj = proj;
+    const overlay = document.getElementById('lbOverlay');
+    const lbHero  = document.getElementById('lbHero');
+    const clips   = proj.clips || [];
+
+    // Set main hero
+    setLbMain(proj.heroUrl, proj.heroType === 'video', true);
+
+    // Meta
+    document.getElementById('lbTitle').textContent = proj.title || '';
+    document.getElementById('lbDesc').textContent  = proj.description || '';
+    const linkEl = document.getElementById('lbLink');
+    if (proj.link) { linkEl.href = proj.link; linkEl.style.display = 'inline-flex'; }
+    else            { linkEl.style.display = 'none'; }
+
+    // Gallery thumbs
+    const gallery = document.getElementById('lbGallery');
+    gallery.innerHTML = '';
+    if (clips.length) {
+      // First thumb = hero itself
+      const heroThumb = makeThumb(proj.heroUrl, proj.heroType === 'video', true);
+      heroThumb.classList.add('active-thumb');
+      heroThumb.addEventListener('click', () => {
+        setLbMain(proj.heroUrl, proj.heroType === 'video');
+        setActiveThumb(heroThumb);
+      });
+      gallery.appendChild(heroThumb);
+
+      clips.forEach(clip => {
+        const isVid = clip.type === 'video';
+        const thumb  = makeThumb(clip.url, isVid);
+        thumb.addEventListener('click', () => {
+          setLbMain(clip.url, isVid);
+          setActiveThumb(thumb);
+        });
+        gallery.appendChild(thumb);
+      });
+    }
+
+    overlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  };
+
+  function setLbMain(url, isVideo, muted = false) {
+    const lbHero = document.getElementById('lbHero');
+    if (isVideo) {
+      lbHero.innerHTML = `<video src="${url}" controls ${muted ? '' : 'autoplay'} style="width:100%;height:100%;object-fit:contain;background:#000;"></video>`;
+      if (!muted) lbHero.querySelector('video').play().catch(()=>{});
+    } else {
+      lbHero.innerHTML = `<img src="${url}" alt="" style="width:100%;height:100%;object-fit:contain;background:#000;" />`;
+    }
+  }
+
+  function makeThumb(url, isVideo) {
+    const div = document.createElement('div');
+    div.className = 'lb-thumb';
+    div.innerHTML = isVideo
+      ? `<video src="${url}" muted style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></video><div class="lb-thumb__play">▶</div>`
+      : `<img src="${url}" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" />`;
+    return div;
+  }
+
+  function setActiveThumb(el) {
+    document.querySelectorAll('.lb-thumb').forEach(t => t.classList.remove('active-thumb'));
+    el.classList.add('active-thumb');
+  }
+
+  window.closeLightbox = function(e) {
+    if (e && e.target !== document.getElementById('lbOverlay') && !e.target.closest('.lb-close')) return;
+    const overlay = document.getElementById('lbOverlay');
+    overlay.classList.remove('open');
+    document.body.style.overflow = '';
+    // Stop any playing video
+    document.getElementById('lbHero').innerHTML = '';
+  };
+
+  // Close on Escape key
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      const overlay = document.getElementById('lbOverlay');
+      if (overlay.classList.contains('open')) {
+        overlay.classList.remove('open');
+        document.body.style.overflow = '';
+        document.getElementById('lbHero').innerHTML = '';
+      }
+    }
+  });
 
   // 🔥 FIREBASE: Send contact message
   window.sendMessage = async function() {

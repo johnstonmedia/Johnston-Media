@@ -26,7 +26,11 @@
 
 <!-- ─── APP VIEW ─────────────────────────────────────── -->
 <div id="app-view" style="display:none;">
-  <aside class="jm-sidebar">
+  <!-- Mobile sidebar toggle -->
+  <button class="jm-mobile-menu-btn" id="adminMobileMenuBtn" onclick="toggleAdminSidebar()" aria-label="Open menu">☰</button>
+  <div class="jm-sidebar-overlay" id="adminSidebarOverlay" onclick="toggleAdminSidebar()"></div>
+
+  <aside class="jm-sidebar" id="adminSidebar">
     <div class="jm-sidebar__logo">
       <div style="display:flex;align-items:center;gap:0.75rem;">
         <img src="../assets/logo.png" alt="Johnston Media" style="height:32px;width:auto;" />
@@ -97,33 +101,110 @@
           <div class="jm-form-group"><label class="jm-form-label">Eyebrow Text</label><input class="jm-input" id="sHeroEyebrow" placeholder="e.g. Sydney · NSW · Australia"/></div>
           <div class="jm-form-group"><label class="jm-form-label">Hero Title (HTML allowed for line breaks)</label><input class="jm-input" id="sHeroTitle" placeholder="Cinematic Stories&lt;br/&gt;Built to Last"/></div>
           <div class="jm-form-group"><label class="jm-form-label">Hero Subtitle</label><input class="jm-input" id="sHeroSubtitle" placeholder="Sports · Commercial · Events"/></div>
+
+          <!-- Hero Mode Toggle -->
           <div class="jm-form-group">
-            <label class="jm-form-label">Hero Video</label>
-            <input type="file" class="jm-input" id="heroVideoFile" accept="video/*" />
-            <p class="jm-form-hint">Upload a video file above, or paste a direct URL below:</p>
-            <input class="jm-input" id="sHeroVideoUrl" placeholder="https://..." style="margin-top:0.5rem;"/>
-            <p id="heroVideoSavedHint" style="display:none;margin-top:0.5rem;font-family:var(--font-body);font-size:0.72rem;color:var(--jm-teal);word-break:break-all;"></p>
+            <label class="jm-form-label">Hero Background Mode</label>
+            <div style="display:flex;gap:0.75rem;margin-top:0.5rem;">
+              <button type="button" class="jm-toggle-btn active" id="heroModeStandard" onclick="setHeroMode('standard')">
+                🎨 Standard
+              </button>
+              <button type="button" class="jm-toggle-btn" id="heroModeCustom" onclick="setHeroMode('custom')">
+                🎬 Custom Hero Background
+              </button>
+            </div>
+            <p class="jm-form-hint" id="heroModeHint">Standard uses the brand gradient. Custom shows your uploaded video behind the hero text.</p>
           </div>
+
+          <!-- Video upload — only relevant in custom mode -->
+          <div id="heroVideoSection" style="opacity:0.4;pointer-events:none;">
+            <div class="jm-form-group">
+              <label class="jm-form-label">Hero Video</label>
+              <input type="file" class="jm-input" id="heroVideoFile" accept="video/*" />
+              <p class="jm-form-hint">Upload a video, or paste a direct URL below:</p>
+              <input class="jm-input" id="sHeroVideoUrl" placeholder="https://..." style="margin-top:0.5rem;"/>
+              <p id="heroVideoSavedHint" style="display:none;margin-top:0.5rem;font-family:var(--font-body);font-size:0.72rem;color:var(--jm-teal);word-break:break-all;"></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Client Logo Banner -->
+        <div class="jm-admin-section">
+          <h2 class="jm-admin-section-title">Client Logo Banner</h2>
+          <p class="jm-form-hint" style="margin-bottom:1.5rem;">A scrolling strip of client logos across the homepage. Upload logos and choose where it appears.</p>
+
+          <!-- On/Off Toggle -->
+          <div class="jm-form-group">
+            <label class="jm-form-label">Banner Visibility</label>
+            <div style="display:flex;gap:0.75rem;margin-top:0.5rem;">
+              <button type="button" class="jm-toggle-btn" id="bannerOff" onclick="setBannerEnabled(false)">Off</button>
+              <button type="button" class="jm-toggle-btn" id="bannerOn" onclick="setBannerEnabled(true)">On</button>
+            </div>
+          </div>
+
+          <!-- Position selector -->
+          <div class="jm-form-group" id="bannerPositionGroup">
+            <label class="jm-form-label">Position on Homepage</label>
+            <select class="jm-select" id="sBannerPosition">
+              <option value="after-hero">After Hero (before Services)</option>
+              <option value="after-portfolio">After Portfolio (before About)</option>
+              <option value="after-about">After About (before CTA)</option>
+            </select>
+          </div>
+
+          <!-- Logo uploads -->
+          <div class="jm-form-group">
+            <label class="jm-form-label">Upload Client Logo</label>
+            <input class="jm-input" id="bannerLogoName" placeholder="Client name (optional)" style="margin-bottom:0.5rem;" />
+            <input type="file" class="jm-input" id="bannerLogoFile" accept="image/*" />
+            <button class="jm-btn-ghost jm-btn-sm" style="margin-top:0.75rem;" onclick="addBannerLogo()">+ Add Logo</button>
+          </div>
+
+          <!-- Current logos list -->
+          <div id="bannerLogoList" style="margin-top:1rem;"></div>
         </div>
         <!-- Portfolio -->
         <div class="jm-admin-section">
-          <h2 class="jm-admin-section-title">Portfolio</h2>
+          <h2 class="jm-admin-section-title">Portfolio Projects</h2>
+          <p class="jm-form-hint" style="margin-bottom:1.5rem;">Each entry is a project with a hero image/video and optional additional clips that appear in the expanded lightbox.</p>
+
           <div class="jm-form-group">
             <label class="jm-form-label">Category</label>
-            <select class="jm-select" id="portfolioCategory">
+            <select class="jm-select" id="portfolioCategory" onchange="loadPortfolioList(this.value)">
               <option value="sports-video">Sports Videography</option>
               <option value="sports-photo">Sports Photography</option>
               <option value="commercial">Commercial</option>
             </select>
           </div>
-          <div class="jm-form-group"><label class="jm-form-label">Title</label><input class="jm-input" id="portfolioItemTitle" placeholder="Item title"/></div>
           <div class="jm-form-group">
-            <label class="jm-form-label">Upload Image / Video</label>
-            <input type="file" class="jm-input" id="portfolioFile" accept="image/*,video/*" />
+            <label class="jm-form-label">Project Title</label>
+            <input class="jm-input" id="pTitle" placeholder="e.g. Swans vs Eagles — Round 14" />
           </div>
-          <div class="jm-form-group"><label class="jm-form-label">Or enter URL directly</label><input class="jm-input" id="portfolioUrl" placeholder="https://..."/></div>
-          <button class="jm-btn-primary" onclick="addPortfolioItem()">Add to Portfolio</button>
-          <div id="portfolioList" style="margin-top:var(--space-lg);"></div>
+          <div class="jm-form-group">
+            <label class="jm-form-label">Subtitle / Tag</label>
+            <input class="jm-input" id="pSubtitle" placeholder="e.g. AFL · Sydney · 2024" />
+          </div>
+          <div class="jm-form-group">
+            <label class="jm-form-label">Description (shown in lightbox)</label>
+            <textarea class="jm-textarea" id="pDesc" rows="2" placeholder="Short description of this project..."></textarea>
+          </div>
+          <div class="jm-form-group">
+            <label class="jm-form-label">Webpage Link (optional)</label>
+            <input class="jm-input" id="pLink" placeholder="https://..." />
+          </div>
+          <div class="jm-form-group">
+            <label class="jm-form-label">Hero Image / Video (the main thumbnail)</label>
+            <input type="file" class="jm-input" id="pHeroFile" accept="image/*,video/*" />
+            <p class="jm-form-hint">Or paste a URL:</p>
+            <input class="jm-input" id="pHeroUrl" placeholder="https://..." style="margin-top:0.5rem;" />
+          </div>
+          <div class="jm-form-group">
+            <label class="jm-form-label">Additional Clips / Images (shown in lightbox gallery)</label>
+            <input type="file" class="jm-input" id="pClipFiles" accept="image/*,video/*" multiple />
+            <p class="jm-form-hint">Select multiple files at once. These appear as thumbnails inside the lightbox.</p>
+          </div>
+          <button class="jm-btn-primary" onclick="addPortfolioProject()">Add Project</button>
+          <div id="portfolioList" style="margin-top:1.5rem;"></div>
         </div>
         <!-- About -->
         <div class="jm-admin-section">
@@ -266,6 +347,17 @@
       <button class="jm-btn-primary" onclick="createClient()">Create Client</button>
       <button class="jm-btn-ghost" onclick="closeModal('createClientModal')">Cancel</button>
     </div>
+  </div>
+</div>
+
+<!-- ─── PORTFOLIO PROJECT EDIT MODAL ─────────────────── -->
+<div class="jm-modal-overlay" id="portfolioEditModal">
+  <div class="jm-modal" style="max-width:640px;">
+    <div class="jm-modal-header">
+      <h2 class="jm-modal-title" id="portfolioEditTitle">Edit Project</h2>
+      <button class="jm-modal-close" onclick="closeModal('portfolioEditModal')">×</button>
+    </div>
+    <div id="portfolioEditBody"></div>
   </div>
 </div>
 
@@ -434,69 +526,149 @@
       const snap = await getDoc(doc(db, 'settings', 'site'));
       if (!snap.exists()) return;
       const s = snap.data();
-      document.getElementById('sHeroEyebrow').value   = s.heroEyebrow   || '';
-      document.getElementById('sHeroTitle').value     = s.heroTitle     || '';
-      document.getElementById('sHeroSubtitle').value  = s.heroSubtitle  || '';
-      document.getElementById('sHeroVideoUrl').value  = s.heroVideoUrl  || '';
-      document.getElementById('sAboutTitle').value    = s.aboutTitle    || '';
-      document.getElementById('sAboutText').value     = s.aboutText     || '';
-      document.getElementById('sPrimaryEmail').value  = s.primaryEmail  || '';
+      document.getElementById('sHeroEyebrow').value    = s.heroEyebrow    || '';
+      document.getElementById('sHeroTitle').value      = s.heroTitle      || '';
+      document.getElementById('sHeroSubtitle').value   = s.heroSubtitle   || '';
+      document.getElementById('sHeroVideoUrl').value   = s.heroVideoUrl   || '';
+      document.getElementById('sAboutTitle').value     = s.aboutTitle     || '';
+      document.getElementById('sAboutText').value      = s.aboutText      || '';
+      document.getElementById('sPrimaryEmail').value   = s.primaryEmail   || '';
       document.getElementById('sSecondaryEmail').value = s.secondaryEmail || '';
-      document.getElementById('sIgUrl').value         = s.igUrl         || '';
-      document.getElementById('sTtUrl').value         = s.ttUrl         || '';
-      document.getElementById('sYtUrl').value         = s.ytUrl         || '';
-      document.getElementById('sFooterNote').value    = s.footerNote    || '';
+      document.getElementById('sIgUrl').value          = s.igUrl          || '';
+      document.getElementById('sTtUrl').value          = s.ttUrl          || '';
+      document.getElementById('sYtUrl').value          = s.ytUrl          || '';
+      document.getElementById('sFooterNote').value     = s.footerNote     || '';
+
+      // Hero mode toggle
+      setHeroMode(s.heroMode || 'standard', false);
+
+      // Client banner
+      setBannerEnabled(!!s.clientBannerEnabled, false);
+      if (s.clientBannerPosition) document.getElementById('sBannerPosition').value = s.clientBannerPosition;
+
+      // Load existing banner logos
+      renderBannerLogoList(s.clientBannerLogos || []);
     } catch(e) { console.log('Settings load error:', e); }
   }
+
+  // Hero mode toggle
+  let _heroMode = 'standard';
+  window.setHeroMode = function(mode, _userAction = true) {
+    _heroMode = mode;
+    const isCustom = mode === 'custom';
+    document.getElementById('heroModeStandard').classList.toggle('active', !isCustom);
+    document.getElementById('heroModeCustom').classList.toggle('active', isCustom);
+    const videoSection = document.getElementById('heroVideoSection');
+    videoSection.style.opacity      = isCustom ? '1'    : '0.4';
+    videoSection.style.pointerEvents = isCustom ? 'all' : 'none';
+    document.getElementById('heroModeHint').textContent = isCustom
+      ? 'Your uploaded video plays behind the hero text. Make sure a video is uploaded.'
+      : 'The brand gradient fills the hero. No video needed.';
+  };
+
+  // Banner enabled toggle
+  let _bannerEnabled = false;
+  window.setBannerEnabled = function(enabled, _userAction = true) {
+    _bannerEnabled = enabled;
+    document.getElementById('bannerOff').classList.toggle('active', !enabled);
+    document.getElementById('bannerOn').classList.toggle('active',  enabled);
+    document.getElementById('bannerPositionGroup').style.opacity      = enabled ? '1'   : '0.4';
+    document.getElementById('bannerPositionGroup').style.pointerEvents = enabled ? 'all' : 'none';
+  };
+
+  // Add banner logo
+  window.addBannerLogo = async function() {
+    const file = document.getElementById('bannerLogoFile').files[0];
+    const name = document.getElementById('bannerLogoName').value.trim();
+    if (!file) { showToast('Select a logo image first.', 'error'); return; }
+    showToast('Uploading logo...');
+    const url = await uploadFile(file, 'clientLogos');
+
+    // Read existing logos, append new one, save
+    const snap = await getDoc(doc(db, 'settings', 'site'));
+    const existing = snap.exists() ? (snap.data().clientBannerLogos || []) : [];
+    const updated = [...existing, { name, url }];
+    await setDoc(doc(db, 'settings', 'site'), { clientBannerLogos: updated }, { merge: true });
+    showToast('Logo added!');
+    document.getElementById('bannerLogoFile').value = '';
+    document.getElementById('bannerLogoName').value = '';
+    renderBannerLogoList(updated);
+  };
+
+  function renderBannerLogoList(logos) {
+    const list = document.getElementById('bannerLogoList');
+    if (!logos.length) { list.innerHTML = '<p style="color:var(--jm-slate);font-family:var(--font-body);font-size:0.8rem;">No logos yet.</p>'; return; }
+    list.innerHTML = logos.map((l, i) => `
+      <div class="jm-banner-logo-row">
+        <img src="${l.url}" alt="${l.name || 'Logo'}" />
+        <span>${l.name || 'Unnamed client'}</span>
+        <button class="jm-btn-ghost jm-btn-sm" style="border-color:#e05252;color:#e05252;" onclick="removeBannerLogo(${i})">Remove</button>
+      </div>`).join('');
+  }
+
+  window.removeBannerLogo = async function(index) {
+    const snap = await getDoc(doc(db, 'settings', 'site'));
+    const logos = [...(snap.data().clientBannerLogos || [])];
+    logos.splice(index, 1);
+    await setDoc(doc(db, 'settings', 'site'), { clientBannerLogos: logos }, { merge: true });
+    showToast('Logo removed.');
+    renderBannerLogoList(logos);
+  };
 
   window.saveSiteSettings = async function() {
     const btn = document.querySelector('[onclick="saveSiteSettings()"]');
     if (btn) { btn.textContent = 'Saving...'; btn.disabled = true; }
 
     try {
-      // ── Hero video: upload file if selected, else keep existing URL ──
-      const videoFile      = document.getElementById('heroVideoFile').files[0];
-      const manualUrl      = document.getElementById('sHeroVideoUrl').value.trim();
-      let   heroVideoUrl   = manualUrl;
+      // Hero video upload
+      const videoFile  = document.getElementById('heroVideoFile').files[0];
+      const manualUrl  = document.getElementById('sHeroVideoUrl').value.trim();
+      let   heroVideoUrl = manualUrl;
 
       if (videoFile) {
         showToast('Uploading hero video — please wait...');
         heroVideoUrl = await uploadFile(videoFile, 'hero');
         document.getElementById('sHeroVideoUrl').value = heroVideoUrl;
-        showToast('Video uploaded successfully!');
+        showToast('Video uploaded!');
       }
-
-      // ── If neither a new file nor a manual URL was provided,
-      //    read the existing value from Firestore so we don't wipe it ──
       if (!heroVideoUrl) {
         const existing = await getDoc(doc(db, 'settings', 'site'));
         if (existing.exists()) heroVideoUrl = existing.data().heroVideoUrl || '';
       }
 
+      // If custom mode selected but no video — revert to standard
+      let heroMode = _heroMode;
+      if (heroMode === 'custom' && !heroVideoUrl) {
+        heroMode = 'standard';
+        setHeroMode('standard');
+        showToast('No video found — reverted to Standard mode.', 'error');
+      }
+
       const settings = {
-        heroEyebrow:    document.getElementById('sHeroEyebrow').value.trim(),
-        heroTitle:      document.getElementById('sHeroTitle').value.trim(),
-        heroSubtitle:   document.getElementById('sHeroSubtitle').value.trim(),
+        heroEyebrow:           document.getElementById('sHeroEyebrow').value.trim(),
+        heroTitle:             document.getElementById('sHeroTitle').value.trim(),
+        heroSubtitle:          document.getElementById('sHeroSubtitle').value.trim(),
         heroVideoUrl,
-        aboutTitle:     document.getElementById('sAboutTitle').value.trim(),
-        aboutText:      document.getElementById('sAboutText').value.trim(),
-        primaryEmail:   document.getElementById('sPrimaryEmail').value.trim(),
-        secondaryEmail: document.getElementById('sSecondaryEmail').value.trim(),
-        igUrl:          document.getElementById('sIgUrl').value.trim(),
-        ttUrl:          document.getElementById('sTtUrl').value.trim(),
-        ytUrl:          document.getElementById('sYtUrl').value.trim(),
-        footerNote:     document.getElementById('sFooterNote').value.trim(),
-        updatedAt:      new Date().toISOString()
+        heroMode,
+        aboutTitle:            document.getElementById('sAboutTitle').value.trim(),
+        aboutText:             document.getElementById('sAboutText').value.trim(),
+        primaryEmail:          document.getElementById('sPrimaryEmail').value.trim(),
+        secondaryEmail:        document.getElementById('sSecondaryEmail').value.trim(),
+        igUrl:                 document.getElementById('sIgUrl').value.trim(),
+        ttUrl:                 document.getElementById('sTtUrl').value.trim(),
+        ytUrl:                 document.getElementById('sYtUrl').value.trim(),
+        footerNote:            document.getElementById('sFooterNote').value.trim(),
+        clientBannerEnabled:   _bannerEnabled,
+        clientBannerPosition:  document.getElementById('sBannerPosition').value,
+        updatedAt:             new Date().toISOString()
       };
 
       await setDoc(doc(db, 'settings', 'site'), settings, { merge: true });
       showToast('✓ Settings saved — homepage updated.');
 
-      // Show the saved video URL so you can confirm it's there
       if (heroVideoUrl) {
-        document.getElementById('sHeroVideoUrl').value = heroVideoUrl;
         const hint = document.getElementById('heroVideoSavedHint');
-        if (hint) { hint.textContent = '✓ Video URL saved: ' + heroVideoUrl.substring(0, 60) + '...'; hint.style.display = 'block'; }
+        if (hint) { hint.textContent = '✓ Saved: ' + heroVideoUrl.substring(0, 55) + '...'; hint.style.display = 'block'; }
       }
     } catch(e) {
       showToast('Save failed: ' + e.message, 'error');
@@ -505,50 +677,200 @@
     }
   };
 
-  // ─── Portfolio ───────────────────────────────────────
-  window.addPortfolioItem = async function() {
-    const category = document.getElementById('portfolioCategory').value;
-    const title    = document.getElementById('portfolioItemTitle').value.trim();
-    const file     = document.getElementById('portfolioFile').files[0];
-    let url        = document.getElementById('portfolioUrl').value.trim();
-    if (!title) { showToast('Enter a title.', 'error'); return; }
-    if (file) {
-      showToast('Uploading...');
-      url = await uploadFile(file, `portfolio/${category}`);
+  // ─── Portfolio Projects ───────────────────────────────
+  window.addPortfolioProject = async function() {
+    const category  = document.getElementById('portfolioCategory').value;
+    const title     = document.getElementById('pTitle').value.trim();
+    const subtitle  = document.getElementById('pSubtitle').value.trim();
+    const desc      = document.getElementById('pDesc').value.trim();
+    const link      = document.getElementById('pLink').value.trim();
+    const heroFile  = document.getElementById('pHeroFile').files[0];
+    const heroUrlInput = document.getElementById('pHeroUrl').value.trim();
+    const clipFiles = document.getElementById('pClipFiles').files;
+
+    if (!title) { showToast('Enter a project title.', 'error'); return; }
+    if (!heroFile && !heroUrlInput) { showToast('Add a hero image or video.', 'error'); return; }
+
+    const btn = document.querySelector('[onclick="addPortfolioProject()"]');
+    if (btn) { btn.textContent = 'Uploading...'; btn.disabled = true; }
+
+    try {
+      // Upload hero
+      let heroUrl  = heroUrlInput;
+      let heroType = 'image';
+      if (heroFile) {
+        showToast('Uploading hero...');
+        heroUrl  = await uploadFile(heroFile, `portfolio/${category}`);
+        heroType = heroFile.type.startsWith('video') ? 'video' : 'image';
+      } else if (heroUrlInput.match(/\.(mp4|mov|webm)/i)) {
+        heroType = 'video';
+      }
+
+      // Upload additional clips
+      const clips = [];
+      for (const file of clipFiles) {
+        showToast(`Uploading ${file.name}...`);
+        const url  = await uploadFile(file, `portfolio/${category}/clips`);
+        const type = file.type.startsWith('video') ? 'video' : 'image';
+        clips.push({ url, type, name: file.name });
+      }
+
+      await addDoc(collection(db, 'portfolio', category, 'projects'), {
+        title, subtitle, description: desc, link,
+        heroUrl, heroType, clips,
+        order: Date.now(),
+        createdAt: new Date().toISOString()
+      });
+
+      showToast(`Project "${title}" added!`);
+      // Clear form
+      ['pTitle','pSubtitle','pDesc','pLink','pHeroUrl'].forEach(id => { document.getElementById(id).value = ''; });
+      document.getElementById('pHeroFile').value  = '';
+      document.getElementById('pClipFiles').value = '';
+      loadPortfolioList(category);
+    } catch(e) {
+      showToast('Failed: ' + e.message, 'error');
+    } finally {
+      if (btn) { btn.textContent = 'Add Project'; btn.disabled = false; }
     }
-    if (!url) { showToast('Provide a file or URL.', 'error'); return; }
-    const type = (file?.type?.startsWith('video') || url.match(/\.(mp4|mov|webm)/i)) ? 'video' : 'image';
-    await addDoc(collection(db, 'portfolio', category, 'items'), {
-      title, url, type, order: Date.now(), createdAt: new Date().toISOString()
-    });
-    showToast('Item added to portfolio.');
-    document.getElementById('portfolioItemTitle').value = '';
-    document.getElementById('portfolioFile').value = '';
-    document.getElementById('portfolioUrl').value = '';
-    loadPortfolioList(category);
   };
 
   async function loadPortfolioList(category) {
-    const snap = await getDocs(collection(db, 'portfolio', category, 'items'));
+    const snap = await getDocs(query(collection(db, 'portfolio', category, 'projects'), orderBy('order','asc')));
     const list = document.getElementById('portfolioList');
-    list.innerHTML = `<h3 style="font-family:var(--font-body);font-size:var(--text-xs);color:var(--jm-slate);letter-spacing:.1em;text-transform:uppercase;margin-bottom:var(--space-sm);">Current Items</h3>`;
+    if (snap.empty) { list.innerHTML = '<p style="color:var(--jm-slate);font-family:var(--font-body);font-size:0.8rem;">No projects yet.</p>'; return; }
+    list.innerHTML = `<div style="font-family:var(--font-body);font-size:0.68rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--jm-slate);margin-bottom:0.75rem;">Current Projects</div>`;
     snap.forEach(d => {
-      const item = d.data();
-      const row = document.createElement('div');
+      const proj = d.data();
+      const row  = document.createElement('div');
       row.className = 'jm-portfolio-row';
+      row.style.cssText = 'display:flex;align-items:center;gap:1rem;padding:0.75rem 0;border-bottom:1px solid rgba(255,255,255,0.04);';
       row.innerHTML = `
-        <span>${item.title}</span>
-        <span class="jm-badge jm-badge--${item.type === 'video' ? 'active' : 'pending'}">${item.type}</span>
-        <button class="jm-btn-ghost jm-btn-sm" onclick="deletePortfolioItem('${category}','${d.id}')">Delete</button>`;
+        ${proj.heroUrl ? `<img src="${proj.heroUrl}" style="width:56px;height:40px;object-fit:cover;border-radius:3px;flex-shrink:0;opacity:0.8;" />` : ''}
+        <div style="flex:1;min-width:0;">
+          <div style="font-family:var(--font-body);font-size:0.85rem;color:var(--jm-white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${proj.title}</div>
+          <div style="font-family:var(--font-body);font-size:0.7rem;color:var(--jm-slate);">${proj.clips?.length || 0} clip(s) · ${proj.heroType}</div>
+        </div>
+        <button class="jm-btn-ghost jm-btn-sm" onclick="openPortfolioEdit('${d.id}','${category}')">Edit</button>
+        <button class="jm-btn-ghost jm-btn-sm" style="border-color:#e05252;color:#e05252;" onclick="deletePortfolioProject('${d.id}','${category}')">Delete</button>`;
       list.appendChild(row);
     });
   }
 
-  window.deletePortfolioItem = async function(category, id) {
-    if (!confirm('Delete this portfolio item?')) return;
-    await deleteDoc(doc(db, 'portfolio', category, 'items', id));
-    showToast('Item deleted.');
+  window.deletePortfolioProject = async function(id, category) {
+    if (!confirm('Delete this project?')) return;
+    await deleteDoc(doc(db, 'portfolio', category, 'projects', id));
+    showToast('Project deleted.');
     loadPortfolioList(category);
+  };
+
+  window.openPortfolioEdit = async function(id, category) {
+    const snap = await getDoc(doc(db, 'portfolio', category, 'projects', id));
+    if (!snap.exists()) return;
+    const proj  = snap.data();
+    const clips = proj.clips || [];
+
+    document.getElementById('portfolioEditTitle').textContent = proj.title;
+    document.getElementById('portfolioEditBody').innerHTML = `
+      <div class="jm-form-group">
+        <label class="jm-form-label">Title</label>
+        <input class="jm-input" id="peTitle" value="${proj.title || ''}" />
+      </div>
+      <div class="jm-form-group">
+        <label class="jm-form-label">Subtitle</label>
+        <input class="jm-input" id="peSubtitle" value="${proj.subtitle || ''}" />
+      </div>
+      <div class="jm-form-group">
+        <label class="jm-form-label">Description</label>
+        <textarea class="jm-textarea" id="peDesc" rows="2">${proj.description || ''}</textarea>
+      </div>
+      <div class="jm-form-group">
+        <label class="jm-form-label">Webpage Link</label>
+        <input class="jm-input" id="peLink" value="${proj.link || ''}" placeholder="https://..." />
+      </div>
+      <div class="jm-form-group">
+        <label class="jm-form-label">Hero Image/Video URL</label>
+        <input class="jm-input" id="peHeroUrl" value="${proj.heroUrl || ''}" />
+        <p class="jm-form-hint">Or replace with a new file:</p>
+        <input type="file" class="jm-input" id="peHeroFile" accept="image/*,video/*" style="margin-top:0.5rem;" />
+      </div>
+
+      <div class="jm-form-group">
+        <label class="jm-form-label">Additional Clips</label>
+        ${clips.length ? `
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:6px;margin-bottom:0.75rem;" id="peClipGrid">
+            ${clips.map((c,i) => `
+              <div style="position:relative;aspect-ratio:16/10;overflow:hidden;border-radius:3px;background:#0a0a0a;">
+                ${c.type==='video'
+                  ? `<video src="${c.url}" style="width:100%;height:100%;object-fit:cover;" muted></video>`
+                  : `<img src="${c.url}" style="width:100%;height:100%;object-fit:cover;" />`}
+                <button onclick="removeClip('${id}','${category}',${i})"
+                  style="position:absolute;top:3px;right:3px;background:rgba(224,82,82,0.85);border:none;color:white;width:20px;height:20px;border-radius:50%;cursor:pointer;font-size:0.65rem;display:flex;align-items:center;justify-content:center;">✕</button>
+              </div>`).join('')}
+          </div>` : '<p style="color:var(--jm-slate);font-family:var(--font-body);font-size:0.8rem;margin-bottom:0.75rem;">No clips yet.</p>'}
+        <input type="file" class="jm-input" id="peClipFiles" accept="image/*,video/*" multiple />
+        <p class="jm-form-hint">Select additional clips to add.</p>
+      </div>
+
+      <div style="display:flex;gap:0.75rem;margin-top:1.5rem;flex-wrap:wrap;">
+        <button class="jm-btn-primary" onclick="savePortfolioEdit('${id}','${category}')">Save Changes</button>
+        <button class="jm-btn-ghost" onclick="closeModal('portfolioEditModal')">Cancel</button>
+      </div>`;
+    document.getElementById('portfolioEditModal').classList.add('active');
+  };
+
+  window.removeClip = async function(projId, category, clipIndex) {
+    if (!confirm('Remove this clip?')) return;
+    const snap  = await getDoc(doc(db, 'portfolio', category, 'projects', projId));
+    const clips = [...(snap.data().clips || [])];
+    clips.splice(clipIndex, 1);
+    await updateDoc(doc(db, 'portfolio', category, 'projects', projId), { clips });
+    showToast('Clip removed.');
+    openPortfolioEdit(projId, category);
+  };
+
+  window.savePortfolioEdit = async function(id, category) {
+    const btn = document.querySelector('[onclick="savePortfolioEdit(\'' + id + '\',\'' + category + '\')"]');
+    if (btn) { btn.textContent = 'Saving...'; btn.disabled = true; }
+    try {
+      // Hero replacement
+      const heroFile = document.getElementById('peHeroFile').files[0];
+      let   heroUrl  = document.getElementById('peHeroUrl').value.trim();
+      let   heroType = heroUrl.match(/\.(mp4|mov|webm)/i) ? 'video' : 'image';
+      if (heroFile) {
+        heroUrl  = await uploadFile(heroFile, `portfolio/${category}`);
+        heroType = heroFile.type.startsWith('video') ? 'video' : 'image';
+      }
+
+      // New clips
+      const snap      = await getDoc(doc(db, 'portfolio', category, 'projects', id));
+      const existing  = snap.data().clips || [];
+      const clipFiles = document.getElementById('peClipFiles').files;
+      const newClips  = [];
+      for (const file of clipFiles) {
+        showToast(`Uploading ${file.name}...`);
+        const url  = await uploadFile(file, `portfolio/${category}/clips`);
+        const type = file.type.startsWith('video') ? 'video' : 'image';
+        newClips.push({ url, type, name: file.name });
+      }
+
+      await updateDoc(doc(db, 'portfolio', category, 'projects', id), {
+        title:       document.getElementById('peTitle').value.trim(),
+        subtitle:    document.getElementById('peSubtitle').value.trim(),
+        description: document.getElementById('peDesc').value.trim(),
+        link:        document.getElementById('peLink').value.trim(),
+        heroUrl, heroType,
+        clips: [...existing, ...newClips],
+        updatedAt: new Date().toISOString()
+      });
+      showToast('Project updated!');
+      closeModal('portfolioEditModal');
+      loadPortfolioList(category);
+    } catch(e) {
+      showToast('Save failed: ' + e.message, 'error');
+    } finally {
+      if (btn) { btn.textContent = 'Save Changes'; btn.disabled = false; }
+    }
   };
 
   document.getElementById('portfolioCategory')?.addEventListener('change', (e) => {
@@ -1337,6 +1659,25 @@
     </div>
   </div>
 </div>
-
+<script>
+  // ─── Mobile sidebar ───────────────────────────────────
+  function toggleAdminSidebar() {
+    const sidebar = document.getElementById('adminSidebar');
+    const overlay = document.getElementById('adminSidebarOverlay');
+    const isOpen  = sidebar.classList.contains('open');
+    sidebar.classList.toggle('open', !isOpen);
+    overlay.classList.toggle('open', !isOpen);
+  }
+  document.addEventListener('click', function(e) {
+    if (e.target.closest('.jm-sidebar__nav-item')) {
+      const sidebar = document.getElementById('adminSidebar');
+      const overlay = document.getElementById('adminSidebarOverlay');
+      if (window.innerWidth <= 768) {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('open');
+      }
+    }
+  });
+</script>
 </body>
 </html>

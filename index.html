@@ -946,10 +946,23 @@
 <!-- ─── HERO ─────────────────────────────────────── -->
 <section class="hero" id="hero">
   <div class="hero__video-wrap" id="heroVideoWrap">
-    <video class="hero__video" id="heroVideo" autoplay muted loop playsinline></video>
-    <!-- Standard gradient overlay — shown in standard mode, hidden in custom mode -->
+    <!--
+      All four attributes must be on the element in HTML for iOS Safari autoplay.
+      src is set by JS once Firebase confirms custom mode is active.
+    -->
+    <video
+      class="hero__video"
+      id="heroVideo"
+      autoplay
+      muted
+      loop
+      playsinline
+      preload="auto"
+      style="display:none;"
+    ></video>
+    <!-- Standard gradient overlay — visible by default, hidden when custom mode confirmed -->
     <div class="hero__gradient-overlay" id="heroGradientOverlay"></div>
-    <!-- Dim overlay — shown in custom mode to make video readable -->
+    <!-- Dim overlay — only shown in custom mode -->
     <div class="hero__dim-overlay" id="heroDimOverlay"></div>
   </div>
   <div class="hero__grain"></div>
@@ -1251,18 +1264,43 @@
       }
 
       // ── Hero mode logic ──────────────────────────────
+      // Apply BEFORE next paint to prevent flash of gradient
       const heroEl  = document.getElementById('hero');
       const heroVid = document.getElementById('heroVideo');
       const isCustom = s.heroMode === 'custom' && s.heroVideoUrl;
 
       if (isCustom) {
-        // Custom video mode — show video, just dim it
+        // Immediately switch overlays so gradient never flashes
         heroEl.classList.add('hero--custom');
+        heroVid.style.display = 'block';
+
+        // Set src directly on the element — iOS Safari needs this
+        // rather than a <source> child element
         heroVid.src = s.heroVideoUrl;
+
+        // For iOS: must call load() then play() after setting src
         heroVid.load();
-        heroVid.play().catch(() => {});
+
+        // play() returns a promise — catch silently for autoplay policy
+        const playPromise = heroVid.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(() => {
+            // Autoplay blocked (e.g. data saver mode) — video stays paused
+            // but gradient is still hidden so it doesn't flash back
+          });
+        }
+
+        // iOS Safari workaround: if play() is blocked, try again on first user interaction
+        const tryPlay = () => {
+          heroVid.play().catch(() => {});
+          document.removeEventListener('touchstart', tryPlay);
+          document.removeEventListener('click', tryPlay);
+        };
+        document.addEventListener('touchstart', tryPlay, { once: true, passive: true });
+        document.addEventListener('click', tryPlay, { once: true });
+
       } else {
-        // Standard mode — gradient only, hide video element
+        // Standard gradient mode
         heroEl.classList.remove('hero--custom');
         heroVid.style.display = 'none';
       }
@@ -1479,76 +1517,102 @@
   document.getElementById('footerYear').textContent = new Date().getFullYear();
 
   // ─── Seamless logo banner engine ──────────────────
-  // Uses requestAnimationFrame for a true infinite scroll
-  // with no CSS animation jolt. Fills viewport width by
-  // duplicating the logo set as many times as needed.
   window.buildSeamlessBanner = function(trackEl, bannerEl, logos) {
-    // Build one set of logo elements
+    const GAP   = 80;  // px gap between logos (matches CSS gap: 5rem)
+    const SPEED = 0.6; // px per frame
+
     function makeLogo(logo) {
-      const el = logo.link
-        ? document.createElement('a')
-        : document.createElement('div');
+      const el = logo.link ? document.createElement('a') : document.createElement('div');
       el.className = 'client-logo-item';
-      if (logo.link) {
-        el.href   = logo.link;
-        el.target = '_blank';
-        el.rel    = 'noopener noreferrer';
-      }
+      if (logo.link) { el.href = logo.link; el.target = '_blank'; el.rel = 'noopener noreferrer'; }
       const img = document.createElement('img');
-      img.src = logo.url;
-      img.alt = logo.name || 'Client';
-      img.loading = 'lazy';
+      img.src    = logo.url;
+      img.alt    = logo.name || 'Client';
+      img.draggable = false;
       el.appendChild(img);
       return el;
     }
 
-    // Insert one full set first to measure width
+    // Step 1: insert one set, wait for ALL images to fully load
     trackEl.innerHTML = '';
-    logos.forEach(l => trackEl.appendChild(makeLogo(l)));
+    const firstSetEls = logos.map(l => { const el = makeLogo(l); trackEl.appendChild(el); return el; });
 
-    // Wait for images to load so we get real width
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        const viewportW  = bannerEl.offsetWidth;
-        const singleSetW = trackEl.scrollWidth;
+    const allImgs = Array.from(trackEl.querySelectorAll('img'));
+    const loadPromises = allImgs.map(img =>
+      img.complete
+        ? Promise.resolve()
+        : new Promise(res => { img.onload = res; img.onerror = res; })
+    );
 
-        // How many copies do we need to fill at least 2× viewport?
-        const minCopies = Math.ceil((viewportW * 2.5) / singleSetW) + 1;
-        const copies    = Math.max(minCopies, 3); // always at least 3 copies
+    Promise.all(loadPromises).then(() => {
+      // Step 2: now measure with real rendered widths
+      const singleSetW = logos.reduce((sum, _, i) => {
+        return sum + (firstSetEls[i]?.offsetWidth || 0) + GAP;
+      }, 0);
 
-        // Build the full track: copies × logo set
-        trackEl.innerHTML = '';
-        for (let c = 0; c < copies; c++) {
-          logos.forEach(l => trackEl.appendChild(makeLogo(l)));
+      if (singleSetW === 0) return; // nothing rendered, bail
+
+      const viewportW = bannerEl.offsetWidth || window.innerWidth;
+
+      // Step 3: how many copies to fill at least 3× viewport seamlessly?
+      const copies = Math.max(Math.ceil((viewportW * 3) / singleSetW) + 2, 4);
+
+      // Step 4: build full track
+      trackEl.innerHTML = '';
+      for (let c = 0; c < copies; c++) {
+        logos.forEach(l => trackEl.appendChild(makeLogo(l)));
+      }
+
+      // The loop point is exactly one set width.
+      // When pos reaches loopPoint, we subtract loopPoint — the track
+      // looks pixel-identical at pos=0 and pos=loopPoint so no jolt.
+      const loopPoint = singleSetW;
+
+      let pos    = 0;
+      let paused = false;
+      let rafId  = null;
+      let lastTime = null;
+
+      // Pause on hover (desktop) and on touch (mobile — don't pause, just don't drift)
+      bannerEl.addEventListener('mouseenter', () => { paused = true;  });
+      bannerEl.addEventListener('mouseleave', () => { paused = false; });
+
+      function tick(timestamp) {
+        if (!lastTime) lastTime = timestamp;
+        const delta = Math.min(timestamp - lastTime, 32); // cap at 32ms to handle tab switch
+        lastTime = timestamp;
+
+        if (!paused) {
+          pos += SPEED * (delta / 16.67); // normalise to 60fps
+          // Seamless reset — subtract exactly one set width
+          if (pos >= loopPoint) pos -= loopPoint;
+          // Use translate3d to force GPU compositing on mobile
+          trackEl.style.transform = `translate3d(${-pos}px, 0, 0)`;
         }
 
-        const totalW    = singleSetW * copies;
-        const loopPoint = singleSetW; // scroll back by exactly one set width = seamless
-        const speed     = 0.5; // px per frame — adjust for faster/slower
+        rafId = requestAnimationFrame(tick);
+      }
 
-        let pos     = 0;
-        let paused  = false;
-        let frameId = null;
+      rafId = requestAnimationFrame(tick);
 
-        // Pause on hover
-        bannerEl.addEventListener('mouseenter', () => { paused = true; });
-        bannerEl.addEventListener('mouseleave', () => { paused = false; });
-
-        function tick() {
-          if (!paused) {
-            pos += speed;
-            // When we've scrolled exactly one set width, reset to 0
-            // The track looks identical at 0 and loopPoint so there's no jolt
-            if (pos >= loopPoint) pos -= loopPoint;
-            trackEl.style.transform = `translateX(${-pos}px)`;
-          }
-          frameId = requestAnimationFrame(tick);
+      // Clean up if banner is removed
+      const observer = new MutationObserver(() => {
+        if (!document.body.contains(bannerEl)) {
+          cancelAnimationFrame(rafId);
+          observer.disconnect();
         }
-
-        // Start scrolled from the right edge so it scrolls right→left from the start
-        pos = 0;
-        tick();
       });
+      observer.observe(document.body, { childList: true, subtree: true });
+
+      // Restart on resize (viewport width changed — recalculate fill)
+      let resizeTimer;
+      window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+          cancelAnimationFrame(rafId);
+          buildSeamlessBanner(trackEl, bannerEl, logos);
+        }, 300);
+      }, { passive: true });
     });
   };
 

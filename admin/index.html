@@ -156,6 +156,7 @@
           <div class="jm-form-group">
             <label class="jm-form-label">Upload Client Logo</label>
             <input class="jm-input" id="bannerLogoName" placeholder="Client name (optional)" style="margin-bottom:0.5rem;" />
+            <input class="jm-input" id="bannerLogoLink" placeholder="Link URL (optional, e.g. https://clientsite.com)" style="margin-bottom:0.5rem;" />
             <input type="file" class="jm-input" id="bannerLogoFile" accept="image/*" />
             <button class="jm-btn-ghost jm-btn-sm" style="margin-top:0.75rem;" onclick="addBannerLogo()">+ Add Logo</button>
           </div>
@@ -580,18 +581,19 @@
   window.addBannerLogo = async function() {
     const file = document.getElementById('bannerLogoFile').files[0];
     const name = document.getElementById('bannerLogoName').value.trim();
+    const link = document.getElementById('bannerLogoLink').value.trim();
     if (!file) { showToast('Select a logo image first.', 'error'); return; }
     showToast('Uploading logo...');
     const url = await uploadFile(file, 'clientLogos');
 
-    // Read existing logos, append new one, save
     const snap = await getDoc(doc(db, 'settings', 'site'));
     const existing = snap.exists() ? (snap.data().clientBannerLogos || []) : [];
-    const updated = [...existing, { name, url }];
+    const updated = [...existing, { name, url, link }];
     await setDoc(doc(db, 'settings', 'site'), { clientBannerLogos: updated }, { merge: true });
     showToast('Logo added!');
     document.getElementById('bannerLogoFile').value = '';
     document.getElementById('bannerLogoName').value = '';
+    document.getElementById('bannerLogoLink').value = '';
     renderBannerLogoList(updated);
   };
 
@@ -601,7 +603,10 @@
     list.innerHTML = logos.map((l, i) => `
       <div class="jm-banner-logo-row">
         <img src="${l.url}" alt="${l.name || 'Logo'}" />
-        <span>${l.name || 'Unnamed client'}</span>
+        <div style="flex:1;min-width:0;">
+          <div style="font-family:var(--font-body);font-size:0.82rem;color:var(--jm-lightgrey);">${l.name || 'Unnamed'}</div>
+          ${l.link ? `<div style="font-family:var(--font-body);font-size:0.7rem;color:var(--jm-teal);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${l.link}</div>` : '<div style="font-family:var(--font-body);font-size:0.7rem;color:var(--jm-slate);">No link</div>'}
+        </div>
         <button class="jm-btn-ghost jm-btn-sm" style="border-color:#e05252;color:#e05252;" onclick="removeBannerLogo(${i})">Remove</button>
       </div>`).join('');
   }

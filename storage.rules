@@ -8,22 +8,36 @@ service firebase.storage {
         in ['Admin', 'Master Admin', 'Owner'];
     }
 
-    // Hero video — admin only write, public read
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isReasonableSize() {
+      return request.resource.size < 500 * 1024 * 1024; // 500MB max
+    }
+
+    // Hero video — admin only, 500MB max
     match /hero/{file} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isAdmin() && isReasonableSize();
     }
 
-    // Portfolio assets — admin only write, public read
-    match /portfolio/{category}/{file} {
+    // Portfolio assets and clips — admin only
+    match /portfolio/{allPaths=**} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isAdmin() && isReasonableSize();
     }
 
-    // Project delivery files — admin write, client read (checked via Firestore)
+    // Client logos for banner — admin only
+    match /clientLogos/{file} {
+      allow read: if true;
+      allow write: if isAdmin() && isReasonableSize();
+    }
+
+    // Project delivery files — admin uploads, signed-in clients can read
     match /projects/{projectId}/{file} {
-      allow read: if request.auth != null;
-      allow write: if isAdmin();
+      allow read: if isSignedIn();
+      allow write: if isAdmin() && isReasonableSize();
     }
   }
 }

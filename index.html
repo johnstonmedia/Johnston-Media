@@ -196,45 +196,55 @@
       background: #000000;
       border-top: 1px solid rgba(255,255,255,0.05);
       border-bottom: 1px solid rgba(255,255,255,0.05);
-      padding: 2rem 0;
+      padding: 2.5rem 0;
       overflow: hidden;
       position: relative;
     }
+    /* Fade edges */
     .client-logo-banner::before,
     .client-logo-banner::after {
       content: '';
       position: absolute; top: 0; bottom: 0;
-      width: 120px; z-index: 2;
+      width: 140px; z-index: 2;
       pointer-events: none;
     }
     .client-logo-banner::before {
       left: 0;
-      background: linear-gradient(to right, #000000, transparent);
+      background: linear-gradient(to right, #000000 30%, transparent);
     }
     .client-logo-banner::after {
       right: 0;
-      background: linear-gradient(to left, #000000, transparent);
+      background: linear-gradient(to left, #000000 30%, transparent);
     }
+    /* Outer wrapper clips overflow */
+    .client-logo-viewport {
+      overflow: hidden;
+      width: 100%;
+    }
+    /* The scrolling track — JS sets width and animation duration */
     .client-logo-track {
-      display: flex; align-items: center; gap: 4rem;
+      display: flex;
+      align-items: center;
+      gap: 5rem;
       width: max-content;
-      animation: scrollLeft 30s linear infinite;
+      will-change: transform;
     }
-    .client-logo-track:hover { animation-play-state: paused; }
-    @keyframes scrollLeft {
-      from { transform: translateX(0); }
-      to   { transform: translateX(-50%); }
-    }
+    /* Each logo item — always full colour, bigger */
     .client-logo-item {
       flex-shrink: 0;
-      height: 48px;
+      height: 64px;
       display: flex; align-items: center;
-      opacity: 0.5;
-      transition: opacity 0.3s;
-      filter: grayscale(100%) brightness(1.5);
+      transition: transform 0.3s ease, opacity 0.3s;
+      text-decoration: none;
     }
-    .client-logo-item:hover { opacity: 1; filter: grayscale(0%); }
-    .client-logo-item img { height: 100%; width: auto; object-fit: contain; }
+    .client-logo-item:hover { transform: scale(1.08); opacity: 0.85; }
+    .client-logo-item img {
+      height: 100%;
+      width: auto;
+      max-width: 180px;
+      object-fit: contain;
+      display: block;
+    }
     .hero__eyebrow {
       display: block;
       font-family: var(--font-body);
@@ -961,7 +971,9 @@
 
 <!-- ─── CLIENT LOGO BANNER (position: after-hero) ─ -->
 <div id="clientBanner-after-hero" class="client-logo-banner" style="display:none;">
-  <div class="client-logo-track" id="track-after-hero"></div>
+  <div class="client-logo-viewport">
+    <div class="client-logo-track" id="track-after-hero"></div>
+  </div>
 </div>
 
 <!-- ─── BANNER ───────────────────────────────────── -->
@@ -1062,7 +1074,9 @@
 
 <!-- ─── CLIENT LOGO BANNER (position: after-portfolio) -->
 <div id="clientBanner-after-portfolio" class="client-logo-banner" style="display:none;">
-  <div class="client-logo-track" id="track-after-portfolio"></div>
+  <div class="client-logo-viewport">
+    <div class="client-logo-track" id="track-after-portfolio"></div>
+  </div>
 </div>
 
 <!-- ─── ABOUT ────────────────────────────────────── -->
@@ -1100,7 +1114,9 @@
 
 <!-- ─── CLIENT LOGO BANNER (position: after-about) -->
 <div id="clientBanner-after-about" class="client-logo-banner" style="display:none;">
-  <div class="client-logo-track" id="track-after-about"></div>
+  <div class="client-logo-viewport">
+    <div class="client-logo-track" id="track-after-about"></div>
+  </div>
 </div>
 
 <!-- ─── CTA STRIP ─────────────────────────────────── -->
@@ -1253,17 +1269,11 @@
 
       // ── Client logo banner ───────────────────────────
       if (s.clientBannerEnabled && s.clientBannerLogos?.length) {
-        const pos     = s.clientBannerPosition || 'after-portfolio';
+        const pos      = s.clientBannerPosition || 'after-portfolio';
         const bannerEl = document.getElementById(`clientBanner-${pos}`);
         const trackEl  = document.getElementById(`track-${pos}`);
         if (bannerEl && trackEl) {
-          // Duplicate logos for seamless scroll loop
-          const logos = s.clientBannerLogos;
-          const allLogos = [...logos, ...logos]; // duplicate for infinite loop
-          trackEl.innerHTML = allLogos.map(logo => `
-            <div class="client-logo-item">
-              <img src="${logo.url}" alt="${logo.name || 'Client'}" />
-            </div>`).join('');
+          buildSeamlessBanner(trackEl, bannerEl, s.clientBannerLogos);
           bannerEl.style.display = 'block';
         }
       }
@@ -1467,6 +1477,80 @@
 
   // ─── Footer year ──────────────────────────────────
   document.getElementById('footerYear').textContent = new Date().getFullYear();
+
+  // ─── Seamless logo banner engine ──────────────────
+  // Uses requestAnimationFrame for a true infinite scroll
+  // with no CSS animation jolt. Fills viewport width by
+  // duplicating the logo set as many times as needed.
+  window.buildSeamlessBanner = function(trackEl, bannerEl, logos) {
+    // Build one set of logo elements
+    function makeLogo(logo) {
+      const el = logo.link
+        ? document.createElement('a')
+        : document.createElement('div');
+      el.className = 'client-logo-item';
+      if (logo.link) {
+        el.href   = logo.link;
+        el.target = '_blank';
+        el.rel    = 'noopener noreferrer';
+      }
+      const img = document.createElement('img');
+      img.src = logo.url;
+      img.alt = logo.name || 'Client';
+      img.loading = 'lazy';
+      el.appendChild(img);
+      return el;
+    }
+
+    // Insert one full set first to measure width
+    trackEl.innerHTML = '';
+    logos.forEach(l => trackEl.appendChild(makeLogo(l)));
+
+    // Wait for images to load so we get real width
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const viewportW  = bannerEl.offsetWidth;
+        const singleSetW = trackEl.scrollWidth;
+
+        // How many copies do we need to fill at least 2× viewport?
+        const minCopies = Math.ceil((viewportW * 2.5) / singleSetW) + 1;
+        const copies    = Math.max(minCopies, 3); // always at least 3 copies
+
+        // Build the full track: copies × logo set
+        trackEl.innerHTML = '';
+        for (let c = 0; c < copies; c++) {
+          logos.forEach(l => trackEl.appendChild(makeLogo(l)));
+        }
+
+        const totalW    = singleSetW * copies;
+        const loopPoint = singleSetW; // scroll back by exactly one set width = seamless
+        const speed     = 0.5; // px per frame — adjust for faster/slower
+
+        let pos     = 0;
+        let paused  = false;
+        let frameId = null;
+
+        // Pause on hover
+        bannerEl.addEventListener('mouseenter', () => { paused = true; });
+        bannerEl.addEventListener('mouseleave', () => { paused = false; });
+
+        function tick() {
+          if (!paused) {
+            pos += speed;
+            // When we've scrolled exactly one set width, reset to 0
+            // The track looks identical at 0 and loopPoint so there's no jolt
+            if (pos >= loopPoint) pos -= loopPoint;
+            trackEl.style.transform = `translateX(${-pos}px)`;
+          }
+          frameId = requestAnimationFrame(tick);
+        }
+
+        // Start scrolled from the right edge so it scrolls right→left from the start
+        pos = 0;
+        tick();
+      });
+    });
+  };
 
   // ─── Toast ────────────────────────────────────────
   function showToast(msg, type = 'success') {

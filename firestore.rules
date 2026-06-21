@@ -2,7 +2,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ─── Helper functions ──────────────────────────────
+    // ─── Helpers ───────────────────────────────────────
     function isSignedIn() {
       return request.auth != null;
     }
@@ -21,70 +21,81 @@ service cloud.firestore {
     function isMasterAdminOrOwner() {
       return isSignedIn() && userRole() in ['Master Admin', 'Owner'];
     }
-    function isClient() {
-      return isSignedIn() && userRole() in ['Client', 'Admin', 'Master Admin', 'Owner'];
-    }
     function isNotBlocked() {
       return !getUserData().blocked;
     }
 
-    // ─── Users collection ──────────────────────────────
+    // ─── Users ─────────────────────────────────────────
     match /users/{uid} {
-      // Anyone can read their own profile
       allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
-
-      // Create own profile on signup
       allow create: if isSignedIn() && request.auth.uid == uid;
-
-      // Update own profile (limited fields), or admin updating others
       allow update: if isSignedIn() && (
-        // User updating their own non-role fields
         (request.auth.uid == uid && !('role' in request.resource.data.diff(resource.data).affectedKeys())) ||
-        // Admin can update role, but not owner email
         (isAdmin() && resource.data.email != "wjohnston.media@gmail.com") ||
-        // Owner can update anything except remove owner from owner email
         isOwner()
       );
-
-      // Only Master Admin / Owner can delete users (not owner email)
       allow delete: if isMasterAdminOrOwner() && resource.data.email != "wjohnston.media@gmail.com";
     }
 
     // ─── Site settings ─────────────────────────────────
     match /settings/{doc} {
-      allow read: if true; // Public read for homepage to load settings
+      allow read: if true;
       allow write: if isAdmin();
     }
 
     // ─── Portfolio ─────────────────────────────────────
+    // Old path — kept for backwards compatibility
     match /portfolio/{category}/items/{item} {
-      allow read: if true; // Public
+      allow read: if true;
       allow write: if isAdmin();
     }
 
-    // ─── Messages (contact form) ────────────────────────
+    // New project-based path
+    match /portfolio/{category}/projects/{project} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ─── Messages ──────────────────────────────────────
     match /messages/{msgId} {
-      allow create: if true; // Anyone can send a contact message
+      allow create: if true;
       allow read, update, delete: if isAdmin();
+    }
+
+    // ─── Pending Clients ───────────────────────────────
+    match /pendingClients/{email} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+      allow delete: if isSignedIn();
     }
 
     // ─── Quotes ────────────────────────────────────────
     match /quotes/{quoteId} {
-      // Clients/Prospective can create and read their own quotes
       allow create: if isSignedIn() && isNotBlocked();
       allow read: if isSignedIn() && (
         resource.data.clientId == request.auth.uid || isAdmin()
       );
-      allow update, delete: if isAdmin();
+      allow update: if isAdmin() || (
+        isSignedIn() &&
+        resource.data.clientId == request.auth.uid &&
+        request.resource.data.status == 'Accepted' &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'acceptedAt'])
+      );
+      allow delete: if isAdmin();
     }
 
-    // ─── Projects ──────────────────────────────────────
+    // ─── Client Projects ───────────────────────────────
     match /projects/{projectId} {
-      // Clients can read their own projects
       allow read: if isSignedIn() && (
         resource.data.clientId == request.auth.uid || isAdmin()
       );
-      allow create, update: if isAdmin();
+      allow create: if isAdmin();
+      allow update: if isAdmin() || (
+        isSignedIn() &&
+        resource.data.clientId == request.auth.uid &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['clientNote', 'clientNoteUpdatedAt'])
+      );
       allow delete: if isMasterAdminOrOwner();
     }
   }

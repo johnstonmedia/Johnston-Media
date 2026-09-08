@@ -132,7 +132,7 @@ export async function findOrCreateCustomer(input: {
         family_name: rest.join(" ") || undefined,
         email_address: input.email.toLowerCase(),
         phone_number: input.phone || undefined,
-        note: "Created from johnstonmedia.com.au quote request",
+        note: "Created from wjohnstonmedia.com quote request",
       },
     },
   );

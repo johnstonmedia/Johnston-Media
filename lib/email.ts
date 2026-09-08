@@ -12,11 +12,11 @@ import { Resend } from "resend";
 import { formatMoney, type Quote } from "./types";
 
 const FROM =
-  process.env.EMAIL_FROM ?? "Johnston Media <hello@johnstonmedia.com.au>";
+  process.env.EMAIL_FROM ?? "Johnston Media <hello@wjohnstonmedia.com>";
 const OWNER_NOTIFY =
   process.env.OWNER_NOTIFY_EMAIL ?? "wjohnston.media@gmail.com";
 const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://johnstonmedia.com.au";
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://wjohnstonmedia.com";
 
 export function isEmailConfigured(): boolean {
   return Boolean(process.env.RESEND_API_KEY);
@@ -154,7 +154,7 @@ function shell(opts: {
           </p>
           <p style="margin:0;font-family:Helvetica,Arial,sans-serif;font-size:12px;color:${MUTED};">
             Johnston Media · New South Wales, Australia<br />
-            <a href="${esc(SITE_URL)}" style="color:${MUTED};text-decoration:underline;">johnstonmedia.com.au</a>
+            <a href="${esc(SITE_URL)}" style="color:${MUTED};text-decoration:underline;">wjohnstonmedia.com</a>
           </p>
         </td></tr>
 

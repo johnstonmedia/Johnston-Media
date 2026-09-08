@@ -24,7 +24,7 @@ const montserrat = Montserrat({
 });
 
 const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://johnstonmedia.com.au";
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://wjohnstonmedia.com";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),

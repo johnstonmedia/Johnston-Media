@@ -9,7 +9,7 @@ built with Next.js, Firebase, Square and Resend, deployed on Vercel.
 
 ## What this is
 
-A full rebuild of johnstonmedia.com.au as a Next.js application. The previous
+A full rebuild of wjohnstonmedia.com as a Next.js application. The previous
 version was hand-written static HTML on GitHub Pages; this one keeps the same
 visual language but adds a server, which is what makes email automation and
 Square invoicing possible.
@@ -101,20 +101,20 @@ Reuses the existing project — nothing to migrate.
    Firestore → Rules → Publish.
 2. **Storage rules**: paste `storage.rules` into Storage → Rules → Publish.
 3. **Authorised domains**: Authentication → Settings → Authorised domains —
-   add `johnstonmedia.com.au` and your `*.vercel.app` preview domain.
+   add `wjohnstonmedia.com` and your `*.vercel.app` preview domain.
 4. **Service account**: Project settings → Service accounts → *Generate new
    private key*. The JSON gives you `FIREBASE_PROJECT_ID`,
    `FIREBASE_CLIENT_EMAIL` and `FIREBASE_PRIVATE_KEY`.
 
 ### 2. Resend (email)
 
-1. Sign up at [resend.com](https://resend.com) and add `johnstonmedia.com.au`
+1. Sign up at [resend.com](https://resend.com) and add `wjohnstonmedia.com`
    under **Domains**.
 2. Add the DNS records it gives you (SPF, DKIM, and ideally DMARC) at your
    registrar. Wait for it to verify — until then, sends are rejected.
 3. Create an API key → `RESEND_API_KEY`.
 4. Set `EMAIL_FROM` to an address on the verified domain, e.g.
-   `Johnston Media <hello@johnstonmedia.com.au>`.
+   `Johnston Media <hello@wjohnstonmedia.com>`.
 
 ### 3. Square
 
@@ -124,7 +124,7 @@ Reuses the existing project — nothing to migrate.
    credentials (`SQUARE_ENVIRONMENT="sandbox"`) and test the whole flow before
    switching to production.
 3. **Webhooks** → *Add subscription*:
-   - URL: `https://johnstonmedia.com.au/api/square/webhook`
+   - URL: `https://wjohnstonmedia.com/api/square/webhook`
    - Events: `invoice.payment_made` and `invoice.updated`
    - Copy the **signature key** → `SQUARE_WEBHOOK_SIGNATURE_KEY`
 4. Set `SQUARE_WEBHOOK_NOTIFICATION_URL` to that exact URL. The signature is
@@ -137,7 +137,7 @@ Reuses the existing project — nothing to migrate.
    is detected automatically — no build settings to change.
 2. Add every variable from `.env.example` under **Settings → Environment
    Variables** (Production *and* Preview).
-3. **Domains** → add `johnstonmedia.com.au` and follow the DNS instructions.
+3. **Domains** → add `wjohnstonmedia.com` and follow the DNS instructions.
 
 > The old `CNAME` file has been removed — it was GitHub Pages-specific. Turn
 > GitHub Pages off in the repo settings once Vercel is serving the domain, so

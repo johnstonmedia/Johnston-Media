@@ -24,10 +24,15 @@ service cloud.firestore {
     function isNotBlocked() {
       return !getUserData().blocked;
     }
+    function myEmail() {
+      return request.auth.token.email;
+    }
 
     // ─── Users ─────────────────────────────────────────
     match /users/{uid} {
       allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      // Self-signup only: the doc ID must equal the caller's own uid.
+      // Admins pre-create clients in /pendingClients instead (see below).
       allow create: if isSignedIn() && request.auth.uid == uid;
       allow update: if isSignedIn() && (
         (request.auth.uid == uid && !('role' in request.resource.data.diff(resource.data).affectedKeys())) ||
@@ -57,23 +62,33 @@ service cloud.firestore {
     }
 
     // ─── Messages ──────────────────────────────────────
+    // Contact-form writes go through /api/contact using the Admin SDK, which
+    // bypasses these rules — so the client SDK never needs create access.
     match /messages/{msgId} {
-      allow create: if true;
+      allow create: if false;
       allow read, update, delete: if isAdmin();
     }
 
     // ─── Pending Clients ───────────────────────────────
+    // Profiles an admin creates before the client has ever signed in.
+    // Claimed on first login by lib/useAuth.ts, then removed.
     match /pendingClients/{email} {
       allow read: if isSignedIn();
-      allow write: if isAdmin();
-      allow delete: if isSignedIn();
+      allow create, update: if isAdmin();
+      // The claiming client deletes their own placeholder after linking it.
+      allow delete: if isAdmin() || (isSignedIn() && email == myEmail());
     }
 
     // ─── Quotes ────────────────────────────────────────
     match /quotes/{quoteId} {
+      // Public quote requests are written server-side by /api/quote.
       allow create: if isSignedIn() && isNotBlocked();
+      // Clients see quotes linked by uid OR by the email they submitted —
+      // requests made before they had an account only carry the email.
       allow read: if isSignedIn() && (
-        resource.data.clientId == request.auth.uid || isAdmin()
+        resource.data.clientId == request.auth.uid ||
+        resource.data.clientEmail == myEmail() ||
+        isAdmin()
       );
       allow update: if isAdmin() || (
         isSignedIn() &&
@@ -87,7 +102,9 @@ service cloud.firestore {
     // ─── Client Projects ───────────────────────────────
     match /projects/{projectId} {
       allow read: if isSignedIn() && (
-        resource.data.clientId == request.auth.uid || isAdmin()
+        resource.data.clientId == request.auth.uid ||
+        resource.data.clientEmail == myEmail() ||
+        isAdmin()
       );
       allow create: if isAdmin();
       allow update: if isAdmin() || (
@@ -97,6 +114,13 @@ service cloud.firestore {
           .hasOnly(['clientNote', 'clientNoteUpdatedAt'])
       );
       allow delete: if isMasterAdminOrOwner();
+    }
+
+    // ─── Square webhook de-duplication ─────────────────
+    // Written only by the Admin SDK, which bypasses these rules entirely.
+    // No client should ever read or write it.
+    match /squareEvents/{eventId} {
+      allow read, write: if false;
     }
   }
 }

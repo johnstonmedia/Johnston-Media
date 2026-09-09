@@ -1,0 +1,128 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+}
+
+.honeypot {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+}
+
+.submitRow {
+  margin-top: var(--space-sm);
+}
+
+.submit {
+  width: 100%;
+}
+
+.note {
+  margin-top: var(--space-sm);
+  font-size: var(--text-xs);
+  color: var(--jm-slate);
+  line-height: 1.7;
+}
+
+/* ─── Success state ──────────────────────────────── */
+
+.success {
+  text-align: center;
+  padding: var(--space-xl) var(--space-md);
+  border: 1px solid rgba(193, 90, 50, 0.3);
+  border-radius: var(--radius-lg);
+  background: rgba(193, 90, 50, 0.05);
+}
+
+.successMark {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto var(--space-md);
+  border-radius: 50%;
+  border: 2px solid var(--jm-copper);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--jm-copper);
+  font-size: 1.6rem;
+}
+
+.successTitle {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  color: var(--jm-white);
+  margin-bottom: 0.6rem;
+}
+
+.successBody {
+  color: var(--jm-muted);
+  font-size: var(--text-sm);
+  line-height: 1.8;
+  max-width: 46ch;
+  margin: 0 auto;
+}
+
+@media (max-width: 640px) {
+  .row {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}
+
+/* ─── Chosen package ─────────────────────────────── */
+
+.chosenPackage {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  background: rgba(193, 90, 50, 0.09);
+  border: 1px solid rgba(193, 90, 50, 0.4);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
+}
+
+.chosenPackage strong {
+  display: block;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--jm-white);
+}
+
+.chosenPackage em {
+  display: block;
+  font-style: normal;
+  font-size: var(--text-xs);
+  color: var(--jm-slate);
+  margin-top: 0.15rem;
+}
+
+.changePackage {
+  background: none;
+  border: none;
+  color: var(--jm-copper);
+  font-family: var(--font-body);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  padding: 0.25rem;
+  flex-shrink: 0;
+  text-decoration: underline;
+}
+
+.changePackage:hover {
+  color: var(--jm-amber);
+}

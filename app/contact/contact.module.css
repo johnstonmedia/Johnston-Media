@@ -1,0 +1,109 @@
+.grid {
+  display: grid;
+  grid-template-columns: 0.85fr 1.15fr;
+  gap: var(--space-2xl);
+  align-items: start;
+}
+
+.email {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-size: clamp(1.25rem, 2.6vw, 1.75rem);
+  color: var(--jm-white);
+  border-bottom: 1px solid rgba(193, 90, 50, 0.5);
+  padding-bottom: 0.25rem;
+  margin: var(--space-md) 0;
+  transition:
+    color 0.3s ease,
+    border-color 0.3s ease;
+  word-break: break-word;
+}
+
+.email:hover {
+  color: var(--jm-copper);
+  border-color: var(--jm-copper);
+}
+
+.detailList {
+  margin-top: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.detail {
+  padding-left: var(--space-md);
+  border-left: 2px solid rgba(31, 111, 136, 0.5);
+}
+
+.detailLabel {
+  font-size: 0.68rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--jm-slate);
+  margin-bottom: 0.2rem;
+}
+
+.detailValue {
+  color: var(--jm-lightgrey);
+  font-size: var(--text-sm);
+}
+
+.socialRow {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: var(--space-lg);
+}
+
+.socialBtn {
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--jm-border-strong);
+  color: var(--jm-slate);
+  transition:
+    border-color 0.3s ease,
+    color 0.3s ease,
+    transform 0.3s ease;
+}
+
+.socialBtn:hover {
+  border-color: var(--jm-copper);
+  color: var(--jm-copper);
+  transform: translateY(-3px);
+}
+
+.formCard {
+  background: var(--jm-surface);
+  border: 1px solid var(--jm-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+}
+
+.formCardTitle {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  color: var(--jm-white);
+  margin-bottom: 0.4rem;
+}
+
+.formCardSub {
+  color: var(--jm-slate);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-lg);
+}
+
+.shortForm {
+  max-width: 620px;
+  margin: 0 auto;
+}
+
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-xl);
+  }
+}

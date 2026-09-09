@@ -53,11 +53,40 @@ export type QuoteStatus =
   | "Pending"
   | "Reviewed"
   | "Invoiced"
+  | "Deposit Paid"
   | "Paid"
   | "Declined"
+  | "Cancelled"
+  | "Refunded"
   | "Sent"
   | "Accepted"
   | "Approved";
+
+/**
+ * Statuses where the client should still be offered a payment link.
+ *
+ * "Deposit Paid" belongs here: the deposit has landed but the balance is still
+ * outstanding on the same Square invoice.
+ */
+const PAYABLE_STATUSES: readonly QuoteStatus[] = [
+  "Invoiced",
+  "Sent",
+  "Deposit Paid",
+];
+
+/**
+ * Whether to show a "view & pay" link for a quote.
+ *
+ * A cancelled or refunded invoice keeps its Square public URL, so the URL alone
+ * isn't enough — without this check the portal would go on offering payment on
+ * an invoice that was voided months ago.
+ */
+export function isQuotePayable(quote: {
+  status: QuoteStatus;
+  squarePublicUrl?: string;
+}): boolean {
+  return Boolean(quote.squarePublicUrl) && PAYABLE_STATUSES.includes(quote.status);
+}
 
 /** Which side of the business a quote came from. */
 export type QuoteSource = "media" | "web";
@@ -86,9 +115,17 @@ export interface Quote {
   squarePublicUrl?: string;
   /** Invoice total in the smallest currency unit (cents). */
   amountCents?: number;
+  /** Deposit requested up front, in cents. Absent when invoiced in full. */
+  depositCents?: number;
   currency?: string;
+  /** Raw Square invoice status, mirrored from the webhook for diagnostics. */
+  squareInvoiceStatus?: string;
   invoicedAt?: string;
+  /** Set when the deposit clears, ahead of the balance. */
+  depositPaidAt?: string;
+  depositPaidCents?: number;
   paidAt?: string;
+  refundedAt?: string;
 
   createdAt: string;
   updatedAt?: string;

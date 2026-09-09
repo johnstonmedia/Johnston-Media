@@ -5,6 +5,7 @@ import Hero from "@/components/Hero";
 import { ArrowRight } from "@/components/Icons";
 import QuoteForm from "@/components/QuoteForm";
 import Reveal from "@/components/Reveal";
+import { WebDevelopmentSchema } from "@/components/StructuredData";
 
 import pageStyles from "../page.module.css";
 import styles from "./web.module.css";
@@ -127,6 +128,7 @@ const STACK = [
 export default function WebDevelopmentPage() {
   return (
     <>
+      <WebDevelopmentSchema />
       <Hero
         compact
         eyebrow="Johnston Media · Web Development"

@@ -8,6 +8,7 @@ import {
   isSquareConfigured,
   publishInvoice,
   SquareApiError,
+  type InvoiceDeposit,
   type InvoiceLineItem,
 } from "@/lib/square";
 import type { Quote } from "@/lib/types";
@@ -70,6 +71,55 @@ function parseLineItems(raw: unknown): {
 }
 
 /**
+ * Parses the optional deposit.
+ *
+ * Square requires a deposit to be strictly less than the invoice total — a
+ * "deposit" for the whole amount is rejected, so that's caught here with a
+ * message that makes sense rather than letting Square return a raw error.
+ */
+function parseDeposit(
+  raw: unknown,
+  totalCents: number,
+): { deposit?: InvoiceDeposit; depositCents?: number; error?: string } {
+  if (!raw || typeof raw !== "object") return {};
+
+  const input = raw as {
+    type?: unknown;
+    value?: unknown;
+    dueInDays?: unknown;
+  };
+
+  const dueInDays = Number(input.dueInDays ?? 0);
+  if (!Number.isInteger(dueInDays) || dueInDays < 0 || dueInDays > 90) {
+    return { error: "Deposit due date must be between 0 and 90 days." };
+  }
+
+  if (input.type === "percentage") {
+    const percent = Number(input.value);
+    if (!Number.isFinite(percent) || percent <= 0 || percent >= 100) {
+      return { error: "Deposit percentage must be between 1 and 99." };
+    }
+    return {
+      deposit: { percentage: String(percent), dueInDays },
+      depositCents: Math.round((totalCents * percent) / 100),
+    };
+  }
+
+  if (input.type === "fixed") {
+    const amountCents = Math.round(Number(input.value));
+    if (!Number.isFinite(amountCents) || amountCents <= 0) {
+      return { error: "Deposit amount must be greater than zero." };
+    }
+    if (amountCents >= totalCents) {
+      return { error: "Deposit must be less than the invoice total." };
+    }
+    return { deposit: { amountCents, dueInDays }, depositCents: amountCents };
+  }
+
+  return { error: `Unknown deposit type "${String(input.type)}".` };
+}
+
+/**
  * Admin-only: turn a quote into a published Square invoice.
  *
  * Creates the order and invoice, publishes it (which makes Square email the
@@ -119,6 +169,23 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: itemsError }, { status: 400 });
   }
 
+  const amountCents = items.reduce(
+    (sum, item) => sum + item.amountCents * (item.quantity ?? 1),
+    0,
+  );
+
+  const {
+    deposit,
+    depositCents,
+    error: depositError,
+  } = parseDeposit(body.deposit, amountCents);
+  if (depositError) {
+    return NextResponse.json(
+      { ok: false, error: depositError },
+      { status: 400 },
+    );
+  }
+
   const db = adminDb();
   const quoteRef = db.collection("quotes").doc(quoteId);
   const snap = await quoteRef.get();
@@ -163,14 +230,11 @@ export async function POST(request: Request) {
         clean(body.description, 1000) ||
         `${quote.serviceType} — prepared for ${quote.clientName}.`,
       dueInDays: Number(body.dueInDays) || 14,
+      deposit,
+      reminders: body.reminders !== false,
     });
 
     const published = await publishInvoice(draft.id, draft.version);
-
-    const amountCents = items.reduce(
-      (sum, item) => sum + item.amountCents * (item.quantity ?? 1),
-      0,
-    );
 
     const update = {
       status: "Invoiced" as const,
@@ -178,6 +242,7 @@ export async function POST(request: Request) {
       squareInvoiceId: published.id,
       squareInvoiceNumber: published.invoice_number ?? null,
       squarePublicUrl: published.public_url ?? null,
+      depositCents: depositCents ?? null,
       amountCents,
       currency: process.env.SQUARE_CURRENCY ?? "AUD",
       invoicedAt: new Date().toISOString(),
@@ -198,6 +263,7 @@ export async function POST(request: Request) {
         squareInvoiceNumber: published.invoice_number ?? undefined,
         squarePublicUrl: published.public_url,
         amountCents,
+        depositCents,
         currency: update.currency,
         invoicedAt: update.invoicedAt,
       };
@@ -210,6 +276,7 @@ export async function POST(request: Request) {
       invoiceNumber: published.invoice_number,
       invoiceUrl: published.public_url,
       amountCents,
+      depositCents,
     });
   } catch (err) {
     if (err instanceof SquareApiError) {

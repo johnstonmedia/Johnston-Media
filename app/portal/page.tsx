@@ -16,6 +16,7 @@ import { useToast } from "@/components/Toast";
 import { getDb } from "@/lib/firebase";
 import {
   formatMoney,
+  isQuotePayable,
   PROJECT_STAGES,
   type Project,
   type Quote,
@@ -44,8 +45,11 @@ function statusTone(status: Quote["status"]): string {
       return "jm-badge--success";
     case "Invoiced":
     case "Sent":
+    case "Deposit Paid":
       return "jm-badge--copper";
     case "Declined":
+    case "Cancelled":
+    case "Refunded":
       return "jm-badge--error";
     case "Accepted":
     case "Reviewed":
@@ -190,14 +194,16 @@ function PortalDashboard({
                     <span className={`jm-badge ${statusTone(quote.status)}`}>
                       {quote.status}
                     </span>
-                    {quote.squarePublicUrl && quote.status !== "Paid" ? (
+                    {isQuotePayable(quote) ? (
                       <a
                         href={quote.squarePublicUrl}
                         className="jm-btn-primary jm-btn-sm"
                         target="_blank"
                         rel="noopener noreferrer"
                       >
-                        View &amp; pay
+                        {quote.status === "Deposit Paid"
+                          ? "Pay balance"
+                          : "View & pay"}
                       </a>
                     ) : null}
                   </div>

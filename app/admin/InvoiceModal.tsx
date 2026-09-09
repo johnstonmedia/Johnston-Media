@@ -18,7 +18,11 @@ interface InvoiceModalProps {
   quote: Quote;
   getToken: () => Promise<string | null>;
   onClose: () => void;
-  onSent: (result: { invoiceUrl?: string; amountCents: number }) => void;
+  onSent: (result: {
+    invoiceUrl?: string;
+    amountCents: number;
+    depositCents?: number;
+  }) => void;
 }
 
 /** Builds and sends a Square invoice for a quote. */
@@ -36,12 +40,32 @@ export default function InvoiceModal({
   const [description, setDescription] = useState("");
   const [sending, setSending] = useState(false);
 
+  // Deposit — off by default, so invoicing in full stays one click.
+  const [depositOn, setDepositOn] = useState(false);
+  const [depositType, setDepositType] = useState<"percentage" | "fixed">(
+    "percentage",
+  );
+  const [depositValue, setDepositValue] = useState("50");
+  const [depositDueInDays, setDepositDueInDays] = useState("0");
+
   const totalCents = items.reduce((sum, item) => {
     const amount = Math.round(Number(item.amount) * 100);
     const qty = Number(item.quantity);
     if (!Number.isFinite(amount) || !Number.isFinite(qty)) return sum;
     return sum + amount * qty;
   }, 0);
+
+  const depositCents = (() => {
+    if (!depositOn) return 0;
+    const value = Number(depositValue);
+    if (!Number.isFinite(value) || value <= 0) return 0;
+    return depositType === "percentage"
+      ? Math.round((totalCents * value) / 100)
+      : Math.round(value * 100);
+  })();
+
+  const depositValid =
+    !depositOn || (depositCents > 0 && depositCents < totalCents);
 
   function updateItem(index: number, patch: Partial<LineItem>) {
     setItems((prev) =>
@@ -54,6 +78,11 @@ export default function InvoiceModal({
 
     if (totalCents <= 0) {
       toast("Add at least one line item with an amount.", "error");
+      return;
+    }
+
+    if (!depositValid) {
+      toast("The deposit must be more than zero and less than the total.", "error");
       return;
     }
 
@@ -76,6 +105,13 @@ export default function InvoiceModal({
           title: quote.name,
           description,
           dueInDays: Number(dueInDays) || 14,
+          deposit: depositOn
+            ? {
+                type: depositType,
+                value: Number(depositValue),
+                dueInDays: Number(depositDueInDays) || 0,
+              }
+            : undefined,
           lineItems: items
             .filter((item) => item.name.trim() && Number(item.amount) > 0)
             .map((item) => ({
@@ -94,7 +130,11 @@ export default function InvoiceModal({
       }
 
       toast(`Invoice sent to ${quote.clientEmail}.`);
-      onSent({ invoiceUrl: result.invoiceUrl, amountCents: result.amountCents });
+      onSent({
+        invoiceUrl: result.invoiceUrl,
+        amountCents: result.amountCents,
+        depositCents: result.depositCents,
+      });
     } catch {
       toast("Network error — please try again.", "error");
     } finally {
@@ -213,7 +253,7 @@ export default function InvoiceModal({
 
         <div className="jm-field">
           <label className="jm-label" htmlFor="inv-due">
-            Payment due in (days)
+            {depositOn ? "Balance due in (days)" : "Payment due in (days)"}
           </label>
           <input
             id="inv-due"
@@ -226,17 +266,103 @@ export default function InvoiceModal({
           />
         </div>
 
+        {/* ─── Deposit ──────────────────────────────── */}
+        <div className={styles.depositBox}>
+          <label className={styles.depositToggle}>
+            <input
+              type="checkbox"
+              checked={depositOn}
+              onChange={(e) => setDepositOn(e.target.checked)}
+            />
+            <span>
+              Take a deposit up front
+              <em>Holds the date. The balance is due later, same link.</em>
+            </span>
+          </label>
+
+          {depositOn ? (
+            <div className={styles.depositFields}>
+              <div className="jm-field">
+                <label className="jm-label" htmlFor="dep-type">
+                  Deposit as
+                </label>
+                <select
+                  id="dep-type"
+                  className="jm-select"
+                  value={depositType}
+                  onChange={(e) =>
+                    setDepositType(e.target.value as "percentage" | "fixed")
+                  }
+                >
+                  <option value="percentage">Percentage</option>
+                  <option value="fixed">Fixed amount</option>
+                </select>
+              </div>
+
+              <div className="jm-field">
+                <label className="jm-label" htmlFor="dep-value">
+                  {depositType === "percentage" ? "Percent (%)" : "Amount (AUD)"}
+                </label>
+                <input
+                  id="dep-value"
+                  className="jm-input"
+                  type="number"
+                  min={depositType === "percentage" ? "1" : "0"}
+                  max={depositType === "percentage" ? "99" : undefined}
+                  step={depositType === "percentage" ? "1" : "0.01"}
+                  value={depositValue}
+                  onChange={(e) => setDepositValue(e.target.value)}
+                />
+              </div>
+
+              <div className="jm-field">
+                <label className="jm-label" htmlFor="dep-due">
+                  Due in (days)
+                </label>
+                <input
+                  id="dep-due"
+                  className="jm-input"
+                  type="number"
+                  min="0"
+                  max="90"
+                  value={depositDueInDays}
+                  onChange={(e) => setDepositDueInDays(e.target.value)}
+                />
+              </div>
+            </div>
+          ) : null}
+
+          {depositOn && !depositValid && totalCents > 0 ? (
+            <p className="jm-field-error">
+              The deposit must be more than zero and less than the total.
+            </p>
+          ) : null}
+        </div>
+
         <div className={styles.total}>
           <span className={styles.totalLabel}>Total</span>
           <span className={styles.totalValue}>{formatMoney(totalCents)}</span>
         </div>
+
+        {depositOn && depositValid && depositCents > 0 ? (
+          <div className={styles.splitRow}>
+            <span>
+              Deposit {depositDueInDays === "0" ? "on receipt" : `in ${depositDueInDays} days`}
+              <strong>{formatMoney(depositCents)}</strong>
+            </span>
+            <span>
+              Balance in {dueInDays} days
+              <strong>{formatMoney(totalCents - depositCents)}</strong>
+            </span>
+          </div>
+        ) : null}
 
         <div className={styles.modalActions}>
           <button
             type="button"
             className="jm-btn-primary"
             onClick={send}
-            disabled={sending || totalCents <= 0}
+            disabled={sending || totalCents <= 0 || !depositValid}
           >
             {sending ? "Sending…" : "Create & send invoice"}
           </button>

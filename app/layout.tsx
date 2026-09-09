@@ -4,6 +4,7 @@ import { Montserrat, Playfair_Display } from "next/font/google";
 import Footer from "@/components/Footer";
 import Nav from "@/components/Nav";
 import ScrollProgress from "@/components/ScrollProgress";
+import { BusinessSchema } from "@/components/StructuredData";
 import { ToastProvider } from "@/components/Toast";
 
 import "./globals.css";
@@ -74,6 +75,7 @@ export default function RootLayout({
   return (
     <html lang="en-AU" className={`${playfair.variable} ${montserrat.variable}`}>
       <body>
+        <BusinessSchema />
         <ToastProvider>
           <a href="#main" className="jm-skip-link">
             Skip to content

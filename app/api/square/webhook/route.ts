@@ -3,13 +3,42 @@ import { NextResponse } from "next/server";
 import { sendPaymentAlertToOwner, sendPaymentReceiptToClient } from "@/lib/email";
 import { adminDb } from "@/lib/firebaseAdmin";
 import { verifySquareSignature } from "@/lib/square";
-import type { Quote } from "@/lib/types";
+import type { Quote, QuoteStatus } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** Square invoice statuses that mean the money has landed. */
-const PAID_STATUSES = new Set(["PAID", "PARTIALLY_PAID"]);
+/**
+ * Maps a Square invoice status onto our quote status.
+ *
+ * PARTIALLY_PAID is the deposit case: on a deposit + balance invoice Square
+ * reports it once the deposit clears, which confirms the booking without
+ * settling the invoice — so it gets its own status rather than being folded
+ * into Paid.
+ *
+ * Returns null for statuses that shouldn't move the quote (DRAFT, UNPAID,
+ * SCHEDULED, PAYMENT_PENDING).
+ */
+function mapInvoiceStatus(squareStatus: string): QuoteStatus | null {
+  switch (squareStatus) {
+    case "PAID":
+      return "Paid";
+    case "PARTIALLY_PAID":
+      return "Deposit Paid";
+    case "REFUNDED":
+    case "PARTIALLY_REFUNDED":
+      return "Refunded";
+    case "CANCELED":
+      return "Cancelled";
+    case "FAILED":
+      return "Declined";
+    default:
+      return null;
+  }
+}
+
+/** Statuses that mean money has landed and the project should be underway. */
+const MONEY_IN: readonly QuoteStatus[] = ["Paid", "Deposit Paid"];
 
 interface SquareWebhookEvent {
   type?: string;
@@ -110,29 +139,47 @@ export async function POST(request: Request) {
   if (invoice.public_url) update.squarePublicUrl = invoice.public_url;
   if (invoice.invoice_number) update.squareInvoiceNumber = invoice.invoice_number;
 
-  const alreadyPaid = quote.status === "Paid";
-  const nowPaid = PAID_STATUSES.has(status);
+  const mapped = mapInvoiceStatus(status);
 
-  if (nowPaid && !alreadyPaid) {
-    const paidAmount =
-      invoice.payment_requests?.[0]?.total_completed_amount_money?.amount ??
-      invoice.payment_requests?.[0]?.computed_amount_money?.amount ??
-      quote.amountCents;
+  // Nothing meaningful changed — just mirror the Square fields and stop.
+  if (!mapped || mapped === quote.status) {
+    await doc.ref.update(update);
+    return NextResponse.json({ ok: true, status });
+  }
 
-    update.status = "Paid";
-    update.paidAt = new Date().toISOString();
-    if (paidAmount !== undefined) update.amountCents = paidAmount;
+  update.status = mapped;
+
+  // ─── Money in: deposit cleared, or invoice settled in full ───
+  if (MONEY_IN.includes(mapped)) {
+    const partial = mapped === "Deposit Paid";
+
+    const collected = invoice.payment_requests?.reduce(
+      (sum, request) =>
+        sum + (request.total_completed_amount_money?.amount ?? 0),
+      0,
+    );
+
+    if (partial) {
+      if (collected) update.depositPaidCents = collected;
+      update.depositPaidAt = new Date().toISOString();
+    } else {
+      update.paidAt = new Date().toISOString();
+      if (collected) update.amountCents = collected;
+    }
 
     await doc.ref.update(update);
 
-    const paidQuote: Quote = {
+    const settledQuote: Quote = {
       ...quote,
-      status: "Paid",
-      amountCents: paidAmount,
+      status: mapped,
+      amountCents: partial ? quote.amountCents : (collected ?? quote.amountCents),
+      depositCents: partial ? (collected ?? quote.depositCents) : quote.depositCents,
       squareInvoiceNumber: invoice.invoice_number ?? quote.squareInvoiceNumber,
     };
 
-    // Open a project automatically so the client sees progress immediately.
+    // Open a project on the FIRST payment — a paid deposit confirms the
+    // booking, so the client should see progress without waiting for the
+    // balance to clear.
     try {
       const existingProject = await db
         .collection("projects")
@@ -158,13 +205,25 @@ export async function POST(request: Request) {
     }
 
     await Promise.all([
-      sendPaymentReceiptToClient(paidQuote),
-      sendPaymentAlertToOwner(paidQuote),
+      sendPaymentReceiptToClient(settledQuote, { partial }),
+      sendPaymentAlertToOwner(settledQuote, { partial }),
     ]);
 
-    return NextResponse.json({ ok: true, status: "paid" });
+    return NextResponse.json({ ok: true, status: mapped });
+  }
+
+  // ─── Cancelled, refunded or failed ───────────────────────────
+  // No client email here: these follow an action you took in Square, or a
+  // refund you've already discussed. The status change is what matters, so the
+  // portal stops offering a dead payment link.
+  if (mapped === "Refunded") {
+    update.refundedAt = new Date().toISOString();
   }
 
   await doc.ref.update(update);
-  return NextResponse.json({ ok: true, status });
+  console.info(
+    `[square-webhook] quote ${quote.id} → ${mapped} (Square: ${status})`,
+  );
+
+  return NextResponse.json({ ok: true, status: mapped });
 }

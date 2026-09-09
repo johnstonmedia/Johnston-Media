@@ -10,10 +10,22 @@ import { formatMoney, type Quote, type QuoteStatus } from "@/lib/types";
 import styles from "./admin.module.css";
 import InvoiceModal from "./InvoiceModal";
 
+/** Statuses that need no further action from you. */
+const CLOSED: readonly QuoteStatus[] = [
+  "Paid",
+  "Declined",
+  "Cancelled",
+  "Refunded",
+];
+
 const FILTERS: { id: string; label: string; match: (q: Quote) => boolean }[] = [
-  { id: "open", label: "Open", match: (q) => q.status !== "Paid" && q.status !== "Declined" },
+  { id: "open", label: "Open", match: (q) => !CLOSED.includes(q.status) },
   { id: "new", label: "New", match: (q) => q.status === "Pending" },
-  { id: "invoiced", label: "Invoiced", match: (q) => q.status === "Invoiced" },
+  {
+    id: "awaiting",
+    label: "Awaiting payment",
+    match: (q) => q.status === "Invoiced" || q.status === "Deposit Paid",
+  },
   { id: "paid", label: "Paid", match: (q) => q.status === "Paid" },
   { id: "web", label: "Web", match: (q) => q.source === "web" },
   { id: "all", label: "All", match: () => true },
@@ -26,8 +38,11 @@ function statusTone(status: QuoteStatus): string {
       return "jm-badge--success";
     case "Invoiced":
     case "Sent":
+    case "Deposit Paid":
       return "jm-badge--copper";
     case "Declined":
+    case "Cancelled":
+    case "Refunded":
       return "jm-badge--error";
     case "Accepted":
     case "Reviewed":
@@ -145,6 +160,11 @@ export default function QuotesPanel({
                 {quote.amountCents !== undefined ? (
                   <span className={styles.amount}>
                     {formatMoney(quote.amountCents, quote.currency)}
+                    {quote.depositCents ? (
+                      <small className={styles.depositNote}>
+                        {formatMoney(quote.depositCents, quote.currency)} deposit
+                      </small>
+                    ) : null}
                   </span>
                 ) : null}
 
@@ -181,7 +201,7 @@ export default function QuotesPanel({
                   </button>
                 ) : null}
 
-                {quote.status !== "Paid" && quote.status !== "Declined" ? (
+                {!CLOSED.includes(quote.status) ? (
                   <button
                     type="button"
                     className="jm-btn-ghost jm-btn-sm"
@@ -211,6 +231,7 @@ export default function QuotesPanel({
                         status: "Invoiced",
                         squarePublicUrl: result.invoiceUrl,
                         amountCents: result.amountCents,
+                        depositCents: result.depositCents,
                       }
                     : q,
                 ) ?? null,

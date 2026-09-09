@@ -270,9 +270,14 @@ export function sendInvoiceToClient(
   invoiceUrl: string,
 ): Promise<SendResult> {
   const firstName = quote.clientName.trim().split(/\s+/)[0] || "there";
+  const currency = quote.currency ?? "AUD";
   const total =
     quote.amountCents !== undefined
-      ? formatMoney(quote.amountCents, quote.currency ?? "AUD")
+      ? formatMoney(quote.amountCents, currency)
+      : undefined;
+  const deposit =
+    quote.depositCents !== undefined && quote.depositCents !== null
+      ? formatMoney(quote.depositCents, currency)
       : undefined;
 
   const html = shell({
@@ -286,10 +291,20 @@ export function sendInvoiceToClient(
         You can review the full breakdown and, when you're happy, accept and pay
         securely through Square using the button below.
       </p>
+      ${
+        deposit
+          ? `<p style="margin:0 0 16px 0;">
+               To lock the date in, there's a deposit of
+               <strong style="color:${COPPER};">${esc(deposit)}</strong> up front —
+               the balance is due later, and both are payable from the same link.
+             </p>`
+          : ""
+      }
       ${details([
         ["Project", quote.name],
         ["Service", quote.serviceType],
         ["Date", quote.date],
+        ["Deposit", deposit],
         ["Total", total],
       ])}
       ${button(invoiceUrl, "View & pay invoice")}
@@ -306,28 +321,59 @@ export function sendInvoiceToClient(
   });
 }
 
-/** 4. Client — payment received. */
-export function sendPaymentReceiptToClient(quote: Quote): Promise<SendResult> {
+/**
+ * 4. Client — payment received.
+ *
+ * `partial` is the deposit case: the date is locked but the balance is still
+ * to come, so the copy says so rather than implying the job is settled.
+ */
+export function sendPaymentReceiptToClient(
+  quote: Quote,
+  opts: { partial?: boolean } = {},
+): Promise<SendResult> {
   const firstName = quote.clientName.trim().split(/\s+/)[0] || "there";
-  const total =
-    quote.amountCents !== undefined
-      ? formatMoney(quote.amountCents, quote.currency ?? "AUD")
+  const currency = quote.currency ?? "AUD";
+  const partial = Boolean(opts.partial);
+
+  const paid =
+    partial && quote.depositCents !== undefined
+      ? formatMoney(quote.depositCents, currency)
+      : quote.amountCents !== undefined
+        ? formatMoney(quote.amountCents, currency)
+        : undefined;
+
+  const outstanding =
+    partial &&
+    quote.amountCents !== undefined &&
+    quote.depositCents !== undefined
+      ? formatMoney(quote.amountCents - quote.depositCents, currency)
       : undefined;
 
   const html = shell({
-    preheader: `Payment received for ${quote.name} — thank you.`,
-    eyebrow: "Payment received",
-    heading: "Thank you — payment received.",
+    preheader: partial
+      ? `Deposit received for ${quote.name} — your date is locked in.`
+      : `Payment received for ${quote.name} — thank you.`,
+    eyebrow: partial ? "Deposit received" : "Payment received",
+    heading: partial
+      ? "Your date is locked in."
+      : "Thank you — payment received.",
     body: `
       <p style="margin:0 0 16px 0;">Hi ${esc(firstName)},</p>
       <p style="margin:0 0 16px 0;">
-        Your payment for <strong style="color:#ffffff;">${esc(quote.name)}</strong> has come
-        through. Everything's locked in — I'll be in touch shortly with next steps
-        and scheduling.
+        ${
+          partial
+            ? `Your deposit for <strong style="color:#ffffff;">${esc(quote.name)}</strong> has
+               come through and the date is now held. The balance is due closer to
+               delivery — you can pay it from the same invoice link whenever suits.`
+            : `Your payment for <strong style="color:#ffffff;">${esc(quote.name)}</strong> has come
+               through. Everything's locked in — I'll be in touch shortly with next steps
+               and scheduling.`
+        }
       </p>
       ${details([
         ["Project", quote.name],
-        ["Amount paid", total],
+        [partial ? "Deposit paid" : "Amount paid", paid],
+        ["Balance remaining", outstanding],
         ["Invoice", quote.squareInvoiceNumber],
       ])}
       <p style="margin:0 0 16px 0;">
@@ -339,29 +385,49 @@ export function sendPaymentReceiptToClient(quote: Quote): Promise<SendResult> {
 
   return send({
     to: quote.clientEmail,
-    subject: `Payment received — ${quote.name}`,
+    subject: partial
+      ? `Deposit received — ${quote.name}`
+      : `Payment received — ${quote.name}`,
     html,
     replyTo: OWNER_NOTIFY,
   });
 }
 
-/** 5. Owner — payment landed. */
-export function sendPaymentAlertToOwner(quote: Quote): Promise<SendResult> {
-  const total =
-    quote.amountCents !== undefined
-      ? formatMoney(quote.amountCents, quote.currency ?? "AUD")
-      : "—";
+/** 5. Owner — payment landed (deposit or in full). */
+export function sendPaymentAlertToOwner(
+  quote: Quote,
+  opts: { partial?: boolean } = {},
+): Promise<SendResult> {
+  const currency = quote.currency ?? "AUD";
+  const partial = Boolean(opts.partial);
+
+  const paid =
+    partial && quote.depositCents !== undefined
+      ? formatMoney(quote.depositCents, currency)
+      : quote.amountCents !== undefined
+        ? formatMoney(quote.amountCents, currency)
+        : "—";
+
+  const outstanding =
+    partial &&
+    quote.amountCents !== undefined &&
+    quote.depositCents !== undefined
+      ? formatMoney(quote.amountCents - quote.depositCents, currency)
+      : undefined;
 
   const html = shell({
-    preheader: `${quote.clientName} paid ${total}.`,
-    eyebrow: "Payment received",
-    heading: `${quote.clientName} has paid.`,
+    preheader: `${quote.clientName} paid ${paid}.`,
+    eyebrow: partial ? "Deposit received" : "Payment received",
+    heading: partial
+      ? `${quote.clientName} paid the deposit.`
+      : `${quote.clientName} has paid.`,
     body: `
       ${details([
         ["Client", quote.clientName],
         ["Email", quote.clientEmail],
         ["Project", quote.name],
-        ["Amount", total],
+        [partial ? "Deposit" : "Amount", paid],
+        ["Still owing", outstanding],
         ["Invoice", quote.squareInvoiceNumber],
       ])}
       ${button(`${SITE_URL}/admin`, "Open admin")}`,
@@ -369,7 +435,9 @@ export function sendPaymentAlertToOwner(quote: Quote): Promise<SendResult> {
 
   return send({
     to: OWNER_NOTIFY,
-    subject: `Paid — ${quote.clientName} · ${total}`,
+    subject: partial
+      ? `Deposit paid — ${quote.clientName} · ${paid}`
+      : `Paid — ${quote.clientName} · ${paid}`,
     html,
   });
 }

@@ -50,17 +50,29 @@ Client submits a quote request
    └─ email → you:     "New quote request from …"
 
 You open /admin → Quotes → Send invoice
+   ├─ optionally take a deposit (% or fixed) to hold the date
    ├─ Square order + invoice created and published
    ├─ Square emails the client a payment link
+   ├─ Square schedules reminders: 3 days before, 1 and 7 days after due
    ├─ email → client:  "Your quote is ready"  (branded, same link)
    └─ quote status → Invoiced
 
-Client pays in Square
+Client pays the deposit (only when one was requested)
+   └─ webhook → quote status → Deposit Paid
+        ├─ project opened (the booking is confirmed)
+        ├─ email → client:  "Your date is locked in"
+        └─ portal now offers "Pay balance" on the same invoice
+
+Client pays in full
    └─ webhook → /api/square/webhook
         ├─ quote status → Paid
-        ├─ project opened automatically (projects/, stage: Planning)
+        ├─ project opened if it wasn't already
         ├─ email → client:  "Payment received"
         └─ email → you:     "Paid — <client> · <amount>"
+
+You cancel or refund the invoice in Square
+   └─ webhook → quote status → Cancelled / Refunded
+        └─ the portal stops offering the payment link
 
 You move the project through its stages in /admin → Projects
    └─ email → client on each stage change
@@ -125,7 +137,8 @@ Reuses the existing project — nothing to migrate.
    switching to production.
 3. **Webhooks** → *Add subscription*:
    - URL: `https://wjohnstonmedia.com/api/square/webhook`
-   - Events: `invoice.payment_made` and `invoice.updated`
+   - Events: `invoice.payment_made`, `invoice.updated`, `invoice.canceled`,
+     `invoice.refunded` and `invoice.scheduled_charge_failed`
    - Copy the **signature key** → `SQUARE_WEBHOOK_SIGNATURE_KEY`
 4. Set `SQUARE_WEBHOOK_NOTIFICATION_URL` to that exact URL. The signature is
    computed over URL + body, so a mismatch (http vs https, trailing slash,
@@ -158,9 +171,11 @@ pendingClients/{email}          ← admin-created, pre-signup
 quotes/{id}
   clientId, clientName, clientEmail, clientPhone
   serviceType, source ('media' | 'web'), name, date, location, budget, details
-  status: Pending → Reviewed → Invoiced → Paid  (Declined at any point)
+  status: Pending → Reviewed → Invoiced → [Deposit Paid] → Paid
+          (Declined, Cancelled or Refunded at any point)
   squareCustomerId, squareInvoiceId, squareInvoiceNumber, squarePublicUrl
-  amountCents, currency, invoicedAt, paidAt, createdAt
+  squareInvoiceStatus, amountCents, depositCents, depositPaidCents, currency
+  invoicedAt, depositPaidAt, paidAt, refundedAt, createdAt
 
 projects/{id}
   clientId, clientName, clientEmail, serviceType, name

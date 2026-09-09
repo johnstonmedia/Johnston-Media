@@ -162,18 +162,79 @@ export interface SquareInvoice {
   payment_requests?: { computed_amount_money?: { amount: number } }[];
 }
 
+export interface InvoiceDeposit {
+  /** Percentage of the total, as a string Square accepts: "50" for 50%. */
+  percentage?: string;
+  /** Fixed deposit in cents. Mutually exclusive with `percentage`. */
+  amountCents?: number;
+  /** Days until the deposit is due. 0 (the default) means on receipt. */
+  dueInDays?: number;
+}
+
+/**
+ * Builds Square's automatic reminder schedule for one payment request.
+ *
+ * `relative_scheduled_days` is counted from the due date — negative is before,
+ * positive is after. Square rejects reminders that would fall in the past, so
+ * anything that wouldn't land at least a day out is dropped. That matters for
+ * deposits due on receipt, where the "3 days before" nudge is already stale.
+ */
+function buildReminders(
+  dueInDays: number,
+  kind: "deposit" | "balance",
+): { relative_scheduled_days: number; message: string }[] {
+  const noun = kind === "deposit" ? "deposit" : "balance";
+
+  const plan = [
+    {
+      days: -3,
+      message: `A quick heads up — the ${noun} for your Johnston Media booking is due in a few days.`,
+    },
+    {
+      days: 1,
+      message: `Just a gentle nudge: the ${noun} for your Johnston Media booking was due yesterday.`,
+    },
+    {
+      days: 7,
+      message: `Following up on the ${noun} for your Johnston Media booking — let me know if anything's holding it up.`,
+    },
+  ];
+
+  return plan
+    .filter((reminder) => dueInDays + reminder.days >= 1)
+    .map((reminder) => ({
+      relative_scheduled_days: reminder.days,
+      message: reminder.message,
+    }));
+}
+
+/** Formats a date N days from now as Square's YYYY-MM-DD. */
+function dueDateIn(days: number): string {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
 /**
  * Creates the order + draft invoice for a quote.
  * The invoice is created as a DRAFT — call publishInvoice() to actually send it.
+ *
+ * With a deposit, Square gets two payment requests: a DEPOSIT due up front
+ * (which is what actually holds the date) and a BALANCE due later. Without one
+ * it's a single BALANCE request, as before.
  */
 export async function createInvoice(input: {
   customerId: string;
   lineItems: InvoiceLineItem[];
   title: string;
   description?: string;
-  /** Days until payment is due. Defaults to 14. */
+  /** Days until the balance is due. Defaults to 14. */
   dueInDays?: number;
   currency?: string;
+  /** Optional deposit taken before the balance. */
+  deposit?: InvoiceDeposit;
+  /** Set false to skip Square's automatic reminders. Defaults to true. */
+  reminders?: boolean;
 }): Promise<SquareInvoice> {
   const locationId = process.env.SQUARE_LOCATION_ID;
   if (!locationId) throw new Error("SQUARE_LOCATION_ID is not set.");
@@ -199,8 +260,40 @@ export async function createInvoice(input: {
   });
 
   // 2. Draft invoice against that order.
-  const dueDate = new Date();
-  dueDate.setDate(dueDate.getDate() + (input.dueInDays ?? 14));
+  const balanceDueInDays = input.dueInDays ?? 14;
+  const wantReminders = input.reminders !== false;
+
+  const paymentRequests: Record<string, unknown>[] = [];
+
+  if (input.deposit) {
+    const depositDueInDays = input.deposit.dueInDays ?? 0;
+
+    paymentRequests.push({
+      request_type: "DEPOSIT",
+      due_date: dueDateIn(depositDueInDays),
+      automatic_payment_source: "NONE",
+      ...(input.deposit.percentage
+        ? { percentage_requested: input.deposit.percentage }
+        : {
+            fixed_amount_requested_money: {
+              amount: input.deposit.amountCents,
+              currency,
+            },
+          }),
+      ...(wantReminders
+        ? { reminders: buildReminders(depositDueInDays, "deposit") }
+        : {}),
+    });
+  }
+
+  paymentRequests.push({
+    request_type: "BALANCE",
+    due_date: dueDateIn(balanceDueInDays),
+    automatic_payment_source: "NONE",
+    ...(wantReminders
+      ? { reminders: buildReminders(balanceDueInDays, "balance") }
+      : {}),
+  });
 
   const invoice = await squareFetch<{ invoice: SquareInvoice }>("/v2/invoices", {
     method: "POST",
@@ -217,13 +310,7 @@ export async function createInvoice(input: {
           card: true,
           bank_account: true,
         },
-        payment_requests: [
-          {
-            request_type: "BALANCE",
-            due_date: dueDate.toISOString().slice(0, 10),
-            automatic_payment_source: "NONE",
-          },
-        ],
+        payment_requests: paymentRequests,
       },
     },
   });

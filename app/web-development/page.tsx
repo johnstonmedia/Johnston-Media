@@ -25,7 +25,7 @@ const CAPABILITIES = [
   {
     icon: "⚡",
     title: "Fast, everywhere",
-    body: "Built on Next.js and deployed to a global edge network. Pages load instantly, images are optimised automatically, and mobile is never an afterthought.",
+    body: "Your pages appear the moment someone taps the link — on a laptop or on patchy mobile data at a game. Photos stay sharp without making anyone wait.",
   },
   {
     icon: "⚙",
@@ -35,17 +35,17 @@ const CAPABILITIES = [
   {
     icon: "◐",
     title: "Client portals & dashboards",
-    body: "Secure logins, role-based access, file delivery, project tracking. The same system running this studio, built for yours.",
+    body: "Give your clients a private login to track their job, approve work and download their files. The same system running this studio, built for yours.",
   },
   {
     icon: "◉",
     title: "Found on Google",
-    body: "Proper metadata, structured markup, clean semantics and real performance scores — the things search engines actually reward.",
+    body: "Set up properly so search engines understand who you are, what you do and where you work — the groundwork that gets you turning up in local searches.",
   },
   {
     icon: "◇",
     title: "Yours to keep",
-    body: "You own the code, the domain and the accounts. No proprietary lock-in, no monthly ransom to keep your own site online.",
+    body: "You own the site, the domain and every account it runs on. No lock-in, and no monthly fee just to keep your own website online.",
   },
 ];
 
@@ -59,7 +59,7 @@ const PACKAGES = [
       "Contact or booking form with email automation",
       "Mobile-first, fully responsive",
       "Basic SEO and analytics",
-      "Deployed on Vercel with your domain",
+      "Live on your own domain",
     ],
     featured: false,
   },
@@ -116,13 +116,54 @@ const PROCESS = [
   },
 ];
 
-const STACK = [
-  { name: "Next.js + React", why: "Fast pages, real SEO, no template ceiling" },
-  { name: "Vercel", why: "Global edge hosting with instant rollbacks" },
-  { name: "Firebase", why: "Authentication, database and secure file storage" },
-  { name: "Square", why: "Invoicing and payments your accountant already knows" },
-  { name: "Resend", why: "Reliable transactional email that lands in the inbox" },
-  { name: "TypeScript", why: "Fewer bugs, safer changes months down the line" },
+/**
+ * Case study. Every claim here is verifiable from the live product — no
+ * invented client names, metrics or testimonials.
+ */
+const CASE_STUDY = {
+  eyebrow: "Recent work",
+  name: "Scriber",
+  url: "https://pracscriber.com",
+  tagline: "A practice tool for students who sit exams with a writer.",
+  body: [
+    "Some students are approved to have a person write their exam for them — they dictate, the writer writes. It's a skill, and until now there was nowhere to practise it.",
+    "Scriber plays the part of that writer. Students upload a past paper, read it on one side of the screen and dictate their answer on the other, saying every comma and full stop out loud exactly as they'd have to on the day.",
+  ],
+  detail:
+    "The hard part wasn't the dictation — it was making the writer human. A transcription tool types every word instantly and never tires, which teaches a pace no real person could survive. Scriber's writer runs a beat behind, can only hold so much before they lose the thread, and occasionally stops to ask how a word is spelled. Push too fast and they ask you to repeat yourself, exactly as they would in the room.",
+  outcomes: [
+    "Students practise against realistic limits, not a perfect machine",
+    "Exam papers never leave the student's own device",
+    "Runs at effectively zero hosting cost",
+    "Free for students to use",
+  ],
+};
+
+const INCLUDED = [
+  {
+    name: "It loads fast",
+    why: "Pages appear straight away, even on a phone on mobile data",
+  },
+  {
+    name: "It's yours",
+    why: "You own the site, the domain and every account it runs on",
+  },
+  {
+    name: "No monthly ransom",
+    why: "Hosting is free or near-free at your scale — no platform fees",
+  },
+  {
+    name: "It stays fixed",
+    why: "Nothing breaks itself overnight the way plugin-based sites do",
+  },
+  {
+    name: "Payments you already trust",
+    why: "Invoicing through Square, straight into the account you use now",
+  },
+  {
+    name: "Someone to call",
+    why: "You deal with me directly — the person who actually built it",
+  },
 ];
 
 export default function WebDevelopmentPage() {
@@ -259,8 +300,76 @@ export default function WebDevelopmentPage() {
         </div>
       </section>
 
-      {/* ─── Process ──────────────────────────────── */}
+      {/* ─── Case study ───────────────────────────── */}
       <section className="jm-section jm-section--alt">
+        <div className="jm-inner">
+          <Reveal>
+            <span className="jm-eyebrow">{CASE_STUDY.eyebrow}</span>
+            <h2 className="jm-section-title">
+              {CASE_STUDY.name} — <em>{CASE_STUDY.tagline}</em>
+            </h2>
+            <hr className="jm-section-rule" />
+          </Reveal>
+
+          <div className={styles.caseGrid}>
+            <Reveal>
+              {CASE_STUDY.body.map((paragraph) => (
+                <p
+                  key={paragraph.slice(0, 24)}
+                  className="jm-body"
+                  style={{ marginBottom: "1rem" }}
+                >
+                  {paragraph}
+                </p>
+              ))}
+
+              <div className={styles.caseDetail}>
+                <span className={styles.caseDetailLabel}>
+                  The interesting problem
+                </span>
+                <p>{CASE_STUDY.detail}</p>
+              </div>
+
+              <a
+                href={CASE_STUDY.url}
+                className="jm-btn-primary"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Visit {CASE_STUDY.name} <ArrowRight />
+              </a>
+            </Reveal>
+
+            <Reveal delay={120}>
+              <ul className={styles.outcomeList}>
+                {CASE_STUDY.outcomes.map((outcome) => (
+                  <li key={outcome}>
+                    <span className={styles.check} aria-hidden="true">
+                      ✓
+                    </span>
+                    <span>{outcome}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className={styles.caseNote}>
+                Built end to end — the idea, the interface, the logic and the
+                launch. Live at{" "}
+                <a
+                  href={CASE_STUDY.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  pracscriber.com
+                </a>
+                .
+              </p>
+            </Reveal>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Process ──────────────────────────────── */}
+      <section className="jm-section">
         <div className="jm-inner">
           <Reveal>
             <span className="jm-eyebrow">The process</span>
@@ -281,19 +390,20 @@ export default function WebDevelopmentPage() {
       </section>
 
       {/* ─── Stack ────────────────────────────────── */}
-      <section className="jm-section">
+      <section className="jm-section jm-section--alt">
         <div className="jm-inner">
           <div className={styles.stackGrid}>
             <Reveal>
-              <span className="jm-eyebrow">Under the hood</span>
+              <span className="jm-eyebrow">What you get</span>
               <h2 className="jm-section-title">
-                Built on tools that <em>last</em>
+                Built to <em>stay built</em>
               </h2>
               <hr className="jm-section-rule" />
               <p className="jm-body">
-                No page builders, no plugin soup, nothing that breaks when it
-                updates itself at 2am. Just modern, well-supported technology
-                that any developer can pick up if you ever need them to.
+                No page builders, no plugin soup, nothing that breaks itself
+                while you sleep. You get a site that's genuinely yours, runs
+                for almost nothing, and still works properly in three
+                years&apos; time.
               </p>
               <p style={{ marginTop: "1.75rem" }}>
                 <Link href="#web-quote" className="jm-btn-primary">
@@ -304,7 +414,7 @@ export default function WebDevelopmentPage() {
 
             <Reveal delay={100}>
               <div className={styles.stackList}>
-                {STACK.map((item) => (
+                {INCLUDED.map((item) => (
                   <div key={item.name} className={styles.stackItem}>
                     <span className={styles.stackName}>{item.name}</span>
                     <span className={styles.stackWhy}>{item.why}</span>

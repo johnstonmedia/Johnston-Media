@@ -16,9 +16,9 @@
 }
 
 .scrolled {
-  background: rgba(0, 0, 0, 0.88);
+  background: color-mix(in srgb, var(--jm-bg) 88%, transparent);
   backdrop-filter: blur(16px);
-  border-bottom-color: rgba(255, 255, 255, 0.06);
+  border-bottom-color: var(--jm-border);
 }
 
 .inner {
@@ -150,7 +150,7 @@
   position: fixed;
   inset: 0;
   z-index: 99;
-  background: rgba(0, 0, 0, 0.97);
+  background: color-mix(in srgb, var(--jm-bg) 97%, transparent);
   backdrop-filter: blur(20px);
   display: flex;
   flex-direction: column;
@@ -189,5 +189,17 @@
   }
   .logo img {
     height: 40px;
+  }
+}
+
+.mobileActions {
+  display: none;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+@media (max-width: 900px) {
+  .mobileActions {
+    display: flex;
   }
 }

@@ -1,6 +1,6 @@
 .footer {
   background: var(--jm-surface);
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid var(--jm-border);
   padding: var(--space-2xl) 5vw var(--space-lg);
 }
 
@@ -14,7 +14,7 @@
   grid-template-columns: 1fr auto;
   gap: var(--space-xl);
   padding-bottom: var(--space-xl);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--jm-border);
 }
 
 .brand img {
@@ -95,7 +95,7 @@
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--jm-border-strong);
   color: var(--jm-slate);
   transition:
     border-color 0.3s ease,

@@ -15,7 +15,7 @@
   gap: var(--space-md);
   flex-wrap: wrap;
   padding-bottom: var(--space-lg);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  border-bottom: 1px solid var(--jm-border);
   margin-bottom: var(--space-xl);
 }
 
@@ -71,7 +71,7 @@
 
 .row {
   background: var(--jm-surface);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--jm-border);
   border-radius: var(--radius-lg);
   padding: var(--space-md) var(--space-lg);
   display: flex;
@@ -133,7 +133,7 @@
   flex: 1;
   height: 3px;
   border-radius: 2px;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--jm-border-strong);
   position: relative;
 }
 
@@ -186,7 +186,7 @@
 /* ─── Empty ──────────────────────────────────────── */
 
 .empty {
-  border: 1px dashed rgba(255, 255, 255, 0.12);
+  border: 1px dashed var(--jm-border-strong);
   border-radius: var(--radius-lg);
   padding: var(--space-xl);
   text-align: center;

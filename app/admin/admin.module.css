@@ -15,7 +15,7 @@
   gap: var(--space-md);
   flex-wrap: wrap;
   padding-bottom: var(--space-md);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  border-bottom: 1px solid var(--jm-border);
 }
 
 .title {
@@ -41,7 +41,7 @@
   display: flex;
   gap: var(--space-md);
   margin: var(--space-lg) 0 var(--space-xl);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  border-bottom: 1px solid var(--jm-border);
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -88,7 +88,7 @@
 }
 
 .tabCount {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--jm-border-strong);
   border-radius: var(--radius-pill);
   padding: 0.1rem 0.5rem;
   font-size: 0.62rem;
@@ -121,7 +121,7 @@
 
 .filter {
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--jm-border-strong);
   border-radius: var(--radius-pill);
   color: var(--jm-slate);
   font-family: var(--font-body);
@@ -138,7 +138,7 @@
 
 .filter:hover {
   color: var(--jm-lightgrey);
-  border-color: rgba(255, 255, 255, 0.25);
+  border-color: var(--jm-border-strong);
 }
 
 .filterActive {
@@ -157,7 +157,7 @@
 
 .row {
   background: var(--jm-surface);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--jm-border);
   border-radius: var(--radius-lg);
   padding: var(--space-md) var(--space-lg);
   display: flex;
@@ -168,7 +168,7 @@
 }
 
 .row:hover {
-  border-color: rgba(255, 255, 255, 0.14);
+  border-color: var(--jm-border-strong);
 }
 
 .rowUnread {
@@ -201,7 +201,7 @@
   white-space: pre-wrap;
   line-height: 1.75;
   padding-left: var(--space-sm);
-  border-left: 2px solid rgba(255, 255, 255, 0.08);
+  border-left: 2px solid var(--jm-border-strong);
 }
 
 .rowActions {
@@ -218,7 +218,7 @@
 }
 
 .empty {
-  border: 1px dashed rgba(255, 255, 255, 0.12);
+  border: 1px dashed var(--jm-border-strong);
   border-radius: var(--radius-lg);
   padding: var(--space-xl);
   text-align: center;
@@ -258,7 +258,7 @@
 
 .iconBtn {
   background: none;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--jm-border-strong);
   border-radius: var(--radius-sm);
   color: var(--jm-slate);
   width: 36px;
@@ -282,7 +282,7 @@
   align-items: baseline;
   padding-top: var(--space-md);
   margin-top: var(--space-md);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid var(--jm-border-strong);
 }
 
 .totalLabel {
@@ -330,11 +330,11 @@
 /* ─── Deposit controls ───────────────────────────── */
 
 .depositBox {
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--jm-border-strong);
   border-radius: var(--radius-md);
   padding: var(--space-md);
   margin-bottom: var(--space-md);
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--jm-input-bg);
 }
 
 .depositToggle {

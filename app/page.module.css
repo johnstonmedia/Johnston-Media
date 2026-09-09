@@ -2,8 +2,8 @@
 
 .services {
   background: var(--jm-surface);
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 1px solid var(--jm-border);
+  border-bottom: 1px solid var(--jm-border);
   padding: var(--space-2xl) 5vw;
 }
 
@@ -65,12 +65,7 @@
 .webTeaser {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(
-    135deg,
-    #000000 0%,
-    #0f2f3b 55%,
-    #2a1109 100%
-  );
+  background: var(--jm-teaser-gradient);
   padding: var(--space-3xl) 5vw;
 }
 
@@ -90,50 +85,76 @@
   right: -5%;
 }
 
-.codeCard {
-  background: rgba(0, 0, 0, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+.flowCard {
+  background: color-mix(in srgb, var(--jm-surface) 70%, transparent);
+  border: 1px solid var(--jm-border-strong);
   border-radius: var(--radius-lg);
-  overflow: hidden;
-  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(4px);
+  padding: var(--space-lg);
+  box-shadow: var(--jm-shadow-lg);
+  backdrop-filter: blur(6px);
 }
 
-.codeBar {
+.flowLabel {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--jm-amber);
+  margin-bottom: var(--space-md);
+}
+
+.flowList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.flowList li {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: flex-start;
+}
+
+.flowNum {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid var(--jm-copper);
+  color: var(--jm-copper);
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 0.45rem;
-  padding: 0.8rem 1rem;
-  background: rgba(255, 255, 255, 0.04);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  justify-content: center;
+  margin-top: 0.1rem;
 }
 
-.codeDot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
+.flowList strong {
   display: block;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--jm-white);
+  letter-spacing: 0.01em;
 }
 
-.codeBody {
-  margin: 0;
-  padding: var(--space-md);
-  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  font-size: 0.78rem;
-  line-height: 1.85;
-  color: var(--jm-lightgrey);
-  overflow-x: auto;
+.flowList em {
+  display: block;
+  font-style: normal;
+  font-size: var(--text-xs);
+  color: var(--jm-muted);
+  line-height: 1.7;
+  margin-top: 0.2rem;
 }
 
-.codeKey {
-  color: var(--jm-blue);
-}
-.codeStr {
-  color: var(--jm-amber);
-}
-.codeCom {
-  color: var(--jm-slate);
-}
+/* ─── Pills ──────────────────────────────────────── */
 
 .pillRow {
   display: flex;
@@ -148,8 +169,8 @@
   text-transform: uppercase;
   font-weight: 500;
   color: var(--jm-lightgrey);
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--jm-hover-wash);
+  border: 1px solid var(--jm-border-strong);
   padding: 0.4rem 0.9rem;
   border-radius: var(--radius-pill);
 }
@@ -176,14 +197,14 @@
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 1px;
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: var(--jm-border);
+  border: 1px solid var(--jm-border);
   border-radius: var(--radius-lg);
   overflow: hidden;
 }
 
 .stat {
-  background: var(--jm-black);
+  background: var(--jm-bg);
   padding: var(--space-lg) var(--space-md);
   text-align: center;
   transition: background 0.35s ease;
@@ -235,7 +256,8 @@
   font-size: clamp(1.7rem, 3.4vw, 2.5rem);
   font-weight: 700;
   line-height: 1.2;
-  color: var(--jm-white);
+  /* Always on the brand gradient, so never follows the theme. */
+  color: var(--jm-fixed-white);
 }
 
 .ctaSub {

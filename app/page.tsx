@@ -136,11 +136,11 @@ export default function HomePage() {
 
             <div className={styles.pillRow}>
               {[
-                "Next.js",
-                "Firebase",
-                "Square payments",
-                "Email automation",
-                "Client portals",
+                "Booking forms",
+                "Online payments",
+                "Client logins",
+                "Automatic emails",
+                "Built to last",
               ].map((pill) => (
                 <span key={pill} className={styles.pill}>
                   {pill}
@@ -154,50 +154,42 @@ export default function HomePage() {
           </Reveal>
 
           <Reveal delay={120}>
-            <div className={styles.codeCard}>
-              <div className={styles.codeBar}>
-                <span
-                  className={styles.codeDot}
-                  style={{ background: "#e05252" }}
-                />
-                <span
-                  className={styles.codeDot}
-                  style={{ background: "#F2C88D" }}
-                />
-                <span
-                  className={styles.codeDot}
-                  style={{ background: "#4a9d6e" }}
-                />
-              </div>
-              <pre className={styles.codeBody}>
-                <code>
-                  <span className={styles.codeCom}>
-                    {"// quote → invoice → paid, automatically"}
-                  </span>
-                  {"\n"}
-                  <span className={styles.codeKey}>const</span> quote ={" "}
-                  <span className={styles.codeKey}>await</span> createQuote(
-                  {"{\n"}
-                  {"  service: "}
-                  <span className={styles.codeStr}>
-                    &quot;Season Highlights&quot;
-                  </span>
-                  ,{"\n"}
-                  {"  client:  "}
-                  <span className={styles.codeStr}>
-                    &quot;jane@club.com.au&quot;
-                  </span>
-                  ,{"\n"}
-                  {"});\n\n"}
-                  <span className={styles.codeKey}>await</span> square.
-                  sendInvoice(quote);{"\n"}
-                  <span className={styles.codeKey}>await</span> email.
-                  quoteReady(quote);{"\n\n"}
-                  <span className={styles.codeCom}>
-                    {"// → client pays, project opens"}
-                  </span>
-                </code>
-              </pre>
+            {/* The automation, in the client's language rather than code. */}
+            <div className={styles.flowCard}>
+              <span className={styles.flowLabel}>
+                What happens while you&apos;re out shooting
+              </span>
+              <ol className={styles.flowList}>
+                {[
+                  {
+                    step: "A customer asks for a quote",
+                    detail: "They fill in one form on your site.",
+                  },
+                  {
+                    step: "Everyone gets an email",
+                    detail:
+                      "They get a confirmation, you get the full brief in your inbox.",
+                  },
+                  {
+                    step: "You send the invoice",
+                    detail:
+                      "One click. Square emails them a payment link, deposit and all.",
+                  },
+                  {
+                    step: "They pay, and the job opens",
+                    detail:
+                      "The booking confirms itself and they can track it from their login.",
+                  },
+                ].map((item, index) => (
+                  <li key={item.step}>
+                    <span className={styles.flowNum}>{index + 1}</span>
+                    <span>
+                      <strong>{item.step}</strong>
+                      <em>{item.detail}</em>
+                    </span>
+                  </li>
+                ))}
+              </ol>
             </div>
           </Reveal>
         </div>

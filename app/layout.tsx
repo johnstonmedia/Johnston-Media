@@ -5,6 +5,7 @@ import Footer from "@/components/Footer";
 import Nav from "@/components/Nav";
 import ScrollProgress from "@/components/ScrollProgress";
 import { BusinessSchema } from "@/components/StructuredData";
+import { THEME_INIT_SCRIPT } from "@/components/ThemeToggle";
 import { ToastProvider } from "@/components/Toast";
 
 import "./globals.css";
@@ -63,8 +64,11 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#000000",
-  colorScheme: "dark",
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#000000" },
+    { media: "(prefers-color-scheme: light)", color: "#faf8f6" },
+  ],
+  colorScheme: "light dark",
 };
 
 export default function RootLayout({
@@ -73,7 +77,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en-AU" className={`${playfair.variable} ${montserrat.variable}`}>
+    <html
+      lang="en-AU"
+      className={`${playfair.variable} ${montserrat.variable}`}
+      suppressHydrationWarning
+    >
+      <head>
+        {/* Applies a saved theme before first paint, so there's no flash of
+            the wrong one. Falls through to prefers-color-scheme otherwise. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body>
         <BusinessSchema />
         <ToastProvider>

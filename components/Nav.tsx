@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import ThemeToggle from "./ThemeToggle";
 import styles from "./Nav.module.css";
 
 const LINKS = [
@@ -82,9 +83,12 @@ export default function Nav() {
             <Link href="/portal" className={styles.cta}>
               Client Portal
             </Link>
+            <ThemeToggle />
           </nav>
 
-          <button
+          <div className={styles.mobileActions}>
+            <ThemeToggle />
+            <button
             type="button"
             className={`${styles.hamburger} ${
               menuOpen ? styles.hamburgerOpen : ""
@@ -93,10 +97,11 @@ export default function Nav() {
             aria-expanded={menuOpen}
             onClick={() => setMenuOpen((open) => !open)}
           >
-            <span />
-            <span />
-            <span />
-          </button>
+              <span />
+              <span />
+              <span />
+            </button>
+          </div>
         </div>
       </header>
 

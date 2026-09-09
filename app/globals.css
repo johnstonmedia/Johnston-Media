@@ -17,33 +17,69 @@ html {
   scroll-behavior: smooth;
 }
 
-:root {
-  /* ─── Base ──────────────────────────────────────── */
-  --jm-black: #000000;
-  --jm-surface: #0d0d0d;
-  --jm-charcoal: #141414;
-  --jm-elevated: #1a1a1a;
+/* ============================================================
+   Theme tokens
+   ------------------------------------------------------------
+   Dark is the brand default and the base definition. Light is
+   applied when the visitor's system asks for it, and either can
+   be forced with data-theme on <html>.
 
-  /* ─── Brand ─────────────────────────────────────── */
+   The two light blocks below are identical on purpose — CSS has
+   no way to share them — so KEEP THEM IN SYNC when editing.
+   ============================================================ */
+
+:root {
+  /* ─── Fixed — never change with the theme ───────── */
+  /* For text and surfaces that sit on the cinematic dark bands
+     (hero, feature strips, toasts), which stay dark in both modes. */
+  --jm-fixed-white: #ffffff;
+  --jm-fixed-black: #000000;
+  --jm-fixed-amber: #f2c88d;
+  /* The hero and the CTA band keep their cinematic gradient in both
+     themes — they sit behind footage and bold type, where a light
+     wash would lose the whole look. */
+  --jm-hero-gradient: linear-gradient(135deg, #000000 0%, #1a4a5c 100%);
+
+  /* ─── Brand accents ─────────────────────────────── */
   --jm-teal: #1f6f88;
   --jm-blue: #3f95a8;
   --jm-copper: #c15a32;
-  --jm-amber: #f2c88d;
   --jm-peach: #f6d6be;
-
-  /* ─── Neutrals ──────────────────────────────────── */
-  --jm-slate: #66737d;
-  --jm-muted: #8a9aa6;
-  --jm-lightgrey: #e8e8e8;
-  --jm-white: #ffffff;
 
   /* ─── Signals ───────────────────────────────────── */
   --jm-success: #4a9d6e;
   --jm-error: #e05252;
 
+  /* ─── Surfaces (dark) ───────────────────────────── */
+  --jm-bg: #000000;
+  --jm-surface: #0d0d0d;
+  --jm-charcoal: #141414;
+  --jm-elevated: #1a1a1a;
+
+  /* ─── Text (dark) ───────────────────────────────── */
+  --jm-white: #ffffff;
+  --jm-lightgrey: #e8e8e8;
+  --jm-muted: #8a9aa6;
+  --jm-slate: #66737d;
+
+  /* Warm accent. Amber is only legible on dark, so light mode
+     swaps in a deeper bronze rather than washing out. */
+  --jm-amber: #f2c88d;
+
+  /* ─── Lines, washes and depth (dark) ────────────── */
+  --jm-border: var(--jm-border);
+  --jm-border-strong: var(--jm-border-strong);
+  --jm-input-bg: var(--jm-input-bg);
+  --jm-input-bg-focus: var(--jm-border);
+  --jm-hover-wash: var(--jm-border);
+  --jm-scrim: rgba(0, 0, 0, 0.85);
+  --jm-shadow-md: 0 12px 40px rgba(0, 0, 0, 0.5);
+  --jm-shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.6);
+
   /* ─── Gradients ─────────────────────────────────── */
   --jm-gradient: linear-gradient(135deg, #000000 0%, #1f6f88 50%, #c15a32 100%);
   --jm-gradient-subtle: linear-gradient(135deg, #000000 0%, #1a4a5c 100%);
+  --jm-teaser-gradient: linear-gradient(135deg, #000000 0%, #0f2f3b 55%, #2a1109 100%);
 
   /* ─── Type ──────────────────────────────────────── */
   --font-display: var(--font-playfair), Georgia, serif;
@@ -80,11 +116,73 @@ html {
 
   /* ─── Motion ────────────────────────────────────── */
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+
+  color-scheme: dark;
+}
+
+/* ─── Light, from the visitor's system setting ────── */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --jm-bg: #faf8f6;
+    --jm-surface: #ffffff;
+    --jm-charcoal: #f2eeea;
+    --jm-elevated: #ebe6e1;
+
+    --jm-white: #12181d;
+    --jm-lightgrey: #2c353d;
+    --jm-muted: #59656f;
+    --jm-slate: #77838d;
+
+    --jm-amber: #9c5f24;
+
+    --jm-border: rgba(18, 24, 29, 0.1);
+    --jm-border-strong: rgba(18, 24, 29, 0.2);
+    --jm-input-bg: rgba(18, 24, 29, 0.025);
+    --jm-input-bg-focus: rgba(18, 24, 29, 0.045);
+    --jm-hover-wash: rgba(18, 24, 29, 0.035);
+    --jm-scrim: rgba(18, 24, 29, 0.55);
+    --jm-shadow-md: 0 10px 30px rgba(18, 24, 29, 0.1);
+    --jm-shadow-lg: 0 20px 50px rgba(18, 24, 29, 0.14);
+
+    --jm-gradient-subtle: linear-gradient(135deg, #f2eeea 0%, #dfe9ec 100%);
+    --jm-teaser-gradient: linear-gradient(135deg, #f4efe9 0%, #dee9ec 55%, #f6e2d5 100%);
+
+    color-scheme: light;
+  }
+}
+
+/* ─── Light, forced by the toggle ─────────────────── */
+:root[data-theme="light"] {
+  --jm-bg: #faf8f6;
+  --jm-surface: #ffffff;
+  --jm-charcoal: #f2eeea;
+  --jm-elevated: #ebe6e1;
+
+  --jm-white: #12181d;
+  --jm-lightgrey: #2c353d;
+  --jm-muted: #59656f;
+  --jm-slate: #77838d;
+
+  --jm-amber: #9c5f24;
+
+  --jm-border: rgba(18, 24, 29, 0.1);
+  --jm-border-strong: rgba(18, 24, 29, 0.2);
+  --jm-input-bg: rgba(18, 24, 29, 0.025);
+  --jm-input-bg-focus: rgba(18, 24, 29, 0.045);
+  --jm-hover-wash: rgba(18, 24, 29, 0.035);
+  --jm-scrim: rgba(18, 24, 29, 0.55);
+  --jm-shadow-md: 0 10px 30px rgba(18, 24, 29, 0.1);
+  --jm-shadow-lg: 0 20px 50px rgba(18, 24, 29, 0.14);
+
+  --jm-gradient-subtle: linear-gradient(135deg, #f2eeea 0%, #dfe9ec 100%);
+  --jm-teaser-gradient: linear-gradient(135deg, #f4efe9 0%, #dee9ec 55%, #f6e2d5 100%);
+
+  color-scheme: light;
 }
 
 body {
   font-family: var(--font-body);
-  background: var(--jm-black);
+  background: var(--jm-bg);
   color: var(--jm-lightgrey);
   line-height: 1.7;
   -webkit-font-smoothing: antialiased;
@@ -94,14 +192,14 @@ body {
 
 ::selection {
   background: var(--jm-copper);
-  color: var(--jm-white);
+  color: var(--jm-fixed-white);
 }
 
 ::-webkit-scrollbar {
   width: 4px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--jm-black);
+  background: var(--jm-bg);
 }
 ::-webkit-scrollbar-thumb {
   background: var(--jm-teal);
@@ -231,7 +329,7 @@ video {
 
 .jm-btn-primary {
   background: var(--jm-copper);
-  color: var(--jm-white);
+  color: var(--jm-fixed-white);
   border-color: var(--jm-copper);
 }
 
@@ -239,7 +337,7 @@ video {
   content: "";
   position: absolute;
   inset: 0;
-  background: rgba(255, 255, 255, 0.14);
+  background: var(--jm-border-strong);
   opacity: 0;
   transition: opacity 0.25s ease;
 }
@@ -266,14 +364,16 @@ video {
 }
 
 .jm-btn-white {
-  background: var(--jm-white);
-  color: var(--jm-black);
-  border-color: var(--jm-white);
+  /* Only ever used on the dark gradient CTA band, so it stays white
+     even in light mode — otherwise it turns dark-on-dark. */
+  background: var(--jm-fixed-white);
+  color: var(--jm-fixed-black);
+  border-color: var(--jm-fixed-white);
 }
 
 .jm-btn-white:hover {
   transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 12px 32px rgba(255, 255, 255, 0.2);
+  box-shadow: 0 12px 32px var(--jm-border-strong);
 }
 
 .jm-btn-sm {
@@ -296,7 +396,7 @@ video {
 
 .jm-card {
   background: var(--jm-surface);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--jm-border);
   border-radius: var(--radius-lg);
   padding: var(--space-lg);
   transition:
@@ -308,7 +408,7 @@ video {
 .jm-card:hover {
   transform: translateY(-6px);
   border-color: rgba(193, 90, 50, 0.4);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+  box-shadow: var(--jm-shadow-lg);
 }
 
 /* ============================================================
@@ -334,8 +434,8 @@ video {
 .jm-textarea,
 .jm-select {
   width: 100%;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--jm-input-bg);
+  border: 1px solid var(--jm-border-strong);
   border-radius: var(--radius-md);
   padding: 0.9rem 1.1rem;
   color: var(--jm-white);
@@ -357,7 +457,7 @@ video {
 .jm-select:focus {
   outline: none;
   border-color: var(--jm-copper);
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--jm-border);
   box-shadow: 0 0 0 3px rgba(193, 90, 50, 0.12);
 }
 
@@ -519,7 +619,7 @@ video {
   font-size: var(--text-sm);
   padding: 0.9rem 1.5rem;
   border-radius: var(--radius-md);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+  box-shadow: var(--jm-shadow-md);
   opacity: 0;
   transform: translateY(12px);
   transition:
@@ -603,7 +703,7 @@ video {
   text-transform: uppercase;
   padding: var(--space-sm) var(--space-md);
   text-align: left;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--jm-border);
 }
 
 .jm-table td {
@@ -611,7 +711,7 @@ video {
   color: var(--jm-lightgrey);
   font-family: var(--font-body);
   font-size: var(--text-sm);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid var(--jm-border);
 }
 
 .jm-table tr:hover td {
@@ -647,7 +747,7 @@ video {
 
 .jm-modal {
   background: var(--jm-charcoal);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--jm-border-strong);
   border-radius: var(--radius-lg);
   padding: var(--space-lg);
   width: 100%;
@@ -714,7 +814,7 @@ video {
   left: var(--space-sm);
   z-index: 10000;
   background: var(--jm-copper);
-  color: var(--jm-white);
+  color: var(--jm-fixed-white);
   padding: 0.75rem 1.25rem;
   border-radius: var(--radius-md);
   font-size: var(--text-sm);

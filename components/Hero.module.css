@@ -17,7 +17,7 @@
   position: absolute;
   inset: 0;
   z-index: 0;
-  background: var(--jm-gradient-subtle);
+  background: var(--jm-hero-gradient);
 }
 
 .bg::after {
@@ -81,7 +81,7 @@
   font-weight: 500;
   letter-spacing: 0.34em;
   text-transform: uppercase;
-  color: var(--jm-amber);
+  color: var(--jm-fixed-amber);
   margin-bottom: var(--space-md);
 }
 
@@ -91,7 +91,7 @@
   font-weight: 700;
   line-height: 1.05;
   letter-spacing: -0.02em;
-  color: var(--jm-white);
+  color: var(--jm-fixed-white);
   text-shadow: 0 4px 40px rgba(0, 0, 0, 0.5);
 }
 
@@ -99,7 +99,7 @@
   display: block;
   font-style: italic;
   font-weight: 400;
-  color: var(--jm-amber);
+  color: var(--jm-fixed-amber);
 }
 
 .sub {
@@ -109,7 +109,7 @@
   font-weight: 300;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: var(--jm-lightgrey);
+  color: rgba(255, 255, 255, 0.88);
 }
 
 .lead {
@@ -117,7 +117,7 @@
   max-width: 62ch;
   font-size: var(--text-lg);
   font-weight: 300;
-  color: var(--jm-muted);
+  color: rgba(255, 255, 255, 0.66);
   line-height: 1.8;
 }
 
@@ -143,7 +143,7 @@
   font-size: 0.65rem;
   letter-spacing: 0.28em;
   text-transform: uppercase;
-  color: var(--jm-slate);
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .scrollLine {
@@ -175,4 +175,16 @@
   .scroll {
     display: none;
   }
+}
+
+/* The hero stays dark in both themes, so its ghost button can't inherit
+   the themed text colour — it would go dark-on-dark in light mode. */
+.actions :global(.jm-btn-ghost) {
+  border-color: rgba(255, 255, 255, 0.3);
+  color: var(--jm-fixed-white);
+}
+
+.actions :global(.jm-btn-ghost:hover) {
+  border-color: var(--jm-copper);
+  color: var(--jm-copper);
 }

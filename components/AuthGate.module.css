@@ -19,13 +19,13 @@
   z-index: 3;
   width: 100%;
   max-width: 440px;
-  background: rgba(13, 13, 13, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: color-mix(in srgb, var(--jm-surface) 92%, transparent);
+  border: 1px solid var(--jm-border-strong);
   border-radius: var(--radius-lg);
   padding: var(--space-xl);
   text-align: center;
   backdrop-filter: blur(12px);
-  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+  box-shadow: var(--jm-shadow-lg);
 }
 
 .title {
@@ -49,7 +49,7 @@
   align-items: center;
   justify-content: center;
   gap: 0.75rem;
-  background: var(--jm-white);
+  background: var(--jm-fixed-white);
   color: #1d2730;
   border: none;
   border-radius: var(--radius-pill);
@@ -65,7 +65,7 @@
 
 .googleBtn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 32px rgba(255, 255, 255, 0.18);
+  box-shadow: var(--jm-shadow-md);
 }
 
 .googleBtn:disabled {
@@ -105,7 +105,7 @@
 .spinner {
   width: 32px;
   height: 32px;
-  border: 2px solid rgba(255, 255, 255, 0.12);
+  border: 2px solid var(--jm-border-strong);
   border-top-color: var(--jm-copper);
   border-radius: 50%;
   animation: spin 0.85s linear infinite;

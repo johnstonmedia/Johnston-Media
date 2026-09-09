@@ -62,7 +62,7 @@
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--jm-border-strong);
   color: var(--jm-slate);
   transition:
     border-color 0.3s ease,
@@ -78,7 +78,7 @@
 
 .formCard {
   background: var(--jm-surface);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--jm-border);
   border-radius: var(--radius-lg);
   padding: var(--space-lg);
 }

@@ -228,6 +228,57 @@ function PortalDashboard({
 
   const firstName = (profile.name || profile.email).split(/[\s@]/)[0];
 
+  /**
+   * What actually needs this person, in the order it needs them.
+   *
+   * A portal's job is to answer "is there anything for me?" before the client
+   * has to read anything. Everything below this band is reference; this is the
+   * part that's asking.
+   */
+  const needsYou: { key: string; label: string; detail: string; tone: string }[] =
+    [];
+
+  for (const quote of quotes ?? []) {
+    if (quote.estimate && isEstimateOpen(quote)) {
+      needsYou.push({
+        key: `est-${quote.id}`,
+        label: "An estimate is waiting for your answer",
+        detail: `${quote.name} · ${formatMoney(quote.estimate.totalCents, quote.estimate.currency)}`,
+        tone: "amber",
+      });
+    }
+    if (isQuotePayable(quote)) {
+      needsYou.push({
+        key: `pay-${quote.id}`,
+        label:
+          quote.status === "Deposit Paid"
+            ? "A balance is due"
+            : "An invoice is ready to pay",
+        detail: `${quote.name}${
+          quote.amountCents !== undefined
+            ? ` · ${formatMoney(quote.amountCents, quote.currency)}`
+            : ""
+        }`,
+        tone: "copper",
+      });
+    }
+  }
+
+  const readyFiles = (projects ?? []).filter(
+    (project) => (project.files?.length ?? 0) > 0,
+  );
+  if (readyFiles.length > 0) {
+    needsYou.push({
+      key: "files",
+      label:
+        readyFiles.length === 1
+          ? "Your files are ready"
+          : `Files are ready on ${readyFiles.length} projects`,
+      detail: readyFiles.map((p) => p.name).join(" · "),
+      tone: "teal",
+    });
+  }
+
   return (
     <div className={styles.wrap}>
       <div className={styles.inner}>
@@ -245,6 +296,30 @@ function PortalDashboard({
             Sign out
           </button>
         </header>
+
+        {/* ─── What needs you ───────────────────── */}
+        {needsYou.length > 0 ? (
+          <section className={styles.attention} aria-label="Needs your attention">
+            {needsYou.map((item) => (
+              <div
+                key={item.key}
+                className={styles.attentionItem}
+                data-tone={item.tone}
+              >
+                <span className={styles.attentionDot} aria-hidden="true" />
+                <span className={styles.attentionMain}>
+                  <strong>{item.label}</strong>
+                  <em>{item.detail}</em>
+                </span>
+              </div>
+            ))}
+          </section>
+        ) : quotes !== null && projects !== null ? (
+          <p className={styles.allClear}>
+            Nothing needs you right now. Everything below is here whenever you
+            want it.
+          </p>
+        ) : null}
 
         {/* ─── Quotes ───────────────────────────── */}
         <section className={styles.section}>

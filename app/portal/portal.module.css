@@ -346,3 +346,90 @@
   line-height: 1.6;
   color: var(--jm-muted);
 }
+
+/* ─── What needs you ─────────────────────────────── */
+
+/*
+ * The band that answers "is there anything for me?" before the client reads a
+ * word. Everything below it on the page is reference; this is the part asking
+ * for something, so it gets the only strong colour on the screen.
+ */
+.attention {
+  display: grid;
+  gap: 0.5rem;
+  margin-bottom: var(--space-xl);
+}
+
+.attentionItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: var(--space-md);
+  border: 1px solid var(--jm-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--jm-surface);
+  transition: border-color 0.25s ease;
+}
+
+.attentionItem[data-tone="amber"] {
+  border-left: 3px solid var(--jm-amber);
+}
+
+.attentionItem[data-tone="copper"] {
+  border-left: 3px solid var(--jm-copper);
+}
+
+.attentionItem[data-tone="teal"] {
+  border-left: 3px solid var(--jm-blue);
+}
+
+.attentionDot {
+  width: 8px;
+  height: 8px;
+  margin-top: 0.45rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--jm-copper);
+}
+
+.attentionItem[data-tone="amber"] .attentionDot {
+  background: var(--jm-amber);
+}
+
+.attentionItem[data-tone="teal"] .attentionDot {
+  background: var(--jm-blue);
+}
+
+.attentionMain {
+  min-width: 0;
+}
+
+.attentionMain strong {
+  display: block;
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: var(--jm-white);
+  line-height: 1.4;
+}
+
+.attentionMain em {
+  display: block;
+  margin-top: 0.2rem;
+  font-style: normal;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--jm-muted);
+  line-height: 1.5;
+}
+
+.allClear {
+  margin-bottom: var(--space-xl);
+  padding: var(--space-md);
+  border: 1px dashed var(--jm-border-strong);
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  line-height: 1.7;
+  color: var(--jm-slate);
+}

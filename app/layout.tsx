@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Montserrat, Playfair_Display } from "next/font/google";
 
+import ChromeGate from "@/components/ChromeGate";
 import Footer from "@/components/Footer";
 import Nav from "@/components/Nav";
 import ScrollProgress from "@/components/ScrollProgress";
@@ -128,9 +129,13 @@ export default function RootLayout({
             Skip to content
           </a>
           <ScrollProgress />
-          <Nav />
+          <ChromeGate>
+            <Nav />
+          </ChromeGate>
           <main id="main">{children}</main>
-          <Footer />
+          <ChromeGate>
+            <Footer />
+          </ChromeGate>
         </ToastProvider>
       </body>
     </html>

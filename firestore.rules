@@ -122,5 +122,72 @@ service cloud.firestore {
     match /squareEvents/{eventId} {
       allow read, write: if false;
     }
+
+    // ─── Email platform ────────────────────────────────
+    //
+    // Read access is gated on holding an emailAccess record above "none";
+    // every write that matters goes through the API with the Admin SDK, so
+    // the rules here are deliberately read-mostly. The one thing that must
+    // never be client-writable is emailAccess itself — a person who could
+    // edit their own grant would have no limits at all.
+
+    function emailLevel() {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/emailAccess/$(request.auth.uid))
+        ? get(/databases/$(database)/documents/emailAccess/$(request.auth.uid)).data.level
+        : 'none';
+    }
+
+    function hasEmailAccess() {
+      return isAdmin() || emailLevel() in ['read', 'draft', 'send', 'admin'];
+    }
+
+    function canDraft() {
+      return isAdmin() || emailLevel() in ['draft', 'send', 'admin'];
+    }
+
+    match /emailAccess/{uid} {
+      // You may see your own grant, so the app can tell you what you have.
+      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == uid);
+      // Granted only through /api/email/access, which checks the caller.
+      allow write: if false;
+    }
+
+    match /contacts/{contactId} {
+      allow read: if hasEmailAccess();
+      allow create, update: if canDraft();
+      // Unsubscribes are a legal record — they are never deleted from here.
+      allow delete: if isAdmin();
+    }
+
+    match /audiences/{audienceId} {
+      allow read: if hasEmailAccess();
+      allow write: if canDraft();
+    }
+
+    match /campaigns/{campaignId} {
+      allow read: if hasEmailAccess();
+      // Sending is server-side; the client only ever edits a draft.
+      allow create, update: if canDraft();
+      allow delete: if canDraft();
+    }
+
+    match /emailTemplates/{templateId} {
+      allow read: if hasEmailAccess();
+      allow write: if canDraft();
+    }
+
+    match /helpThreads/{threadId} {
+      allow read: if hasEmailAccess();
+      // Only the read/unread flag is worth a direct write; everything else
+      // arrives from the inbound webhook or goes out through /api/email/reply.
+      allow update: if canDraft();
+      allow create, delete: if false;
+
+      match /messages/{messageId} {
+        allow read: if hasEmailAccess();
+        allow write: if false;
+      }
+    }
   }
 }

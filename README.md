@@ -25,6 +25,7 @@ Square invoicing possible.
 | `/contact`         | Quote request form + short contact form                      |
 | `/portal`          | Client portal — quotes, project progress, file delivery      |
 | `/admin`           | Admin panel — quotes, invoicing, clients, projects, messages |
+| `/email`           | Email platform — campaigns, contacts, templates, help inbox   |
 
 ### API routes
 
@@ -39,6 +40,11 @@ Square invoicing possible.
 | `/api/project/record` | Admin      | Record a Square estimate or contract on a project |
 | `/api/project/stage`  | Admin      | Move a project's stage and notify the client     |
 | `/api/square/webhook` | Signed     | Square payment events → status, project, receipts |
+| `/api/email/send`     | Email send | Send a campaign, or a test to one address         |
+| `/api/email/reply`    | Email draft| Reply in a help thread                            |
+| `/api/email/access`   | Email admin| Grant or change someone's email access            |
+| `/api/email/inbound`  | Signed     | Inbound mail for help@ → a help thread            |
+| `/api/email/unsubscribe` | Public  | Signed one-click unsubscribe (RFC 8058)           |
 
 ---
 
@@ -283,6 +289,93 @@ season's rates.
 The estimate is stored on the quote (`quotes/{id}.estimate`) with its line
 items, total, timestamps and any decline reason, so the history survives later
 price changes.
+
+---
+
+## The email platform
+
+Lives at **email.wjohnstonmedia.com**, and at `/email` on any deployment
+(`middleware.ts` rewrites the subdomain onto that path, so previews and local
+development work without wildcard DNS). The marketing site's nav and footer are
+hidden inside it — it is an application, not a page.
+
+### Who can use it
+
+Same Firebase accounts as the rest of the site, with a separate level here,
+because "can see their own invoices" and "can email four thousand people" are
+not the same trust.
+
+| Level | What it allows |
+| ----- | -------------- |
+| No access | Can't open the platform |
+| Read only | Sees campaigns, contacts and the help inbox. Changes nothing |
+| Write drafts | Writes and edits campaigns, replies in the help inbox. Cannot send a campaign |
+| Write and send | Sends campaigns, **only from the addresses on their list** |
+| Full control | Everything, including granting access |
+
+Two extra controls sit alongside the level, and they are the ones that matter:
+
+- **From-address allow-list.** Below full control, someone may only send as an
+  address written on their list. An empty list means *none*, never all — the
+  failure mode of the opposite convention is somebody sending as the owner.
+- **Recipients per send**, with a separate switch for whether they may broadcast
+  to a whole audience at all. Someone can be trusted to write and test without
+  being trusted to press the button on four thousand people.
+
+Site admins get full access implicitly, because they can already grant it to
+themselves — requiring the record would be ceremony, not security.
+
+### Campaigns
+
+Draft → preview against the template → send yourself a test → send. Audiences
+are **tag rules, not saved lists**: "everyone subscribed tagged `clients`" is
+worked out fresh at send time, so it can't go stale.
+
+Sending is server-side (`/api/email/send`) through Resend's batch API. The
+campaign is marked `Sending` before a single message leaves, so a double-click
+cannot double-send.
+
+### Templates
+
+Paste a full HTML email. `{{content}}` is where the campaign body lands; the
+other merge fields (`{{name}}`, `{{unsubscribe_url}}`, `{{sender_name}}` and so
+on) are substituted per recipient. Previews render in an iframe **sandboxed with
+scripts disabled** — a template is arbitrary HTML and has no business running
+code in the platform's origin. Contact names are HTML-escaped on the way in.
+
+### The law, and why a send can be refused
+
+The Spam Act 2003 requires every commercial electronic message sent from
+Australia to identify its sender and carry a working unsubscribe facility. So:
+
+- Every message goes out with `List-Unsubscribe` and `List-Unsubscribe-Post`
+  headers, which is what makes Gmail and Outlook show their own unsubscribe
+  button.
+- Unsubscribe links are **HMAC-signed**, so nobody can unsubscribe someone else
+  by editing a URL, and the link works without a login.
+- **A campaign whose content has no `{{unsubscribe_url}}` is refused before it
+  sends.** This is deliberately a block rather than a warning: there is no
+  recalling an email.
+- Unsubscribes are never deleted, only flagged. Remembering is how the promise
+  gets kept next time, and re-importing a list cannot resubscribe someone.
+
+### The help inbox
+
+Everything sent to **help@wjohnstonmedia.com** arrives as a conversation.
+Replies go from the same address through `/api/email/reply`, so the thread stays
+whole on both sides — which is the entire reason for a shared inbox instead of
+forwarding things around.
+
+Wiring the address up: point a forwarder at `/api/email/inbound` with
+`EMAIL_INBOUND_SECRET` set. The endpoint accepts the payload shapes that Resend
+Inbound, Cloudflare Email Workers and SendGrid Inbound Parse produce, so it
+isn't welded to whichever one you pick. **With no secret set it refuses
+everything** — an open inbound endpoint is a spam funnel into the team's inbox.
+
+### DNS for the subdomain
+
+Add `email.wjohnstonmedia.com` as a domain on the same Vercel project (it serves
+the same deployment; no second project). The middleware does the rest.
 
 ---
 

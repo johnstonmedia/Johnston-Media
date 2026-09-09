@@ -3,6 +3,9 @@ import type { Metadata } from "next";
 import ContactForm from "@/components/ContactForm";
 import Hero from "@/components/Hero";
 import { InstagramIcon, TikTokIcon, YouTubeIcon } from "@/components/Icons";
+import PackageCards from "@/components/PackageCards";
+import { MEDIA_PACKAGES } from "@/lib/packages";
+import { PackageProvider } from "@/components/PackageContext";
 import QuoteForm from "@/components/QuoteForm";
 import Reveal from "@/components/Reveal";
 
@@ -44,7 +47,7 @@ const SOCIALS = [
 
 export default function ContactPage() {
   return (
-    <>
+    <PackageProvider>
       <Hero
         compact
         eyebrow="Get in Touch"
@@ -56,6 +59,8 @@ export default function ContactPage() {
         }
         lead="Tell me what you have in mind and I'll come back with a quote — usually within one business day."
       />
+
+      <PackagesSection />
 
       <section className="jm-section">
         <div className="jm-inner">
@@ -100,7 +105,7 @@ export default function ContactPage() {
             </Reveal>
 
             <Reveal delay={100}>
-              <div className={styles.formCard}>
+              <div className={styles.formCard} id="media-quote">
                 <h2 className={styles.formCardTitle}>Request a quote</h2>
                 <p className={styles.formCardSub}>
                   The more detail you give me, the sharper the quote.
@@ -125,6 +130,29 @@ export default function ContactPage() {
           </Reveal>
         </div>
       </section>
-    </>
+    </PackageProvider>
+  );
+}
+
+/**
+ * Shoot packages. Renders nothing until MEDIA_PACKAGES is populated in
+ * lib/packages.ts, so the page reads correctly either way.
+ */
+function PackagesSection() {
+  if (MEDIA_PACKAGES.length === 0) return null;
+
+  return (
+    <section className="jm-section jm-section--tight">
+      <div className="jm-inner">
+        <Reveal>
+          <span className="jm-eyebrow">Packages</span>
+          <h2 className="jm-section-title">Pick a starting point</h2>
+          <hr className="jm-section-rule" />
+        </Reveal>
+        <Reveal delay={80}>
+          <PackageCards source="media" quoteAnchorId="media-quote" />
+        </Reveal>
+      </div>
+    </section>
   );
 }

@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 
+import { findPackage } from "@/lib/packages";
+
+import { usePackageSelection } from "./PackageContext";
 import { useToast } from "./Toast";
 import styles from "./Forms.module.css";
 
@@ -43,12 +46,17 @@ type Errors = Record<string, string>;
 
 export default function QuoteForm({ source }: QuoteFormProps) {
   const { toast } = useToast();
+  const { selectedId, select } = usePackageSelection();
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
 
   const isWeb = source === "web";
   const services = isWeb ? WEB_SERVICES : MEDIA_SERVICES;
+
+  // A package chosen from the cards above stands in for the service
+  // dropdown — no point asking twice.
+  const chosen = findPackage(selectedId ?? undefined);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -64,7 +72,14 @@ export default function QuoteForm({ source }: QuoteFormProps) {
       const response = await fetch("/api/quote", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, source }),
+        body: JSON.stringify({
+          ...data,
+          source,
+          packageId: chosen?.id,
+          // The chosen package is the service — the dropdown is hidden
+          // while one is selected, so it submits nothing.
+          serviceType: chosen ? chosen.name : data.serviceType,
+        }),
       });
       const result = await response.json();
 
@@ -80,6 +95,7 @@ export default function QuoteForm({ source }: QuoteFormProps) {
 
       setDone(true);
       form.reset();
+      select(null);
     } catch {
       toast("Network error — please try again.", "error");
     } finally {
@@ -172,22 +188,38 @@ export default function QuoteForm({ source }: QuoteFormProps) {
           <label className="jm-label" htmlFor="q-service">
             {isWeb ? "What do you need?" : "Service"}
           </label>
-          <select
-            id="q-service"
-            name="serviceType"
-            className="jm-select"
-            defaultValue=""
-            required
-          >
-            <option value="" disabled>
-              Choose one…
-            </option>
-            {services.map((service) => (
-              <option key={service} value={service}>
-                {service}
+          {chosen ? (
+            <div className={styles.chosenPackage}>
+              <span>
+                <strong>{chosen.name}</strong>
+                <em>{chosen.audience}</em>
+              </span>
+              <button
+                type="button"
+                className={styles.changePackage}
+                onClick={() => select(null)}
+              >
+                Change
+              </button>
+            </div>
+          ) : (
+            <select
+              id="q-service"
+              name="serviceType"
+              className="jm-select"
+              defaultValue=""
+              required
+            >
+              <option value="" disabled>
+                Choose one…
               </option>
-            ))}
-          </select>
+              {services.map((service) => (
+                <option key={service} value={service}>
+                  {service}
+                </option>
+              ))}
+            </select>
+          )}
           {errors.serviceType ? (
             <p className="jm-field-error">{errors.serviceType}</p>
           ) : null}

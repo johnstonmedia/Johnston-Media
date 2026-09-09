@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { useToast } from "@/components/Toast";
+import { findPackage } from "@/lib/packages";
 import { formatMoney, type Quote } from "@/lib/types";
 
 import styles from "./admin.module.css";
@@ -33,9 +34,19 @@ export default function InvoiceModal({
   onSent,
 }: InvoiceModalProps) {
   const { toast } = useToast();
-  const [items, setItems] = useState<LineItem[]>([
-    { name: quote.serviceType || quote.name, amount: "", quantity: "1" },
-  ]);
+  // A quote from a pre-made package starts with that package's line items,
+  // priced from lib/packages.ts. Everything stays editable before sending.
+  const [items, setItems] = useState<LineItem[]>(() => {
+    const pkg = findPackage(quote.packageId);
+    if (pkg?.lineItems?.length) {
+      return pkg.lineItems.map((item) => ({
+        name: item.name,
+        amount: (item.amountCents / 100).toFixed(2),
+        quantity: String(item.quantity ?? 1),
+      }));
+    }
+    return [{ name: quote.serviceType || quote.name, amount: "", quantity: "1" }];
+  });
   const [dueInDays, setDueInDays] = useState("14");
   const [description, setDescription] = useState("");
   const [sending, setSending] = useState(false);

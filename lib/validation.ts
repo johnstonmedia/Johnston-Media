@@ -38,6 +38,8 @@ export interface QuoteInput {
   budget: string;
   details: string;
   source: "media" | "web";
+  /** Id of the package the client picked, when they picked one. */
+  packageId?: string;
   /** Honeypot — must be empty. Bots fill it in. */
   company?: string;
 }
@@ -57,6 +59,7 @@ export function validateQuote(body: Record<string, unknown>): {
     budget: clean(body.budget, 60),
     details: cleanMultiline(body.details, 4000),
     source: body.source === "web" ? "web" : "media",
+    packageId: clean(body.packageId, 60) || undefined,
     company: clean(body.company, 100),
   };
 

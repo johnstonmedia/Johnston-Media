@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { sendQuoteAlertToOwner, sendQuoteReceivedToClient } from "@/lib/email";
 import { adminDb } from "@/lib/firebaseAdmin";
+import { findPackage } from "@/lib/packages";
 import { clientIp, rateLimit } from "@/lib/rateLimit";
 import { findOrCreateCustomer, isSquareConfigured } from "@/lib/square";
 import type { Quote } from "@/lib/types";
@@ -60,6 +61,8 @@ export async function POST(request: Request) {
     clientPhone: value.phone || undefined,
     serviceType: value.serviceType,
     source: value.source,
+    // Only store ids we actually know, so a tampered form can't write junk.
+    packageId: findPackage(value.packageId) ? value.packageId : undefined,
     name: value.projectName,
     date: value.date || undefined,
     location: value.location || undefined,

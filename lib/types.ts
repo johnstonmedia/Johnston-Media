@@ -100,6 +100,8 @@ export interface Quote {
   /** Photography/video service, or web package name. */
   serviceType: string;
   source: QuoteSource;
+  /** Set when the client chose a pre-made package. */
+  packageId?: string;
   /** Project name / short title. */
   name: string;
   date?: string;

@@ -3,6 +3,8 @@ import Link from "next/link";
 
 import Hero from "@/components/Hero";
 import { ArrowRight } from "@/components/Icons";
+import PackageCards from "@/components/PackageCards";
+import { PackageProvider } from "@/components/PackageContext";
 import QuoteForm from "@/components/QuoteForm";
 import Reveal from "@/components/Reveal";
 import { WebDevelopmentSchema } from "@/components/StructuredData";
@@ -46,50 +48,6 @@ const CAPABILITIES = [
     icon: "◇",
     title: "Yours to keep",
     body: "You own the site, the domain and every account it runs on. No lock-in, and no monthly fee just to keep your own website online.",
-  },
-];
-
-const PACKAGES = [
-  {
-    name: "The Landing Page",
-    for: "One page, one goal",
-    desc: "A single, beautifully built page that converts — ideal for a campaign, a launch or a focused service offering.",
-    features: [
-      "Custom single-page design",
-      "Contact or booking form with email automation",
-      "Mobile-first, fully responsive",
-      "Basic SEO and analytics",
-      "Live on your own domain",
-    ],
-    featured: false,
-  },
-  {
-    name: "The Business Site",
-    for: "Most small businesses",
-    desc: "A complete multi-page website with everything a growing business needs to be found, trusted and contacted.",
-    features: [
-      "Up to 6 custom-designed pages",
-      "Portfolio or gallery system",
-      "Quote requests wired to your inbox",
-      "Square invoicing integration",
-      "SEO, analytics and performance tuning",
-      "Content you can edit yourself",
-    ],
-    featured: true,
-  },
-  {
-    name: "Custom Portal",
-    for: "When a site isn't enough",
-    desc: "A bespoke web application — client logins, dashboards, file delivery, bookings and payments, built around how you actually work.",
-    features: [
-      "Everything in The Business Site",
-      "Secure authentication and user roles",
-      "Client dashboard and file delivery",
-      "Square payments and automated invoicing",
-      "Admin panel built for your workflow",
-      "Ongoing support and iteration",
-    ],
-    featured: false,
   },
 ];
 
@@ -168,7 +126,7 @@ const INCLUDED = [
 
 export default function WebDevelopmentPage() {
   return (
-    <>
+    <PackageProvider>
       <WebDevelopmentSchema />
       <Hero
         compact
@@ -258,44 +216,8 @@ export default function WebDevelopmentPage() {
             </p>
           </Reveal>
 
-          <Reveal stagger className={styles.packages} delay={80}>
-            {PACKAGES.map((pkg) => (
-              <div
-                key={pkg.name}
-                className={`${styles.package} ${
-                  pkg.featured ? styles.packageFeatured : ""
-                }`}
-              >
-                {pkg.featured ? (
-                  <span
-                    className={`jm-badge jm-badge--copper ${styles.packageTag}`}
-                  >
-                    Most popular
-                  </span>
-                ) : null}
-                <h3 className={styles.packageName}>{pkg.name}</h3>
-                <p className={styles.packageFor}>{pkg.for}</p>
-                <p className={styles.packageDesc}>{pkg.desc}</p>
-
-                <ul className={styles.packageList}>
-                  {pkg.features.map((feature) => (
-                    <li key={feature}>
-                      <span className={styles.check} aria-hidden="true">
-                        ✓
-                      </span>
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                <Link
-                  href="#web-quote"
-                  className={pkg.featured ? "jm-btn-primary" : "jm-btn-ghost"}
-                >
-                  Request a quote
-                </Link>
-              </div>
-            ))}
+          <Reveal delay={80}>
+            <PackageCards source="web" quoteAnchorId="web-quote" />
           </Reveal>
         </div>
       </section>
@@ -466,6 +388,6 @@ export default function WebDevelopmentPage() {
           </Link>
         </Reveal>
       </section>
-    </>
+    </PackageProvider>
   );
 }

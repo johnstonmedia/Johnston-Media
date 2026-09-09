@@ -193,7 +193,64 @@ export interface Quote {
   updatedAt?: string;
 }
 
-export const PROJECT_STAGES = [
+/**
+ * A document you manage in Square, mirrored here so it shows in the client
+ * portal and the admin timeline.
+ *
+ * Square exposes no API for estimates or contracts — both are Dashboard-only —
+ * so these can't be read back automatically. You record the few facts that
+ * matter (reference, total, link, dates) once, and the portal can then show the
+ * client where things stand instead of leaving a gap in the story.
+ */
+export interface SquareDocRef {
+  /** Reference or number as it appears in Square. */
+  reference?: string;
+  amountCents?: number;
+  currency?: string;
+  /** Link to the document — Square's shareable URL, or the Dashboard URL. */
+  url?: string;
+  /** Free-text state, e.g. "Sent", "Accepted", "Signed". */
+  status?: string;
+  sentAt?: string;
+  /** When it was accepted or signed. */
+  resolvedAt?: string;
+  note?: string;
+  /**
+   * Whether the client sees this in their portal. Off by default — nothing
+   * reaches the client until you deliberately publish it.
+   */
+  visibleToClient?: boolean;
+  recordedAt: string;
+  recordedBy: string;
+}
+
+/** The kinds of Square document a project can carry. */
+export const SQUARE_DOC_KINDS = ["estimate", "contract"] as const;
+export type SquareDocKind = (typeof SQUARE_DOC_KINDS)[number];
+
+/**
+ * Mirrors the columns on the Square Projects board, so the site and Square
+ * never disagree about where a job sits. Square is where the work happens;
+ * this is the same pipeline, reflected for the client.
+ */
+export const PIPELINE_STAGES = [
+  "Enquiry",
+  "Proposal",
+  "Booked",
+  "In progress",
+  "Complete",
+] as const;
+
+export type PipelineStage = (typeof PIPELINE_STAGES)[number];
+
+/**
+ * Production detail Square doesn't track.
+ *
+ * "In progress" covers everything from the shoot to final delivery, which is
+ * the part a client most wants visibility on — so this sits alongside the
+ * pipeline stage rather than replacing it.
+ */
+export const PRODUCTION_STAGES = [
   "Planning",
   "Shooting",
   "Editing",
@@ -201,7 +258,11 @@ export const PROJECT_STAGES = [
   "Delivered",
 ] as const;
 
-export type ProjectStage = (typeof PROJECT_STAGES)[number];
+export type ProductionStage = (typeof PRODUCTION_STAGES)[number];
+
+/** @deprecated Kept so existing project documents still type-check. */
+export const PROJECT_STAGES = PRODUCTION_STAGES;
+export type ProjectStage = ProductionStage;
 
 export interface ProjectFile {
   name: string;
@@ -209,18 +270,41 @@ export interface ProjectFile {
   uploadedAt: string;
 }
 
+/**
+ * A project is the spine of a job.
+ *
+ * The original request, the estimate, the contract, the invoice, the stage and
+ * the delivered files all hang off it, so one record tells the whole story in
+ * both the admin panel and the client portal.
+ */
 export interface Project {
   id: string;
-  clientId: string;
+  clientId: string | null;
   clientName: string;
+  clientEmail?: string;
   serviceType: string;
   name: string;
-  status: ProjectStage;
+  /** Where the job sits on the Square Projects board. */
+  pipelineStage?: PipelineStage;
+  /** Production detail within "In progress". */
+  status: ProductionStage;
   files?: ProjectFile[];
+  /** The quote this grew from, when it came in through the site. */
   quoteId?: string;
   clientNote?: string;
   clientNoteUpdatedAt?: string;
+
+  // ─── Square linkage ───────────────────────────────
+  squareCustomerId?: string;
+  /** Link straight to this job on the Square Projects board. */
+  squareProjectUrl?: string;
+  /** Estimate managed in Square, recorded here for the timeline. */
+  estimateRef?: SquareDocRef;
+  /** Contract managed in Square, recorded here for the timeline. */
+  contractRef?: SquareDocRef;
+
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface ContactMessage {

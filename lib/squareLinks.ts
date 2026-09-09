@@ -10,7 +10,9 @@
  */
 
 export const SQUARE_DASHBOARD = {
+  projects: "https://app.squareup.com/dashboard/projects",
   invoices: "https://app.squareup.com/dashboard/invoices",
+  estimates: "https://app.squareup.com/dashboard/invoices/estimates",
   customers: "https://app.squareup.com/dashboard/customers",
 } as const;
 

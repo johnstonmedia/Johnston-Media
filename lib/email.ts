@@ -9,7 +9,7 @@ import "server-only";
 
 import { Resend } from "resend";
 
-import { formatMoney, type Quote } from "./types";
+import { formatMoney, type Estimate, type Quote } from "./types";
 
 const FROM =
   process.env.EMAIL_FROM ?? "Johnston Media <hello@wjohnstonmedia.com>";
@@ -505,5 +505,130 @@ export function sendContactAlertToOwner(input: {
     subject: `Website message — ${input.name}`,
     html,
     replyTo: input.email,
+  });
+}
+
+/** Renders an estimate's line items as a table the client can read. */
+function lineItemTable(estimate: Estimate): string {
+  const currency = estimate.currency || "AUD";
+
+  const rows = estimate.lineItems
+    .map((item) => {
+      const qty = item.quantity ?? 1;
+      const line = item.amountCents * qty;
+      return `
+      <tr>
+        <td style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.07);
+                   font-family:Helvetica,Arial,sans-serif;font-size:14px;color:${LIGHT};">
+          ${esc(item.name)}${qty > 1 ? ` <span style="color:${MUTED};">× ${qty}</span>` : ""}
+          ${item.note ? `<br /><span style="font-size:12px;color:${MUTED};">${esc(item.note)}</span>` : ""}
+        </td>
+        <td style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.07);
+                   font-family:Helvetica,Arial,sans-serif;font-size:14px;color:${LIGHT};
+                   text-align:right;white-space:nowrap;">${esc(formatMoney(line, currency))}</td>
+      </tr>`;
+    })
+    .join("");
+
+  return `
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:26px 0;">
+    ${rows}
+    <tr>
+      <td style="padding:16px 0 0 0;font-family:Helvetica,Arial,sans-serif;font-size:11px;
+                 letter-spacing:1.6px;text-transform:uppercase;color:${MUTED};">Total</td>
+      <td style="padding:16px 0 0 0;font-family:Georgia,serif;font-size:22px;color:${COPPER};
+                 text-align:right;white-space:nowrap;">${esc(formatMoney(estimate.totalCents, currency))}</td>
+    </tr>
+  </table>`;
+}
+
+/** 8. Client — here's your estimate, accept or decline in the portal. */
+export function sendEstimateToClient(quote: Quote): Promise<SendResult> {
+  const firstName = quote.clientName.trim().split(/\s+/)[0] || "there";
+  const estimate = quote.estimate;
+  if (!estimate) {
+    return Promise.resolve({ ok: false, error: "no_estimate" });
+  }
+
+  const html = shell({
+    preheader: `Your estimate for ${quote.name} — ${formatMoney(estimate.totalCents, estimate.currency)}`,
+    eyebrow: "Your estimate",
+    heading: "Here's what it would take.",
+    body: `
+      <p style="margin:0 0 16px 0;">Hi ${esc(firstName)},</p>
+      <p style="margin:0 0 16px 0;">
+        I've put together an estimate for <strong style="color:#ffffff;">${esc(quote.name)}</strong>.
+        Have a look through the breakdown below — nothing is charged at this stage.
+      </p>
+      ${estimate.notes ? `<p style="margin:0 0 16px 0;white-space:pre-wrap;">${esc(estimate.notes)}</p>` : ""}
+      ${lineItemTable(estimate)}
+      ${
+        estimate.validUntil
+          ? `<p style="margin:0 0 16px 0;color:${MUTED};font-size:14px;">
+               This estimate holds until <strong style="color:${LIGHT};">${esc(estimate.validUntil)}</strong>.
+             </p>`
+          : ""
+      }
+      <p style="margin:0 0 16px 0;">
+        Happy with it? Accept in your portal and I'll send the invoice through.
+        If something needs changing, decline and tell me what — no hard feelings.
+      </p>
+      ${button(`${SITE_URL}/portal`, "Review the estimate")}
+      <p style="margin:0;color:${MUTED};font-size:14px;">
+        Questions first? Just reply to this email.
+      </p>`,
+  });
+
+  return send({
+    to: quote.clientEmail,
+    subject: `Your estimate — ${quote.name}`,
+    html,
+    replyTo: OWNER_NOTIFY,
+  });
+}
+
+/** 9. Owner — the client answered the estimate. */
+export function sendEstimateReplyToOwner(
+  quote: Quote,
+  accepted: boolean,
+): Promise<SendResult> {
+  const estimate = quote.estimate;
+  const total = estimate
+    ? formatMoney(estimate.totalCents, estimate.currency)
+    : "—";
+
+  const html = shell({
+    preheader: `${quote.clientName} ${accepted ? "accepted" : "declined"} the estimate for ${quote.name}.`,
+    eyebrow: accepted ? "Estimate accepted" : "Estimate declined",
+    heading: accepted
+      ? `${quote.clientName} said yes.`
+      : `${quote.clientName} declined.`,
+    body: `
+      ${details([
+        ["Client", quote.clientName],
+        ["Email", quote.clientEmail],
+        ["Project", quote.name],
+        ["Estimate", total],
+        ...(estimate?.declineReason
+          ? ([["Reason", estimate.declineReason]] as [string, string][])
+          : []),
+      ])}
+      <p style="margin:0 0 16px 0;">
+        ${
+          accepted
+            ? "The invoice builder is pre-loaded with these figures — one click to send it."
+            : "Worth a follow-up while it's fresh."
+        }
+      </p>
+      ${button(`${SITE_URL}/admin`, "Open admin")}`,
+  });
+
+  return send({
+    to: OWNER_NOTIFY,
+    subject: accepted
+      ? `Accepted — ${quote.clientName} · ${total}`
+      : `Declined — ${quote.clientName} · ${quote.name}`,
+    html,
+    replyTo: quote.clientEmail,
   });
 }

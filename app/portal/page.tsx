@@ -16,6 +16,7 @@ import { useToast } from "@/components/Toast";
 import { getDb } from "@/lib/firebase";
 import {
   formatMoney,
+  isEstimateOpen,
   isQuotePayable,
   PROJECT_STAGES,
   type Project,
@@ -31,8 +32,12 @@ export default function PortalPage() {
       title="Client Portal"
       subtitle="Sign in to track your quotes, follow project progress and collect your finished files."
     >
-      {({ profile, signOut }) => (
-        <PortalDashboard profile={profile} signOut={signOut} />
+      {({ profile, signOut, getToken }) => (
+        <PortalDashboard
+          profile={profile}
+          signOut={signOut}
+          getToken={getToken}
+        />
       )}
     </AuthGate>
   );
@@ -52,6 +57,8 @@ function statusTone(status: Quote["status"]): string {
     case "Refunded":
       return "jm-badge--error";
     case "Accepted":
+      return "jm-badge--success";
+    case "Estimate Sent":
     case "Reviewed":
       return "jm-badge--teal";
     default:
@@ -62,14 +69,17 @@ function statusTone(status: Quote["status"]): string {
 function PortalDashboard({
   profile,
   signOut,
+  getToken,
 }: {
   profile: UserProfile;
   signOut: () => Promise<void>;
+  getToken: () => Promise<string | null>;
 }) {
   const { toast } = useToast();
   const [quotes, setQuotes] = useState<Quote[] | null>(null);
   const [projects, setProjects] = useState<Project[] | null>(null);
   const [saving, setSaving] = useState(false);
+  const [responding, setResponding] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const db = getDb();
@@ -114,6 +124,68 @@ function PortalDashboard({
   useEffect(() => {
     void load();
   }, [load]);
+
+  /**
+   * Answers an estimate. Routed through the API so the client can't set their
+   * own status, and so Will is notified either way.
+   */
+  async function respondToEstimate(quote: Quote, decision: "accept" | "decline") {
+    if (responding) return;
+
+    let reason: string | undefined;
+    if (decision === "decline") {
+      const input = window.prompt(
+        "Anything you'd like changed? (optional — leave blank to just decline)",
+      );
+      // Cancelling the prompt means they changed their mind about declining.
+      if (input === null) return;
+      reason = input.trim() || undefined;
+    } else if (
+      !window.confirm(
+        `Accept this estimate for ${formatMoney(
+          quote.estimate?.totalCents ?? 0,
+          quote.estimate?.currency,
+        )}? Will will send an invoice to confirm.`,
+      )
+    ) {
+      return;
+    }
+
+    setResponding(quote.id);
+    try {
+      const token = await getToken();
+      if (!token) {
+        toast("Your session expired — please sign in again.", "error");
+        return;
+      }
+
+      const response = await fetch("/api/estimate/respond", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ quoteId: quote.id, decision, reason }),
+      });
+      const result = await response.json();
+
+      if (!response.ok) {
+        toast(result.error ?? "Could not send your response.", "error");
+        return;
+      }
+
+      toast(
+        decision === "accept"
+          ? "Accepted — the invoice is on its way."
+          : "Thanks, that's noted. Will will be in touch.",
+      );
+      await load();
+    } catch {
+      toast("Network error — please try again.", "error");
+    } finally {
+      setResponding(null);
+    }
+  }
 
   async function saveProfile(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -184,6 +256,82 @@ function PortalDashboard({
                       {quote.location ? ` · ${quote.location}` : ""}
                     </p>
                   </div>
+
+                  {quote.estimate ? (
+                    <div className={styles.estimate}>
+                      <span className={styles.estimateLabel}>
+                        {quote.estimate.acceptedAt
+                          ? "Estimate accepted"
+                          : quote.estimate.declinedAt
+                            ? "Estimate declined"
+                            : "Your estimate"}
+                      </span>
+
+                      {quote.estimate.notes ? (
+                        <p className={styles.estimateNotes}>
+                          {quote.estimate.notes}
+                        </p>
+                      ) : null}
+
+                      <ul className={styles.estimateLines}>
+                        {quote.estimate.lineItems.map((item, i) => (
+                          <li key={i}>
+                            <span>
+                              {item.name}
+                              {(item.quantity ?? 1) > 1
+                                ? ` × ${item.quantity}`
+                                : ""}
+                            </span>
+                            <span>
+                              {formatMoney(
+                                item.amountCents * (item.quantity ?? 1),
+                                quote.estimate!.currency,
+                              )}
+                            </span>
+                          </li>
+                        ))}
+                        <li className={styles.estimateTotal}>
+                          <span>Total</span>
+                          <span>
+                            {formatMoney(
+                              quote.estimate.totalCents,
+                              quote.estimate.currency,
+                            )}
+                          </span>
+                        </li>
+                      </ul>
+
+                      {isEstimateOpen(quote) ? (
+                        <div className={styles.estimateActions}>
+                          <button
+                            type="button"
+                            className="jm-btn-primary jm-btn-sm"
+                            disabled={responding === quote.id}
+                            onClick={() => respondToEstimate(quote, "accept")}
+                          >
+                            {responding === quote.id ? "Sending…" : "Accept"}
+                          </button>
+                          <button
+                            type="button"
+                            className="jm-btn-ghost jm-btn-sm"
+                            disabled={responding === quote.id}
+                            onClick={() => respondToEstimate(quote, "decline")}
+                          >
+                            Request changes
+                          </button>
+                          {quote.estimate.validUntil ? (
+                            <span className={styles.estimateExpiry}>
+                              Holds until {quote.estimate.validUntil}
+                            </span>
+                          ) : null}
+                        </div>
+                      ) : quote.status === "Estimate Sent" ? (
+                        <p className={styles.estimateExpiry}>
+                          This estimate has expired — get in touch for a fresh one.
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
 
                   <div className={styles.rowActions}>
                     {quote.amountCents !== undefined ? (

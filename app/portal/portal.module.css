@@ -215,3 +215,80 @@
     display: none;
   }
 }
+
+/* ─── Estimate ───────────────────────────────────── */
+
+.estimate {
+  width: 100%;
+  margin-top: var(--space-md);
+  padding: var(--space-md);
+  border: 1px solid rgba(193, 90, 50, 0.3);
+  border-radius: var(--radius-md);
+  background: rgba(193, 90, 50, 0.05);
+}
+
+.estimateLabel {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--jm-copper);
+  margin-bottom: var(--space-sm);
+}
+
+.estimateNotes {
+  font-size: var(--text-sm);
+  color: var(--jm-muted);
+  line-height: 1.8;
+  white-space: pre-wrap;
+  margin-bottom: var(--space-sm);
+}
+
+.estimateLines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.estimateLines li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-sm);
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--jm-border);
+  font-size: var(--text-sm);
+  color: var(--jm-lightgrey);
+}
+
+.estimateTotal {
+  border-bottom: none !important;
+  padding-top: 0.85rem !important;
+  font-family: var(--font-display);
+  font-size: var(--text-lg) !important;
+  color: var(--jm-amber) !important;
+}
+
+.estimateTotal span:first-child {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--jm-slate);
+}
+
+.estimateActions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: var(--space-md);
+}
+
+.estimateExpiry {
+  font-size: var(--text-xs);
+  color: var(--jm-slate);
+  line-height: 1.7;
+}

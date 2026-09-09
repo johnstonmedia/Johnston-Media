@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { sendInvoiceToClient } from "@/lib/email";
 import { adminDb, requireAdmin } from "@/lib/firebaseAdmin";
+import { parseLineItems } from "@/lib/lineItems";
 import {
   createInvoice,
   findOrCreateCustomer,
@@ -9,66 +10,12 @@ import {
   publishInvoice,
   SquareApiError,
   type InvoiceDeposit,
-  type InvoiceLineItem,
 } from "@/lib/square";
 import type { Quote } from "@/lib/types";
 import { clean } from "@/lib/validation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-interface LineItemInput {
-  name?: unknown;
-  amountCents?: unknown;
-  quantity?: unknown;
-  note?: unknown;
-}
-
-/** Parses and validates the admin-supplied line items. */
-function parseLineItems(raw: unknown): {
-  items: InvoiceLineItem[];
-  error?: string;
-} {
-  if (!Array.isArray(raw) || raw.length === 0) {
-    return { items: [], error: "Add at least one line item." };
-  }
-  if (raw.length > 30) {
-    return { items: [], error: "Too many line items (max 30)." };
-  }
-
-  const items: InvoiceLineItem[] = [];
-
-  for (const entry of raw as LineItemInput[]) {
-    const name = clean(entry.name, 200);
-    const amountCents = Math.round(Number(entry.amountCents));
-    const quantity = entry.quantity === undefined ? 1 : Number(entry.quantity);
-
-    if (!name) return { items: [], error: "Every line item needs a name." };
-    if (!Number.isFinite(amountCents) || amountCents < 0) {
-      return { items: [], error: `Invalid amount for "${name}".` };
-    }
-    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 999) {
-      return { items: [], error: `Invalid quantity for "${name}".` };
-    }
-
-    items.push({
-      name,
-      amountCents,
-      quantity,
-      note: clean(entry.note, 400) || undefined,
-    });
-  }
-
-  const total = items.reduce(
-    (sum, item) => sum + item.amountCents * (item.quantity ?? 1),
-    0,
-  );
-  if (total <= 0) {
-    return { items: [], error: "Invoice total must be greater than zero." };
-  }
-
-  return { items };
-}
 
 /**
  * Parses the optional deposit.
@@ -164,15 +111,14 @@ export async function POST(request: Request) {
     );
   }
 
-  const { items, error: itemsError } = parseLineItems(body.lineItems);
+  const {
+    items,
+    totalCents: amountCents,
+    error: itemsError,
+  } = parseLineItems(body.lineItems);
   if (itemsError) {
     return NextResponse.json({ ok: false, error: itemsError }, { status: 400 });
   }
-
-  const amountCents = items.reduce(
-    (sum, item) => sum + item.amountCents * (item.quantity ?? 1),
-    0,
-  );
 
   const {
     deposit,

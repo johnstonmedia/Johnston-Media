@@ -32,6 +32,8 @@ Square invoicing possible.
 | --------------------- | ---------- | ------------------------------------------------ |
 | `/api/quote`          | Public     | Quote request → Firestore + Square customer + email |
 | `/api/contact`        | Public     | Contact form → Firestore + email alert           |
+| `/api/estimate`       | Admin      | Send an estimate for a quote                     |
+| `/api/estimate/respond` | Client   | Accept or decline an estimate                    |
 | `/api/invoice`        | Admin      | Quote → Square invoice, published and emailed    |
 | `/api/project/stage`  | Admin      | Move a project stage and notify the client       |
 | `/api/square/webhook` | Signed     | Square payment events → status, project, receipts |
@@ -49,7 +51,17 @@ Client submits a quote request
    ├─ email → client:  "Quote request received"
    └─ email → you:     "New quote request from …"
 
+You open /admin → Quotes → Send estimate      (optional but recommended)
+   ├─ line items pre-filled from the package they chose
+   ├─ email → client: "Here's what it would take"
+   └─ quote status → Estimate Sent
+
+Client accepts or declines in their portal
+   ├─ accepted  → status → Accepted, email → you
+   └─ declined  → status → Declined + their reason, email → you
+
 You open /admin → Quotes → Send invoice
+   ├─ line items pre-filled from the accepted estimate
    ├─ optionally take a deposit (% or fixed) to hold the date
    ├─ Square order + invoice created and published
    ├─ Square emails the client a payment link
@@ -242,6 +254,33 @@ deliveries and their response codes. A `200` means the site accepted it. A
 Repeat everything with the Production credentials: new access token, new
 location ID, **new signature key**, and `SQUARE_ENVIRONMENT="production"`.
 Sandbox and production share nothing.
+
+---
+
+## Estimates
+
+**Square has no public Estimates API** — estimates are a Dashboard and mobile-app
+feature only, confirmed by Square staff on their developer forums. So estimates
+here are ours, not Square's.
+
+That turns out better for the flow:
+
+1. **You compose one** in Admin → Quotes → *Send estimate*, pre-filled from the
+   package the client chose (or the last estimate, if you're re-sending).
+2. **They get a branded email** with the full breakdown and a link to the portal.
+   No money moves at this point.
+3. **They accept or decline in the portal**, under your branding rather than
+   Square's. Declining prompts for a reason, which lands in your inbox.
+4. **Accepting pre-loads the invoice builder** with the agreed figures, so the
+   Square invoice is one click and the numbers can't drift.
+
+An estimate can carry a *hold this price until* date. Past it, the portal stops
+accepting and tells the client to ask for a fresh one — so nobody accepts last
+season's rates.
+
+The estimate is stored on the quote (`quotes/{id}.estimate`) with its line
+items, total, timestamps and any decline reason, so the history survives later
+price changes.
 
 ---
 

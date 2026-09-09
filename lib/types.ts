@@ -43,15 +43,20 @@ export interface UserProfile {
 /**
  * Quote lifecycle.
  *
- * New flow:   Pending → Reviewed → Invoiced → Paid
- * Legacy:     Pending → Sent → Accepted → Approved
+ *   Pending → Reviewed → Estimate Sent → Accepted → Invoiced
+ *           → Deposit Paid → Paid
  *
- * Both are kept in the union so quotes created by the previous static
- * site still render correctly in the portal and admin panel.
+ * Declined / Cancelled / Refunded can end it at any point, and the estimate
+ * step is optional — a quote can go straight to Invoiced.
+ *
+ * Legacy statuses (Sent, Approved) are kept in the union so quotes created by
+ * the previous static site still render in the portal and admin panel.
  */
 export type QuoteStatus =
   | "Pending"
   | "Reviewed"
+  | "Estimate Sent"
+  | "Accepted"
   | "Invoiced"
   | "Deposit Paid"
   | "Paid"
@@ -59,8 +64,39 @@ export type QuoteStatus =
   | "Cancelled"
   | "Refunded"
   | "Sent"
-  | "Accepted"
   | "Approved";
+
+/** Line item on an estimate. Mirrors the invoice builder's shape. */
+export interface EstimateLineItem {
+  name: string;
+  amountCents: number;
+  quantity?: number;
+  note?: string;
+}
+
+/**
+ * An estimate attached to a quote.
+ *
+ * Square has no public Estimates API — estimates are Dashboard-only — so this
+ * lives entirely in our own data. The upside is that acceptance happens in the
+ * client portal under Johnston Media branding, and the accepted figures then
+ * pre-load the Square invoice rather than being retyped.
+ */
+export interface Estimate {
+  lineItems: EstimateLineItem[];
+  /** Sum of line items in cents, stored so history survives price changes. */
+  totalCents: number;
+  currency: string;
+  /** Optional note shown to the client above the breakdown. */
+  notes?: string;
+  /** ISO date after which the estimate lapses. */
+  validUntil?: string;
+  sentAt: string;
+  sentBy: string;
+  acceptedAt?: string;
+  declinedAt?: string;
+  declineReason?: string;
+}
 
 /**
  * Statuses where the client should still be offered a payment link.
@@ -88,6 +124,28 @@ export function isQuotePayable(quote: {
   return Boolean(quote.squarePublicUrl) && PAYABLE_STATUSES.includes(quote.status);
 }
 
+/**
+ * Whether the client can still act on an estimate.
+ *
+ * Only while it's been sent and not yet answered — and not past its expiry,
+ * so a stale estimate can't be accepted at last year's prices.
+ */
+export function isEstimateOpen(quote: {
+  status: QuoteStatus;
+  estimate?: Estimate;
+}): boolean {
+  if (quote.status !== "Estimate Sent" || !quote.estimate) return false;
+  if (quote.estimate.acceptedAt || quote.estimate.declinedAt) return false;
+  if (quote.estimate.validUntil) {
+    // Compare dates only — an estimate valid "until the 5th" lasts all of it.
+    const expiry = new Date(`${quote.estimate.validUntil}T23:59:59`);
+    if (Number.isFinite(expiry.getTime()) && expiry.getTime() < Date.now()) {
+      return false;
+    }
+  }
+  return true;
+}
+
 /** Which side of the business a quote came from. */
 export type QuoteSource = "media" | "web";
 
@@ -102,6 +160,8 @@ export interface Quote {
   source: QuoteSource;
   /** Set when the client chose a pre-made package. */
   packageId?: string;
+  /** Present once an estimate has been sent for this quote. */
+  estimate?: Estimate;
   /** Project name / short title. */
   name: string;
   date?: string;

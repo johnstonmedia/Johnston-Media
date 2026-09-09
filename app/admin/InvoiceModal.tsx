@@ -34,9 +34,16 @@ export default function InvoiceModal({
   onSent,
 }: InvoiceModalProps) {
   const { toast } = useToast();
-  // A quote from a pre-made package starts with that package's line items,
-  // priced from lib/packages.ts. Everything stays editable before sending.
+  // Best available starting point, in order: what the client actually agreed
+  // to, then the package they picked, then a single blank line.
   const [items, setItems] = useState<LineItem[]>(() => {
+    if (quote.estimate?.lineItems.length) {
+      return quote.estimate.lineItems.map((item) => ({
+        name: item.name,
+        amount: (item.amountCents / 100).toFixed(2),
+        quantity: String(item.quantity ?? 1),
+      }));
+    }
     const pkg = findPackage(quote.packageId);
     if (pkg?.lineItems?.length) {
       return pkg.lineItems.map((item) => ({

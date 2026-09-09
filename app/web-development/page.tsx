@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import PortalDemo from "@/components/demos/PortalDemo";
+import ScriberDemo from "@/components/demos/ScriberDemo";
 import Hero from "@/components/Hero";
 import { ArrowRight } from "@/components/Icons";
 import PackageCards from "@/components/PackageCards";
@@ -287,6 +289,34 @@ export default function WebDevelopmentPage() {
               </p>
             </Reveal>
           </div>
+
+          {/* The demo does the explaining that the copy above can't. */}
+          <Reveal delay={80}>
+            <ScriberDemo />
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ─── Portal demo ──────────────────────────── */}
+      <section className="jm-section">
+        <div className="jm-inner">
+          <Reveal>
+            <span className="jm-eyebrow">What a portal feels like</span>
+            <h2 className="jm-section-title">
+              Your clients get <em>their own login</em>
+            </h2>
+            <hr className="jm-section-rule" />
+            <p className="jm-body" style={{ maxWidth: "66ch" }}>
+              No more chasing approvals over text and losing files in expired
+              download links. Your client signs in, sees exactly where their job
+              is up to, approves the estimate, pays, and collects their files —
+              while the same job updates on your side automatically.
+            </p>
+          </Reveal>
+
+          <Reveal delay={80}>
+            <PortalDemo />
+          </Reveal>
         </div>
       </section>
 

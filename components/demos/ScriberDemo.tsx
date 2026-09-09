@@ -6,129 +6,184 @@ import DemoFrame from "./DemoFrame";
 import styles from "./demos.module.css";
 
 /**
- * One dictated token.
+ * An emulation of Scriber's own writer, matching the real product.
  *
- * `say` is what the student speaks out loud, `write` is what lands on the
- * page — which is the whole point of spoken punctuation: you have to say
- * "comma" to get a comma.
+ * The behaviour model is Scriber's: the writer holds a bounded number of
+ * spoken units in working memory, drains them at a fixed pen speed, and when
+ * the student outruns that capacity the tail is genuinely lost and the writer
+ * asks for it again. Presets, capacities, pen speeds and the load thresholds
+ * below are the real ones (src/scribe/workingMemory.ts in the Scriber repo),
+ * so the demo can't flatter the product by being gentler than it is.
+ *
+ * It is deliberately styled as Scriber rather than as Johnston Media — light,
+ * blue, serif — because a case study should show the thing that was built.
  */
-interface Token {
+
+/** One spoken unit: a word, or a command that becomes a mark. */
+interface Unit {
   say: string;
+  /** What lands on the page. Commands render as punctuation or nothing. */
   write: string;
-  /** The writer stops and asks how this one is spelled. */
-  spell?: boolean;
-  /** Punctuation joins the previous word instead of taking a space. */
+  /** Punctuation joins the previous word rather than taking a space. */
   tight?: boolean;
+  /** A spoken command rather than a word — shown in the mono voice. */
+  command?: boolean;
+  /** Capitalises the next word (Scriber's "capital" command). */
+  capitalises?: boolean;
 }
 
-const SCRIPT: Token[] = [
-  { say: "Photosynthesis", write: "Photosynthesis", spell: true },
-  { say: "occurs", write: "occurs" },
-  { say: "in", write: "in" },
+/**
+ * The dictated passage.
+ *
+ * Taken from Scriber's own landing-page demo, so what a visitor reads here is
+ * what they'd read there — an English response, dictated with the punctuation
+ * spoken aloud the way the exam requires.
+ */
+const SCRIPT: Unit[] = [
+  { say: "capital", write: "", command: true, capitalises: true },
   { say: "the", write: "the" },
-  { say: "chloroplasts", write: "chloroplasts", spell: true },
-  { say: "comma", write: ",", tight: true },
-  { say: "where", write: "where" },
-  { say: "chlorophyll", write: "chlorophyll" },
-  { say: "absorbs", write: "absorbs" },
-  { say: "light", write: "light" },
-  { say: "energy", write: "energy" },
-  { say: "full stop", write: ".", tight: true },
-  { say: "This", write: "This" },
-  { say: "energy", write: "energy" },
-  { say: "splits", write: "splits" },
-  { say: "water", write: "water" },
-  { say: "molecules", write: "molecules" },
-  { say: "comma", write: ",", tight: true },
-  { say: "releasing", write: "releasing" },
-  { say: "oxygen", write: "oxygen" },
+  { say: "composer", write: "composer" },
+  { say: "represents", write: "represents" },
+  { say: "discovery", write: "discovery" },
+  { say: "comma", write: ",", tight: true, command: true },
+  { say: "not", write: "not" },
   { say: "as", write: "as" },
   { say: "a", write: "a" },
-  { say: "by-product", write: "by-product" },
-  { say: "full stop", write: ".", tight: true },
+  { say: "single", write: "single" },
+  { say: "moment", write: "moment" },
+  { say: "but", write: "but" },
+  { say: "as", write: "as" },
+  { say: "a", write: "a" },
+  { say: "sequence", write: "sequence" },
+  { say: "of", write: "of" },
+  { say: "unsettling", write: "unsettling" },
+  { say: "realisations", write: "realisations" },
+  { say: "that", write: "that" },
+  { say: "build", write: "build" },
+  { say: "across", write: "across" },
+  { say: "the", write: "the" },
+  { say: "whole", write: "whole" },
+  { say: "text", write: "text" },
+  { say: "and", write: "and" },
+  { say: "refuse", write: "refuse" },
+  { say: "to", write: "to" },
+  { say: "resolve", write: "resolve" },
+  { say: "neatly", write: "neatly" },
+  { say: "full stop", write: ".", tight: true, command: true },
 ];
 
+/**
+ * Scriber's three writer presets, with its real numbers.
+ * capacity = units held in working memory; pace = units written per second.
+ */
+const PRESETS = [
+  {
+    id: "patient",
+    label: "Patient writer",
+    hint: "Holds a lot, rarely interrupts. Good for your first sessions.",
+    capacity: 28,
+    pacePerSecond: 3.4,
+  },
+  {
+    id: "realistic",
+    label: "Realistic writer",
+    hint: "Behaves like a person taking your words down by hand.",
+    capacity: 18,
+    pacePerSecond: 2.6,
+  },
+  {
+    id: "demanding",
+    label: "Demanding writer",
+    hint: "Short memory and a slower pen. Forces you to pace yourself.",
+    capacity: 12,
+    pacePerSecond: 2.0,
+  },
+] as const;
+
+type PresetId = (typeof PRESETS)[number]["id"];
+
+/** How fast the student talks. Comfortable speech is ~2.2 units/second. */
 const PACES = [
-  { id: "measured", label: "Measured", ms: 640, blurb: "The pace they can hold" },
-  { id: "natural", label: "Natural", ms: 430, blurb: "How you'd normally talk" },
-  { id: "rushed", label: "Rushed", ms: 190, blurb: "Running out of time" },
+  { id: "measured", label: "Measured", perSecond: 1.8 },
+  { id: "natural", label: "Natural", perSecond: 2.4 },
+  { id: "rushed", label: "Rushed", perSecond: 4.6 },
 ] as const;
 
 type PaceId = (typeof PACES)[number]["id"];
 
-/** How fast the writer's hand moves. Fixed — a person can't speed up. */
-const WRITER_MS = 430;
-/** Words they can hold in their head before they lose the thread. */
-const BUFFER_LIMIT = 6;
-/** How long a spelling question takes. */
-const SPELL_MS = 1500;
-/** How long they need after asking you to slow down. */
-const RECOVER_TO = 2;
+const TICK = 100;
 
-const TICK = 50;
+/** Scriber's own load thresholds. */
+function loadTone(value: number): "calm" | "busy" | "critical" {
+  if (value >= 0.8) return "critical";
+  if (value >= 0.55) return "busy";
+  return "calm";
+}
 
-type Interruption =
-  | { kind: "spell"; word: string }
-  | { kind: "slow" }
-  | null;
+type Caption = "idle" | "talking" | "repeat" | "done";
 
-/**
- * A playable model of Scriber's writer.
- *
- * The demo exists to make one point that a paragraph of copy can't: the writer
- * is a person, not a transcription engine. Push the pace up and they fall
- * behind, then stop you — which is exactly what happens in the exam room, and
- * exactly what practising against a perfect machine never teaches.
- */
-/** The whole simulation, kept out of React state so a tick is never lost. */
 interface Sim {
-  spoken: number;
-  written: number;
+  /** Units heard but not yet written — the writer's working memory. */
+  pending: Unit[];
+  written: Unit[];
+  spokenIndex: number;
   studentAcc: number;
   writerAcc: number;
-  /** Milliseconds left on a spelling question. */
-  hold: number;
-  /** The writer has asked the student to wait. */
-  recovering: boolean;
-  interruption: Interruption;
+  caption: Caption;
+  /** Units dropped because memory overflowed. */
+  lost: number;
 }
 
 function emptySim(): Sim {
   return {
-    spoken: 0,
-    written: 0,
+    pending: [],
+    written: [],
+    spokenIndex: 0,
     studentAcc: 0,
     writerAcc: 0,
-    hold: 0,
-    recovering: false,
-    interruption: null,
+    caption: "idle",
+    lost: 0,
   };
 }
 
+/** Renders written units the way Scriber's engine does. */
+function renderSheet(written: Unit[]): string {
+  let out = "";
+  let capitaliseNext = false;
+
+  for (const unit of written) {
+    if (unit.capitalises) {
+      capitaliseNext = true;
+      continue;
+    }
+    if (!unit.write) continue;
+
+    let word = unit.write;
+    if (capitaliseNext && /[a-z]/.test(word[0] ?? "")) {
+      word = word[0].toUpperCase() + word.slice(1);
+      capitaliseNext = false;
+    }
+    out = !out ? word : unit.tight ? out + word : `${out} ${word}`;
+  }
+  return out;
+}
+
 export default function ScriberDemo() {
+  const [preset, setPreset] = useState<PresetId>("realistic");
   const [pace, setPace] = useState<PaceId>("natural");
   const [playing, setPlaying] = useState(false);
-  const [reduced, setReduced] = useState(false);
 
   const sim = useRef<Sim>(emptySim());
-  // One snapshot per tick — the simulation drives React, never the reverse.
-  const [view, setView] = useState({
-    spoken: 0,
-    written: 0,
-    interruption: null as Interruption,
-  });
+  const [view, setView] = useState<Sim>(emptySim());
 
-  useEffect(() => {
-    setReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
-  }, []);
+  const settings = PRESETS.find((p) => p.id === preset)!;
+  const speech = PACES.find((p) => p.id === pace)!;
 
   const reset = useCallback(() => {
     setPlaying(false);
     sim.current = emptySim();
-    setView({ spoken: 0, written: 0, interruption: null });
+    setView(emptySim());
   }, []);
-
-  const paceMs = PACES.find((p) => p.id === pace)!.ms;
 
   useEffect(() => {
     if (!playing) return;
@@ -136,92 +191,62 @@ export default function ScriberDemo() {
     const id = window.setInterval(() => {
       const s = sim.current;
 
-      if (s.hold > 0) {
-        // A spelling question freezes both of them until it's answered.
-        s.hold -= TICK;
-        if (s.hold <= 0) {
-          s.hold = 0;
-          s.interruption = null;
-          s.written += 1;
-          s.writerAcc = 0;
-        }
-      } else {
-        const backlog = s.spoken - s.written;
-
-        // Caught up enough to stop asking the student to wait.
-        if (s.recovering && backlog <= RECOVER_TO) {
-          s.recovering = false;
-          s.interruption = null;
-        }
-
-        // The writer's hand moves at its own fixed speed.
-        s.writerAcc += TICK;
-        if (s.writerAcc >= WRITER_MS && backlog > 0) {
-          s.writerAcc = 0;
-          const next = SCRIPT[s.written];
-          if (next?.spell) {
-            // They don't know this word — everything stops while they ask.
-            s.hold = SPELL_MS;
-            s.interruption = { kind: "spell", word: next.write };
-          } else {
-            s.written += 1;
-          }
-        }
-
-        // The student speaks unless they've been asked to wait.
-        if (!s.recovering) {
-          s.studentAcc += TICK;
-          if (s.studentAcc >= paceMs && s.spoken < SCRIPT.length) {
-            s.studentAcc = 0;
-            s.spoken += 1;
-          }
-        }
-
-        // Too far behind to hold it all — the writer stops the student.
-        if (s.spoken - s.written >= BUFFER_LIMIT && !s.recovering) {
-          s.recovering = true;
-          s.interruption = { kind: "slow" };
-        }
+      // The student speaks.
+      s.studentAcc += TICK;
+      const speakEvery = 1000 / speech.perSecond;
+      while (s.studentAcc >= speakEvery && s.spokenIndex < SCRIPT.length) {
+        s.studentAcc -= speakEvery;
+        s.pending.push(SCRIPT[s.spokenIndex]);
+        s.spokenIndex += 1;
+        s.caption = "talking";
       }
 
-      setView({
-        spoken: s.spoken,
-        written: s.written,
-        interruption: s.interruption,
-      });
+      // The writer's pen moves at its own fixed speed.
+      s.writerAcc += TICK;
+      const writeEvery = 1000 / settings.pacePerSecond;
+      while (s.writerAcc >= writeEvery && s.pending.length > 0) {
+        s.writerAcc -= writeEvery;
+        s.written.push(s.pending.shift()!);
+      }
 
-      if (s.written >= SCRIPT.length) setPlaying(false);
+      // Past capacity the tail is genuinely lost — the writer asks for it back.
+      if (s.pending.length > settings.capacity) {
+        const overflow = s.pending.length - settings.capacity;
+        s.pending.splice(settings.capacity, overflow);
+        s.lost += overflow;
+        s.caption = "repeat";
+      }
+
+      if (s.spokenIndex >= SCRIPT.length && s.pending.length === 0) {
+        s.caption = "done";
+        setPlaying(false);
+      }
+
+      setView({ ...s, pending: [...s.pending], written: [...s.written] });
     }, TICK);
 
     return () => window.clearInterval(id);
-  }, [playing, paceMs]);
+  }, [playing, speech.perSecond, settings.pacePerSecond, settings.capacity]);
 
-  const { spoken, written, interruption } = view;
-  const backlog = spoken - written;
-  const done = written >= SCRIPT.length;
+  const level = Math.min(1, view.pending.length / settings.capacity);
+  const tone = loadTone(level);
+  const sheet = renderSheet(view.written);
+  const done = view.caption === "done";
 
   function toggle() {
     if (done) {
       sim.current = emptySim();
-      setView({ spoken: 0, written: 0, interruption: null });
+      setView(emptySim());
       setPlaying(true);
       return;
     }
     setPlaying((p) => !p);
   }
 
-  function choosePace(next: PaceId) {
-    setPace(next);
-    if (spoken > 0) reset();
+  function choose<T>(setter: (v: T) => void, value: T) {
+    setter(value);
+    if (view.spokenIndex > 0) reset();
   }
-
-  /** Everything written so far, punctuation attached properly. */
-  const page = SCRIPT.slice(0, written).reduce((text, token) => {
-    if (!text) return token.write;
-    return token.tight ? text + token.write : `${text} ${token.write}`;
-  }, "");
-
-  const load = Math.min(backlog / BUFFER_LIMIT, 1);
 
   return (
     <DemoFrame
@@ -229,8 +254,8 @@ export default function ScriberDemo() {
       label="Try it — Scriber"
       footnote={
         <>
-          A working model of the real thing, running right here on the page.
-          The full version is at{" "}
+          The real engine, running here: the same working-memory model, writer
+          presets and load thresholds as the live product at{" "}
           <a href="https://pracscriber.com" target="_blank" rel="noopener noreferrer">
             pracscriber.com
           </a>
@@ -239,134 +264,126 @@ export default function ScriberDemo() {
       }
     >
       <div className={styles.scriber}>
-        <div className={styles.scriberPanes}>
-          {/* The paper the student is reading from. */}
-          <div className={styles.paper}>
-            <span className={styles.paneLabel}>Question paper</span>
-            <p className={styles.qNum}>Question 4 &nbsp;·&nbsp; 6 marks</p>
-            <p className={styles.qText}>
-              Describe the process of photosynthesis, including where it takes
-              place and the products formed.
-            </p>
-            <div className={styles.qRule} />
-            <p className={styles.qHint}>
-              You have to say every comma and full stop out loud — the writer
-              only writes what they hear.
-            </p>
+        {/* What the product is, in three lines. */}
+        <div className={styles.sbAbout}>
+          <h4>Scriber</h4>
+          <p>
+            A practice tool for students approved for a <strong>writer</strong>{" "}
+            under NESA exam provisions. They upload a past paper, read it on one
+            side and dictate on the other — saying every comma, full stop and
+            capital out loud, because a real writer only writes what they hear.
+          </p>
+          <ul className={styles.sbFacts}>
+            <li>
+              <span>Strict mode</span>Strips the punctuation and capitals speech
+              recognition adds for you — the help you won&rsquo;t get on the day
+            </li>
+            <li>
+              <span>A human writer</span>Bounded memory, a fixed pen speed, and
+              spelling questions — not a perfect transcription engine
+            </li>
+            <li>
+              <span>Session report</span>Ends with the habits worth practising
+            </li>
+          </ul>
+        </div>
+
+        {/* The writer's cognitive load. */}
+        <div className={styles.sbWidget}>
+          <div className={styles.sbLoadBar} data-tone={tone}>
+            <div className={styles.sbLoadFill} style={{ width: `${level * 100}%` }} />
           </div>
 
-          {/* What the writer has actually got down. */}
-          <div className={styles.writerPane}>
-            <span className={styles.paneLabel}>
-              Your writer
-              <span
-                className={`${styles.pulse} ${playing ? styles.pulseOn : ""}`}
-                aria-hidden="true"
-              />
+          <div className={styles.sbContext}>
+            <span className={styles.sbContextLabel}>
+              Writer&rsquo;s memory — {view.pending.length} of {settings.capacity} held
             </span>
-
-            <p className={styles.written} aria-live="polite">
-              {page}
-              {playing && !interruption ? (
-                <span className={styles.caret} aria-hidden="true" />
-              ) : null}
-              {!page ? (
-                <span className={styles.placeholder}>
-                  Press play and start dictating…
+            {Array.from({ length: settings.capacity }).map((_, i) => {
+              const unit = view.pending[i];
+              return (
+                <span
+                  key={i}
+                  className={styles.sbSlot}
+                  data-empty={!unit}
+                  data-tone={unit ? tone : undefined}
+                  data-command={unit?.command ? "true" : undefined}
+                >
+                  {unit?.say ?? ""}
                 </span>
-              ) : null}
-            </p>
-
-            {interruption ? (
-              <div
-                className={`${styles.interject} ${
-                  interruption.kind === "slow" ? styles.interjectWarn : ""
-                }`}
-                role="status"
-              >
-                {interruption.kind === "spell"
-                  ? `“Sorry — how do you spell ${interruption.word}?”`
-                  : "“You're going too fast for me — can you slow down?”"}
-              </div>
-            ) : null}
+              );
+            })}
           </div>
-        </div>
 
-        {/* What's being said, and how far behind the writer is. */}
-        <div className={styles.dictation}>
-          <span className={styles.paneLabel}>You&rsquo;re saying</span>
-          <div className={styles.stream}>
-            {SCRIPT.map((token, i) => (
-              <span
-                key={`${token.say}-${i}`}
-                className={`${styles.token} ${
-                  i < written
-                    ? styles.tokenWritten
-                    : i < spoken
-                      ? styles.tokenPending
-                      : ""
-                } ${token.write.length === 1 && token.tight ? styles.tokenPunct : ""}`}
-              >
-                {token.say}
+          <div className={styles.sbSheet} aria-live="polite">
+            {sheet || (
+              <span className={styles.sbPlaceholder}>
+                The writer is listening…
               </span>
-            ))}
+            )}
+            {playing ? <span className={styles.sbCursor} /> : null}
+          </div>
+
+          <div className={styles.sbCaption} role="status">
+            {view.caption === "idle" &&
+              "Press play — the writer starts listening."}
+            {view.caption === "talking" &&
+              "Dictating — watch the words land a beat behind."}
+            {view.caption === "repeat" &&
+              "“Sorry — could you say that again?” The writer just lost the tail end."}
+            {view.caption === "done" &&
+              "That’s the real engine — the same one every student practises against."}
           </div>
         </div>
 
-        <div className={styles.controls}>
-          <button
-            type="button"
-            className="jm-btn-primary jm-btn-sm"
-            onClick={toggle}
-          >
+        {/* Controls. */}
+        <div className={styles.sbControls}>
+          <button type="button" className={styles.sbPlay} onClick={toggle}>
             {done ? "Run it again" : playing ? "Pause" : "Play dictation"}
           </button>
 
-          <div
-            className={styles.paceGroup}
-            role="group"
-            aria-label="Dictation pace"
-          >
-            {PACES.map((option) => (
-              <button
-                key={option.id}
-                type="button"
-                className={`${styles.paceBtn} ${
-                  pace === option.id ? styles.paceOn : ""
-                }`}
-                onClick={() => choosePace(option.id)}
-                aria-pressed={pace === option.id}
-                title={option.blurb}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
+          <label className={styles.sbSelect}>
+            <span>Writer</span>
+            <select
+              value={preset}
+              onChange={(e) => choose(setPreset, e.target.value as PresetId)}
+            >
+              {PRESETS.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+          </label>
 
-          <div className={styles.meter}>
-            <span className={styles.meterLabel}>
-              {backlog === 0
-                ? "Writer is keeping up"
-                : `Writer is ${backlog} word${backlog === 1 ? "" : "s"} behind`}
+          <label className={styles.sbSelect}>
+            <span>Your pace</span>
+            <select
+              value={pace}
+              onChange={(e) => choose(setPace, e.target.value as PaceId)}
+            >
+              {PACES.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {view.lost > 0 ? (
+            <span className={styles.sbLost}>
+              {view.lost} word{view.lost === 1 ? "" : "s"} lost
             </span>
-            <span className={styles.meterTrack}>
-              <span
-                className={`${styles.meterFill} ${
-                  load > 0.7 ? styles.meterHot : ""
-                }`}
-                style={{
-                  width: `${load * 100}%`,
-                  transition: reduced ? "none" : undefined,
-                }}
-              />
-            </span>
-          </div>
+          ) : null}
         </div>
 
+        <p className={styles.sbHint}>{settings.hint}</p>
+
         <p className={styles.scriberTip}>
-          Set the pace to <strong>Rushed</strong> and watch what happens — the
-          writer falls behind, then stops you. That gap is the thing students
-          actually have to learn to manage.
+          Put a <strong>Demanding writer</strong> against a{" "}
+          <strong>Rushed</strong> pace and words start falling out of their
+          memory for real — that gap is the thing students have to learn to
+          manage, and it&rsquo;s what practising against a perfect machine never
+          teaches.
         </p>
       </div>
     </DemoFrame>

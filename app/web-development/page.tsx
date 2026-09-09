@@ -313,10 +313,12 @@ export default function WebDevelopmentPage() {
             </h2>
             <hr className="jm-section-rule" />
             <p className="jm-body" style={{ maxWidth: "66ch" }}>
-              No more chasing approvals over text and losing files in expired
-              download links. Your client signs in, sees exactly where their job
-              is up to, approves the estimate, pays, and collects their files —
-              while the same job updates on your side automatically.
+              No more chasing approvals over text and losing paperwork in
+              expired download links. Your customer signs in, sees exactly where
+              their job is up to, approves the estimate, pays, and collects
+              their documents — while the same job updates on your side
+              automatically. Builder, caterer, sparky or studio: same system,
+              your words.
             </p>
           </Reveal>
 

@@ -2,33 +2,33 @@
 
 import { useState } from "react";
 
+import {
+  INDUSTRIES,
+  industryTotal,
+  type DemoIndustry,
+} from "@/lib/demoIndustries";
+
 import DemoFrame from "./DemoFrame";
 import styles from "./demos.module.css";
 
 type Role = "client" | "studio";
 type Tab = "project" | "estimate" | "invoice" | "files" | "messages";
 
-const TABS: { id: Tab; label: string }[] = [
-  { id: "project", label: "Project" },
-  { id: "estimate", label: "Estimate" },
-  { id: "invoice", label: "Invoice" },
-  { id: "files", label: "Files" },
-  { id: "messages", label: "Messages" },
-];
-
-const STAGES = ["Planning", "Shooting", "Editing", "Delivering", "Delivered"];
-
-const LINE_ITEMS = [
-  { name: "Full-day shoot — two photographers", amount: 1800 },
-  { name: "Aerial coverage (licensed drone)", amount: 650 },
-  { name: "Edited gallery + highlight reel", amount: 750 },
-];
-
-const FILES = [
-  { name: "Highlights_4K.mp4", size: "1.2 GB", kind: "Video" },
-  { name: "Gallery_Full_Resolution.zip", size: "3.8 GB", kind: "Photos" },
-  { name: "Social_Cutdowns.zip", size: "420 MB", kind: "Video" },
-];
+/** "Files" reads wrong to a builder and "Project" reads wrong to a caterer,
+ *  so two of the five take their label from the trade. */
+function tabsFor(industry: DemoIndustry): { id: Tab; label: string }[] {
+  const trim = (label: string) => {
+    const word = label.replace(/^Your /i, "");
+    return word.charAt(0).toUpperCase() + word.slice(1);
+  };
+  return [
+    { id: "project", label: trim(industry.portalName) },
+    { id: "estimate", label: "Estimate" },
+    { id: "invoice", label: "Invoice" },
+    { id: "files", label: trim(industry.filesLabel) },
+    { id: "messages", label: "Messages" },
+  ];
+}
 
 const money = (n: number) =>
   new Intl.NumberFormat("en-AU", {
@@ -36,9 +36,6 @@ const money = (n: number) =>
     currency: "AUD",
     minimumFractionDigits: 0,
   }).format(n);
-
-const TOTAL = LINE_ITEMS.reduce((sum, item) => sum + item.amount, 0);
-const DEPOSIT = Math.round(TOTAL * 0.3);
 
 /**
  * A working client portal, on the page.
@@ -50,6 +47,7 @@ const DEPOSIT = Math.round(TOTAL * 0.3);
  * to imagine it.
  */
 export default function PortalDemo() {
+  const [industryId, setIndustryId] = useState(INDUSTRIES[0].id);
   const [role, setRole] = useState<Role>("client");
   const [tab, setTab] = useState<Tab>("estimate");
 
@@ -62,6 +60,12 @@ export default function PortalDemo() {
   );
   const [stage, setStage] = useState(0);
   const [notified, setNotified] = useState<string | null>(null);
+
+  const industry =
+    INDUSTRIES.find((i) => i.id === industryId) ?? INDUSTRIES[0];
+  const total = industryTotal(industry);
+  const deposit = Math.round(total * 0.3);
+  const stages = industry.stages;
 
   /** Tiny toast, so an action visibly does something. */
   function ping(message: string) {
@@ -79,13 +83,22 @@ export default function PortalDemo() {
   function payDeposit() {
     setInvoice("deposit");
     setStage(1);
-    ping("Deposit paid — project opened, receipt emailed");
+    ping(`Deposit paid — ${industry.portalName.toLowerCase()} opened, receipt emailed`);
     setTab("project");
   }
 
   function payBalance() {
     setInvoice("paid");
     ping("Paid in full — receipt emailed");
+  }
+
+  /** Switching trade resets the walkthrough — half-finished states confuse. */
+  function chooseIndustry(id: string) {
+    setIndustryId(id);
+    setEstimate("sent");
+    setInvoice("none");
+    setStage(0);
+    setTab("estimate");
   }
 
   function resetDemo() {
@@ -101,17 +114,36 @@ export default function PortalDemo() {
 
   return (
     <DemoFrame
-      url={role === "client" ? "yourstudio.com/portal" : "yourstudio.com/admin"}
+      url={`yourbusiness.com.au/${role === "client" ? "portal" : "admin"}`}
       label="Try it — a client portal"
       footnote={
         <>
-          Click through it — accepting the estimate raises the invoice, paying
-          the deposit opens the project. Switch to the studio side to see the
-          same job from your desk.
+          Click through it — accepting the estimate raises the invoice, and
+          paying the deposit opens the job. Switch sides to see the same job
+          from the business&rsquo;s desk. Pick a trade above; it&rsquo;s the
+          same system either way.
         </>
       }
     >
       <div className={styles.portal}>
+        {/* Same portal, different trade — it isn't a creative-industry tool. */}
+        <div className={styles.industryBar}>
+          <span className={styles.industryLabel}>Show me a</span>
+          {INDUSTRIES.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className={`${styles.industryBtn} ${
+                industryId === item.id ? styles.industryOn : ""
+              }`}
+              onClick={() => chooseIndustry(item.id)}
+              aria-pressed={industryId === item.id}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+
         {/* Whose screen you're looking at. */}
         <div className={styles.roleBar}>
           <div className={styles.roleSwitch} role="group" aria-label="View as">
@@ -140,6 +172,9 @@ export default function PortalDemo() {
 
         {role === "client" ? (
           <ClientView
+            industry={industry}
+            total={total}
+            deposit={deposit}
             tab={tab}
             setTab={setTab}
             estimate={estimate}
@@ -155,13 +190,16 @@ export default function PortalDemo() {
           />
         ) : (
           <StudioView
+            industry={industry}
+            total={total}
+            deposit={deposit}
             estimate={estimate}
             invoice={invoice}
             stage={stage}
             stageBadge={stageBadge}
             onStage={(next) => {
               setStage(next);
-              ping(`Moved to ${STAGES[next]} — client emailed`);
+              ping(`Moved to ${stages[next]} — client emailed`);
             }}
           />
         )}
@@ -181,6 +219,9 @@ export default function PortalDemo() {
 /* ── The client's side ─────────────────────────────── */
 
 function ClientView({
+  industry,
+  total,
+  deposit,
   tab,
   setTab,
   estimate,
@@ -191,6 +232,9 @@ function ClientView({
   onPayDeposit,
   onPayBalance,
 }: {
+  industry: DemoIndustry;
+  total: number;
+  deposit: number;
   tab: Tab;
   setTab: (t: Tab) => void;
   estimate: "sent" | "accepted" | "declined";
@@ -205,16 +249,16 @@ function ClientView({
     <>
       <div className={styles.portalHead}>
         <div>
-          <span className={styles.portalEyebrow}>Your projects</span>
-          <h4 className={styles.portalTitle}>Spring campaign shoot</h4>
+          <span className={styles.portalEyebrow}>{industry.portalName}</span>
+          <h4 className={styles.portalTitle}>{industry.project}</h4>
         </div>
         <span className={styles.avatar} aria-hidden="true">
-          MC
+          {industry.clientInitials}
         </span>
       </div>
 
       <nav className={styles.tabs} role="tablist" aria-label="Portal sections">
-        {TABS.map((item) => (
+        {tabsFor(industry).map((item) => (
           <button
             key={item.id}
             type="button"
@@ -238,7 +282,7 @@ function ClientView({
         {tab === "project" ? (
           <>
             <div className={styles.track}>
-              {STAGES.map((name, i) => (
+              {industry.stages.map((name, i) => (
                 <div
                   key={name}
                   className={`${styles.trackStep} ${i <= stage ? styles.trackDone : ""}`}
@@ -250,8 +294,8 @@ function ClientView({
             </div>
             <p className={styles.panelNote}>
               {invoice === "none"
-                ? "Your project opens as soon as the deposit is paid."
-                : `Currently ${STAGES[stage].toLowerCase()}. You'll get an email each time this moves.`}
+                ? `${industry.portalName} opens as soon as the deposit is paid.`
+                : `Currently ${industry.stages[stage].toLowerCase()}. You'll get an email each time this moves.`}
             </p>
           </>
         ) : null}
@@ -274,7 +318,7 @@ function ClientView({
             </div>
 
             <ul className={styles.lines}>
-              {LINE_ITEMS.map((item) => (
+              {industry.lineItems.map((item) => (
                 <li key={item.name}>
                   <span>{item.name}</span>
                   <span>{money(item.amount)}</span>
@@ -283,7 +327,7 @@ function ClientView({
             </ul>
             <div className={styles.lineTotal}>
               <span>Total</span>
-              <strong>{money(TOTAL)}</strong>
+              <strong>{money(total)}</strong>
             </div>
 
             {estimate === "sent" ? (
@@ -343,12 +387,12 @@ function ClientView({
               <div className={styles.payGrid}>
                 <div>
                   <span className={styles.payLabel}>Deposit (30%)</span>
-                  <strong className={styles.payValue}>{money(DEPOSIT)}</strong>
+                  <strong className={styles.payValue}>{money(deposit)}</strong>
                 </div>
                 <div>
                   <span className={styles.payLabel}>Balance on delivery</span>
                   <strong className={styles.payValue}>
-                    {money(TOTAL - DEPOSIT)}
+                    {money(total - deposit)}
                   </strong>
                 </div>
               </div>
@@ -360,7 +404,7 @@ function ClientView({
                     className="jm-btn-primary jm-btn-sm"
                     onClick={onPayDeposit}
                   >
-                    Pay deposit — {money(DEPOSIT)}
+                    Pay deposit — {money(deposit)}
                   </button>
                   <span className={styles.secure}>Card payment via Square</span>
                 </div>
@@ -371,7 +415,7 @@ function ClientView({
                     className="jm-btn-primary jm-btn-sm"
                     onClick={onPayBalance}
                   >
-                    Pay balance — {money(TOTAL - DEPOSIT)}
+                    Pay balance — {money(total - deposit)}
                   </button>
                   <span className={styles.secure}>
                     Reminders send themselves
@@ -389,7 +433,7 @@ function ClientView({
         {tab === "files" ? (
           stage >= 3 ? (
             <ul className={styles.fileList}>
-              {FILES.map((file) => (
+              {industry.files.map((file) => (
                 <li key={file.name}>
                   <span className={styles.fileKind}>{file.kind}</span>
                   <span className={styles.fileName}>{file.name}</span>
@@ -399,26 +443,23 @@ function ClientView({
               ))}
             </ul>
           ) : (
-            <p className={styles.empty}>
-              Your files appear here the moment they&rsquo;re ready — no
-              WeTransfer links that expire in a week.
-            </p>
+            <p className={styles.empty}>{industry.filesEmpty}</p>
           )
         ) : null}
 
         {tab === "messages" ? (
           <div className={styles.thread}>
-            <div className={styles.msg}>
-              <span className={styles.msgWho}>Studio</span>
-              <p>
-                Morning — weather looks good for Thursday. Shall we start at the
-                warehouse and move outside around 2pm for the light?
-              </p>
-            </div>
-            <div className={`${styles.msg} ${styles.msgMine}`}>
-              <span className={styles.msgWho}>You</span>
-              <p>Perfect. I&rsquo;ll have the team there from 9.</p>
-            </div>
+            {industry.thread.map((msg, i) => (
+              <div
+                key={i}
+                className={`${styles.msg} ${msg.who === "you" ? styles.msgMine : ""}`}
+              >
+                <span className={styles.msgWho}>
+                  {msg.who === "you" ? "You" : industry.studio}
+                </span>
+                <p>{msg.text}</p>
+              </div>
+            ))}
             <div className={styles.composer} aria-hidden="true">
               <span>Write a message…</span>
               <span className={styles.send}>Send</span>
@@ -433,12 +474,18 @@ function ClientView({
 /* ── Your side ─────────────────────────────────────── */
 
 function StudioView({
+  industry,
+  total,
+  deposit,
   estimate,
   invoice,
   stage,
   stageBadge,
   onStage,
 }: {
+  industry: DemoIndustry;
+  total: number;
+  deposit: number;
   estimate: "sent" | "accepted" | "declined";
   invoice: "none" | "sent" | "deposit" | "paid";
   stage: number;
@@ -451,10 +498,10 @@ function StudioView({
       label: "Estimate",
       detail:
         estimate === "accepted"
-          ? `${money(TOTAL)} · accepted`
+          ? `${money(total)} · accepted`
           : estimate === "declined"
             ? "Declined"
-            : `${money(TOTAL)} · awaiting reply`,
+            : `${money(total)} · awaiting reply`,
       done: estimate === "accepted",
     },
     {
@@ -465,14 +512,14 @@ function StudioView({
           : invoice === "sent"
             ? "Deposit due"
             : invoice === "deposit"
-              ? `${money(DEPOSIT)} of ${money(TOTAL)}`
+              ? `${money(deposit)} of ${money(total)}`
               : "Paid in full",
       done: invoice === "paid",
     },
     {
-      label: "Delivery",
-      detail: invoice === "none" ? "Not started" : STAGES[stage],
-      done: stage >= STAGES.length - 1,
+      label: "Progress",
+      detail: invoice === "none" ? "Not started" : industry.stages[stage],
+      done: stage >= industry.stages.length - 1,
     },
   ];
 
@@ -480,14 +527,16 @@ function StudioView({
     <>
       <div className={styles.portalHead}>
         <div>
-          <span className={styles.portalEyebrow}>Studio · Projects</span>
-          <h4 className={styles.portalTitle}>Spring campaign shoot</h4>
+          <span className={styles.portalEyebrow}>{industry.studio} · Jobs</span>
+          <h4 className={styles.portalTitle}>{industry.project}</h4>
         </div>
         <span className="jm-badge jm-badge--teal">{stageBadge}</span>
       </div>
 
       <div className={styles.panel}>
-        <p className={styles.rowMetaLine}>Marlow &amp; Co · Commercial</p>
+        <p className={styles.rowMetaLine}>
+          {industry.client} · {industry.serviceType}
+        </p>
 
         <ol className={styles.chain}>
           {chain.map((step) => (
@@ -502,9 +551,9 @@ function StudioView({
         </ol>
 
         <div className={styles.studioControls}>
-          <span className={styles.payLabel}>Move production stage</span>
+          <span className={styles.payLabel}>Move the job along</span>
           <div className={styles.stageBtns}>
-            {STAGES.map((name, i) => (
+            {industry.stages.map((name, i) => (
               <button
                 key={name}
                 type="button"
@@ -519,7 +568,7 @@ function StudioView({
           </div>
           <p className={styles.panelNote}>
             {invoice === "none"
-              ? "The project opens once the deposit clears — accept the estimate on the client side first."
+              ? "The job opens once the deposit clears — accept the estimate on the client side first."
               : "Every move emails the client and updates their progress bar. Nothing to write by hand."}
           </p>
         </div>

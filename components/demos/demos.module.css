@@ -101,261 +101,355 @@
 
 /* ============================================================
    Scriber
+   ------------------------------------------------------------
+   Styled as Scriber, not as Johnston Media: light ground, blue
+   accent, serif for the written page. A case study should show
+   the product that was actually built, and the browser chrome
+   around it keeps the two visual languages from colliding.
+
+   Fixed colours on purpose — the real product has one theme, so
+   the emulation shouldn't follow this site into dark mode.
    ============================================================ */
 
-.scriberPanes {
+.scriber {
+  --sb-ink: #10151c;
+  --sb-ink-soft: #48545f;
+  --sb-ink-faint: #646d79;
+  --sb-paper: #f6f7f9;
+  --sb-surface: #ffffff;
+  --sb-surface-alt: #eef1f5;
+  --sb-line: #dde2e9;
+  --sb-accent: #1f5fd8;
+  --sb-accent-soft: #e8effc;
+  --sb-live: #c8322c;
+  --sb-live-soft: #fdeceb;
+  --sb-good: #1c7a52;
+  --sb-warn: #a35a06;
+  --sb-warn-soft: #fdf1e2;
+  --sb-serif: "Newsreader", Georgia, "Iowan Old Style", "Times New Roman", serif;
+  --sb-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --sb-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  margin: calc(var(--space-lg) * -1);
+  padding: var(--space-lg);
+  background: var(--sb-paper);
+  color: var(--sb-ink);
+  font-family: var(--sb-sans);
+}
+
+/* ── What the product is ─────────────────────────── */
+
+.sbAbout {
+  max-width: 62ch;
+  margin: 0 auto var(--space-lg);
+  text-align: center;
+}
+
+.sbAbout h4 {
+  font-family: var(--sb-serif);
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: var(--sb-ink);
+}
+
+.sbAbout p {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  line-height: 1.7;
+  color: var(--sb-ink-soft);
+}
+
+.sbAbout strong {
+  color: var(--sb-ink);
+  font-weight: 600;
+}
+
+.sbFacts {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-md);
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  margin-top: var(--space-md);
+  padding: 0;
+  list-style: none;
+  text-align: left;
 }
 
-.paper,
-.writerPane {
-  border: 1px solid var(--jm-border);
-  border-radius: var(--radius-md);
-  padding: var(--space-md);
-  background: var(--jm-input-bg);
-  min-height: 210px;
+.sbFacts li {
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--sb-line);
+  border-radius: 12px;
+  background: var(--sb-surface);
+  font-size: 0.78rem;
+  line-height: 1.55;
+  color: var(--sb-ink-soft);
 }
 
-.qNum {
-  font-family: var(--font-body);
-  font-size: var(--text-xs);
+.sbFacts span {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.65rem;
+  font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--jm-copper);
-  margin-bottom: 0.6rem;
+  color: var(--sb-accent);
 }
 
-.qText {
-  font-family: var(--font-display);
-  font-size: var(--text-lg);
-  line-height: 1.5;
-  color: var(--jm-white);
-}
+/* ── The writer ──────────────────────────────────── */
 
-.qRule {
-  height: 1px;
-  background: var(--jm-border-strong);
-  margin: var(--space-md) 0;
-}
-
-.qHint {
-  font-family: var(--font-body);
-  font-size: var(--text-sm);
-  line-height: 1.65;
-  color: var(--jm-muted);
-}
-
-/* The writer's page — deliberately handwriting-adjacent. */
-.written {
-  font-family: var(--font-display);
-  font-size: var(--text-base);
-  line-height: 2;
-  color: var(--jm-white);
-  min-height: 7rem;
-  /* Ruled paper, so it reads as something being written on. */
-  background-image: repeating-linear-gradient(
-    var(--jm-border) 0 1px,
-    transparent 1px 2rem
-  );
-  background-position: 0 1.85rem;
-}
-
-.placeholder {
-  font-family: var(--font-body);
-  font-size: var(--text-sm);
-  color: var(--jm-slate);
-}
-
-.caret {
-  display: inline-block;
-  width: 2px;
-  height: 1.05em;
-  vertical-align: text-bottom;
-  margin-left: 2px;
-  background: var(--jm-copper);
-  animation: blink 1s steps(2, start) infinite;
-}
-
-@keyframes blink {
-  50% {
-    opacity: 0;
-  }
-}
-
-.pulse {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--jm-border-strong);
-  transition: background 0.3s ease;
-}
-
-.pulseOn {
-  background: var(--jm-copper);
-  animation: throb 1.4s ease-in-out infinite;
-}
-
-@keyframes throb {
-  50% {
-    opacity: 0.35;
-  }
-}
-
-.interject {
-  margin-top: var(--space-sm);
-  padding: 0.6rem 0.9rem;
-  border-left: 2px solid var(--jm-blue);
-  background: var(--jm-hover-wash);
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-  font-family: var(--font-body);
-  font-size: var(--text-sm);
-  font-style: italic;
-  line-height: 1.6;
-  color: var(--jm-lightgrey);
-}
-
-.interjectWarn {
-  border-left-color: var(--jm-copper);
-  color: var(--jm-amber);
-}
-
-/* The spoken stream. */
-.dictation {
-  margin-top: var(--space-md);
-  padding: var(--space-md);
-  border: 1px solid var(--jm-border);
-  border-radius: var(--radius-md);
-}
-
-.stream {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-}
-
-.token {
-  font-family: var(--font-body);
-  font-size: var(--text-sm);
-  padding: 0.15rem 0.5rem;
-  border-radius: var(--radius-sm);
-  color: var(--jm-slate);
-  background: var(--jm-input-bg);
-  transition:
-    color 0.25s ease,
-    background 0.25s ease;
-}
-
-/* Said, and safely on the page. */
-.tokenWritten {
-  color: var(--jm-white);
-  background: var(--jm-hover-wash);
-}
-
-/* Said, but the writer hasn't caught up yet — the whole point. */
-.tokenPending {
-  color: var(--jm-amber);
-  background: rgba(193, 90, 50, 0.16);
-}
-
-/* Spoken punctuation, which becomes a mark rather than a word. */
-.tokenPunct {
-  font-style: italic;
-}
-
-.controls {
-  display: flex;
-  align-items: center;
-  gap: var(--space-md);
-  flex-wrap: wrap;
-  margin-top: var(--space-md);
-}
-
-.paceGroup {
-  display: flex;
-  border: 1px solid var(--jm-border-strong);
-  border-radius: var(--radius-pill);
+.sbWidget {
+  max-width: 640px;
+  margin: 0 auto;
+  background: var(--sb-surface);
+  border: 1px solid var(--sb-line);
+  border-radius: 18px;
+  box-shadow: 0 4px 16px rgb(16 21 28 / 0.08);
   overflow: hidden;
 }
 
-.paceBtn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-family: var(--font-body);
-  font-size: var(--text-xs);
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  padding: 0.5rem 1rem;
-  color: var(--jm-muted);
-  transition:
-    background 0.25s ease,
-    color 0.25s ease;
+.sbLoadBar {
+  height: 6px;
+  background: var(--sb-surface-alt);
 }
 
-.paceBtn:hover {
-  color: var(--jm-white);
-  background: var(--jm-hover-wash);
-}
-
-.paceOn {
-  background: var(--jm-copper);
-  color: var(--jm-fixed-white);
-}
-
-.paceOn:hover {
-  background: var(--jm-copper);
-  color: var(--jm-fixed-white);
-}
-
-.meter {
-  flex: 1;
-  min-width: 200px;
-}
-
-.meterLabel {
-  display: block;
-  font-family: var(--font-body);
-  font-size: var(--text-xs);
-  letter-spacing: 0.06em;
-  color: var(--jm-muted);
-  margin-bottom: 0.4rem;
-}
-
-.meterTrack {
-  display: block;
-  height: 4px;
-  border-radius: var(--radius-pill);
-  background: var(--jm-border-strong);
-  overflow: hidden;
-}
-
-.meterFill {
-  display: block;
+.sbLoadFill {
   height: 100%;
-  background: var(--jm-blue);
+  background: var(--sb-good);
   transition:
-    width 0.2s linear,
+    width 0.14s linear,
     background 0.3s ease;
 }
 
-.meterHot {
-  background: var(--jm-copper);
+.sbLoadBar[data-tone="busy"] .sbLoadFill {
+  background: var(--sb-warn);
+}
+
+.sbLoadBar[data-tone="critical"] .sbLoadFill {
+  background: var(--sb-live);
+}
+
+.sbContext {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 16px 24px 4px;
+}
+
+.sbContextLabel {
+  width: 100%;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sb-ink-faint);
+  margin-bottom: 8px;
+}
+
+.sbSlot {
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--sb-line);
+  background: var(--sb-surface-alt);
+  font-family: var(--sb-serif);
+  font-size: 0.82rem;
+  color: var(--sb-ink-soft);
+  animation: sbSlotIn 0.22s ease-out;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.sbSlot[data-empty="true"] {
+  width: 26px;
+  min-width: 26px;
+  padding: 0;
+  background: transparent;
+  border-style: dashed;
+}
+
+/* A spoken command is not a word — it gets the mono voice. */
+.sbSlot[data-command="true"] {
+  font-family: var(--sb-mono);
+  font-size: 0.7rem;
+  color: var(--sb-accent);
+  background: var(--sb-accent-soft);
+  border-color: var(--sb-accent);
+}
+
+.sbSlot[data-tone="busy"] {
+  background: var(--sb-warn-soft);
+  border-color: var(--sb-warn);
+  color: var(--sb-warn);
+}
+
+.sbSlot[data-tone="critical"] {
+  background: var(--sb-live-soft);
+  border-color: var(--sb-live);
+  color: var(--sb-live);
+}
+
+@keyframes sbSlotIn {
+  from {
+    opacity: 0;
+    transform: translateY(3px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.sbSheet {
+  min-height: 132px;
+  padding: 24px;
+  font-family: var(--sb-serif);
+  font-size: 1.05rem;
+  line-height: 1.8;
+  color: var(--sb-ink);
+  white-space: pre-wrap;
+}
+
+.sbPlaceholder {
+  color: var(--sb-ink-faint);
+  font-style: italic;
+  font-family: var(--sb-sans);
+  font-size: 0.9rem;
+}
+
+.sbCursor {
+  display: inline-block;
+  width: 2px;
+  height: 1.1em;
+  background: var(--sb-accent);
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  animation: sbPulse 0.9s ease-in-out infinite;
+}
+
+@keyframes sbPulse {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+.sbCaption {
+  padding: 14px 24px;
+  border-top: 1px solid var(--sb-line);
+  background: var(--sb-surface-alt);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--sb-ink-soft);
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+}
+
+/* ── Controls ────────────────────────────────────── */
+
+.sbControls {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+  margin-top: var(--space-md);
+}
+
+.sbPlay {
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  background: var(--sb-accent);
+  color: #fff;
+  font-family: var(--sb-sans);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 0.65rem 1.4rem;
+  transition: background 0.25s ease;
+}
+
+.sbPlay:hover {
+  background: #1a4bad;
+}
+
+.sbSelect {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.sbSelect > span {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--sb-ink-faint);
+}
+
+.sbSelect select {
+  appearance: none;
+  border: 1px solid var(--sb-line);
+  border-radius: 8px;
+  background: var(--sb-surface);
+  color: var(--sb-ink);
+  font-family: var(--sb-sans);
+  font-size: 0.82rem;
+  padding: 0.5rem 0.85rem;
+  cursor: pointer;
+}
+
+.sbSelect select:focus-visible {
+  outline: 2px solid var(--sb-accent);
+  outline-offset: 1px;
+}
+
+.sbLost {
+  align-self: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--sb-live);
+  background: var(--sb-live-soft);
+  border-radius: 999px;
+  padding: 0.3rem 0.75rem;
+}
+
+.sbHint {
+  margin-top: 0.75rem;
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--sb-ink-faint);
 }
 
 .scriberTip {
-  margin-top: var(--space-md);
-  font-family: var(--font-body);
-  font-size: var(--text-sm);
+  max-width: 62ch;
+  margin: var(--space-md) auto 0;
+  text-align: center;
+  font-size: 0.85rem;
   line-height: 1.7;
-  color: var(--jm-muted);
+  color: var(--sb-ink-soft);
 }
 
 .scriberTip strong {
-  color: var(--jm-amber);
+  color: var(--sb-accent);
   font-weight: 600;
+}
+
+@media (max-width: 720px) {
+  .sbFacts {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sbSlot,
+  .sbCursor {
+    animation: none;
+  }
+  .sbLoadFill {
+    transition: none;
+  }
 }
 
 /* ============================================================
@@ -924,4 +1018,58 @@
   .chainStep {
     transition: none;
   }
+}
+
+/* ── Industry switcher ───────────────────────────── */
+
+/*
+ * The portal is a jobs-and-money tool, not a creative-industry one. Letting a
+ * visitor put their own trade on screen saves them translating every label in
+ * their head — which is the moment most people decide it isn't for them.
+ */
+.industryBar {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  padding-bottom: var(--space-sm);
+  margin-bottom: var(--space-sm);
+  border-bottom: 1px dashed var(--jm-border-strong);
+}
+
+.industryLabel {
+  font-family: var(--font-body);
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--jm-slate);
+  margin-right: 0.25rem;
+}
+
+.industryBtn {
+  background: none;
+  border: 1px solid var(--jm-border-strong);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  letter-spacing: 0.06em;
+  padding: 0.32rem 0.85rem;
+  color: var(--jm-muted);
+  transition:
+    background 0.25s ease,
+    border-color 0.25s ease,
+    color 0.25s ease;
+}
+
+.industryBtn:hover {
+  color: var(--jm-white);
+  border-color: var(--jm-copper);
+}
+
+.industryOn,
+.industryOn:hover {
+  background: var(--jm-copper);
+  border-color: var(--jm-copper);
+  color: var(--jm-fixed-white);
 }

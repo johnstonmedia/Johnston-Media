@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
+import { SITE_URL } from "@/lib/siteUrl";
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://wjohnstonmedia.com";
+const BASE = SITE_URL;
 
 /** Never worth crawling: auth walls and endpoints that render no content. */
 const PRIVATE = ["/portal", "/admin", "/api/"];

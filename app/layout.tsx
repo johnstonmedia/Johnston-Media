@@ -8,6 +8,7 @@ import ScrollProgress from "@/components/ScrollProgress";
 import { BusinessSchema } from "@/components/StructuredData";
 import { THEME_INIT_SCRIPT } from "@/components/ThemeToggle";
 import { ToastProvider } from "@/components/Toast";
+import { SITE_URL } from "@/lib/siteUrl";
 
 import "./globals.css";
 
@@ -26,11 +27,10 @@ const montserrat = Montserrat({
   display: "swap",
 });
 
-const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://wjohnstonmedia.com";
+
 
 export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "Johnston Media — Your Vision. My Lens.",
     template: "%s · Johnston Media",
@@ -54,7 +54,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_AU",
-    url: siteUrl,
+    url: SITE_URL,
     siteName: "Johnston Media",
     title: "Johnston Media — Your Vision. My Lens.",
     description:

@@ -11,10 +11,9 @@ import { PackageProvider } from "@/components/PackageContext";
 import QuoteForm from "@/components/QuoteForm";
 import Reveal from "@/components/Reveal";
 
-import styles from "./contact.module.css";
+import { SITE_URL } from "@/lib/siteUrl";
 
-const SITE =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://wjohnstonmedia.com";
+import styles from "./contact.module.css";
 
 export const metadata: Metadata = {
   title: "Contact",
@@ -137,7 +136,7 @@ export default function ContactPage() {
         </div>
       </section>
 
-      <Faq items={STUDIO_FAQ} schemaId={`${SITE}/contact#faq`} />
+      <Faq items={STUDIO_FAQ} schemaId={`${SITE_URL}/contact#faq`} />
     </PackageProvider>
   );
 }

@@ -3,6 +3,7 @@ import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 import type { Campaign, Contact, EmailTemplate } from "./emailTypes";
+import { SITE_URL } from "@/lib/siteUrl";
 
 const RESEND_API = "https://api.resend.com";
 const KEY = process.env.RESEND_API_KEY;
@@ -23,8 +24,7 @@ const BATCH_SIZE = 100;
 const UNSUB_SECRET =
   process.env.EMAIL_UNSUBSCRIBE_SECRET ?? process.env.RESEND_API_KEY ?? "";
 
-const SITE =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://wjohnstonmedia.com";
+const SITE = SITE_URL;
 
 /**
  * A signed, one-click unsubscribe link.

@@ -14,10 +14,9 @@ import { WebDevelopmentSchema } from "@/components/StructuredData";
 import { WEB_FAQ } from "@/lib/faq";
 
 import pageStyles from "../page.module.css";
-import styles from "./web.module.css";
+import { SITE_URL } from "@/lib/siteUrl";
 
-const SITE =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://wjohnstonmedia.com";
+import styles from "./web.module.css";
 
 export const metadata: Metadata = {
   title: "Web Development",
@@ -389,7 +388,7 @@ export default function WebDevelopmentPage() {
       {/* ─── FAQ ──────────────────────────────────── */}
       <Faq
         items={WEB_FAQ}
-        schemaId={`${SITE}/web-development#faq`}
+        schemaId={`${SITE_URL}/web-development#faq`}
         eyebrow="Before you ask"
         title="Straight answers"
       />

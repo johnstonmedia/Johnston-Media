@@ -10,13 +10,13 @@ import "server-only";
 import { Resend } from "resend";
 
 import { formatMoney, type Estimate, type Quote } from "./types";
+import { SITE_URL } from "@/lib/siteUrl";
 
 const FROM =
   process.env.EMAIL_FROM ?? "Johnston Media <hello@wjohnstonmedia.com>";
 const OWNER_NOTIFY =
   process.env.OWNER_NOTIFY_EMAIL ?? "wjohnston.media@gmail.com";
-const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://wjohnstonmedia.com";
+
 
 export function isEmailConfigured(): boolean {
   return Boolean(process.env.RESEND_API_KEY);

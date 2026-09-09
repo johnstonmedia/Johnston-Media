@@ -1,9 +1,10 @@
 import { STUDIO_FAQ, WEB_FAQ } from "@/lib/faq";
 import { WEB_PACKAGES } from "@/lib/packages";
+import { SITE_URL } from "@/lib/siteUrl";
 
 export const dynamic = "force-static";
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://wjohnstonmedia.com";
+const BASE = SITE_URL;
 
 /**
  * /llms.txt — a plain-language summary of the site for AI answer engines.

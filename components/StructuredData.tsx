@@ -11,8 +11,8 @@
  * none, and Google penalises it.
  */
 
-const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://wjohnstonmedia.com";
+import { SITE_URL } from "@/lib/siteUrl";
+
 const CONTACT_EMAIL =
   process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? "wjohnston.media@gmail.com";
 

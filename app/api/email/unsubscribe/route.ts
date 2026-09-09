@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { verifyUnsubscribe } from "@/lib/broadcast";
 import { adminDb } from "@/lib/firebaseAdmin";
+import { SITE_URL } from "@/lib/siteUrl";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -77,7 +78,7 @@ function page(message: string, ok: boolean): Response {
 <body><div class="card">
   <h1>${ok ? "You're unsubscribed" : "We couldn't do that"}</h1>
   <p>${message}</p>
-  <a href="https://wjohnstonmedia.com">Johnston Media</a>
+  <a href="${SITE_URL}">Johnston Media</a>
 </div></body></html>`;
 
   return new Response(html, {

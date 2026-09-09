@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { getSiteSettings } from "@/lib/serverSettings";
+
 import { InstagramIcon, TikTokIcon, YouTubeIcon } from "./Icons";
 import styles from "./Footer.module.css";
 
@@ -19,26 +21,37 @@ const SERVICES = [
   { href: "/web-development", label: "Websites & Portals" },
 ];
 
-const SOCIALS = [
-  {
-    href: process.env.NEXT_PUBLIC_INSTAGRAM_URL ?? "https://instagram.com",
-    label: "Instagram",
-    icon: <InstagramIcon />,
-  },
-  {
-    href: process.env.NEXT_PUBLIC_TIKTOK_URL ?? "https://tiktok.com",
-    label: "TikTok",
-    icon: <TikTokIcon />,
-  },
-  {
-    href: process.env.NEXT_PUBLIC_YOUTUBE_URL ?? "https://youtube.com",
-    label: "YouTube",
-    icon: <YouTubeIcon />,
-  },
-];
-
-export default function Footer() {
+export default async function Footer() {
   const year = new Date().getFullYear();
+  const settings = await getSiteSettings();
+
+  // Admin panel first, then the env var, then the bare platform link.
+  const socials = [
+    {
+      href:
+        settings?.igUrl ||
+        process.env.NEXT_PUBLIC_INSTAGRAM_URL ||
+        "https://instagram.com",
+      label: "Instagram",
+      icon: <InstagramIcon />,
+    },
+    {
+      href:
+        settings?.ttUrl ||
+        process.env.NEXT_PUBLIC_TIKTOK_URL ||
+        "https://tiktok.com",
+      label: "TikTok",
+      icon: <TikTokIcon />,
+    },
+    {
+      href:
+        settings?.ytUrl ||
+        process.env.NEXT_PUBLIC_YOUTUBE_URL ||
+        "https://youtube.com",
+      label: "YouTube",
+      icon: <YouTubeIcon />,
+    },
+  ];
 
   return (
     <footer className={styles.footer}>
@@ -82,9 +95,10 @@ export default function Footer() {
         <div className={styles.bottom}>
           <p className={styles.copy}>
             © {year} Johnston Media · New South Wales, Australia
+            {settings?.footerNote ? ` · ${settings.footerNote}` : ""}
           </p>
           <div className={styles.social}>
-            {SOCIALS.map((social) => (
+            {socials.map((social) => (
               <a
                 key={social.label}
                 href={social.href}

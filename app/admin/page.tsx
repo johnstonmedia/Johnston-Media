@@ -6,18 +6,28 @@ import AuthGate from "@/components/AuthGate";
 import type { UserProfile } from "@/lib/types";
 
 import styles from "./admin.module.css";
+import ContentPanel from "./ContentPanel";
 import MessagesPanel from "./MessagesPanel";
+import PortfolioPanel from "./PortfolioPanel";
 import ProjectsPanel from "./ProjectsPanel";
 import QuotesPanel from "./QuotesPanel";
 import UsersPanel from "./UsersPanel";
 
-type Tab = "quotes" | "projects" | "clients" | "messages";
+type Tab =
+  | "quotes"
+  | "projects"
+  | "clients"
+  | "messages"
+  | "portfolio"
+  | "content";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "quotes", label: "Quotes" },
   { id: "projects", label: "Projects" },
   { id: "clients", label: "Clients" },
   { id: "messages", label: "Messages" },
+  { id: "portfolio", label: "Portfolio" },
+  { id: "content", label: "Site content" },
 ];
 
 export default function AdminPage() {
@@ -110,6 +120,10 @@ function AdminDashboard({
         <div hidden={tab !== "messages"}>
           <MessagesPanel onCount={setCount("messages")} />
         </div>
+
+        {/* Mounted lazily — neither needs loading until you go looking. */}
+        {tab === "portfolio" ? <PortfolioPanel /> : null}
+        {tab === "content" ? <ContentPanel /> : null}
       </div>
     </div>
   );

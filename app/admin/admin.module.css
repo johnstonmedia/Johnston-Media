@@ -598,3 +598,119 @@
     gap: 0;
   }
 }
+
+/* ─── Content and portfolio panels ───────────────── */
+
+.panelIntro {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  line-height: 1.7;
+  color: var(--jm-muted);
+  margin-bottom: var(--space-lg);
+  max-width: 62ch;
+}
+
+.panelIntro strong {
+  color: var(--jm-white);
+  font-weight: 500;
+}
+
+/* Hero standard-vs-video choice. */
+.modeRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+  margin: var(--space-md) 0;
+}
+
+@media (max-width: 560px) {
+  .modeRow {
+    grid-template-columns: 1fr;
+  }
+}
+
+.uploadRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+  margin-top: 0.6rem;
+}
+
+.fileInput {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--jm-muted);
+  max-width: 100%;
+}
+
+.fileInput::file-selector-button {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--jm-white);
+  background: var(--jm-input-bg);
+  border: 1px solid var(--jm-border-strong);
+  border-radius: var(--radius-pill);
+  padding: 0.4rem 1rem;
+  margin-right: 0.75rem;
+  cursor: pointer;
+  transition: border-color 0.25s ease;
+}
+
+.fileInput::file-selector-button:hover {
+  border-color: var(--jm-copper);
+}
+
+.uploadNote {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--jm-slate);
+  margin-top: 0.4rem;
+}
+
+.saveBar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+  margin-top: var(--space-xl);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--jm-border);
+}
+
+.addCard {
+  border: 1px solid var(--jm-border);
+  border-radius: var(--radius-lg);
+  background: var(--jm-surface);
+  padding: var(--space-md) var(--space-lg);
+  margin-bottom: var(--space-lg);
+}
+
+/* Portfolio row thumbnails. */
+.thumbBox {
+  width: 96px;
+  height: 64px;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--jm-input-bg);
+  border: 1px solid var(--jm-border);
+  display: grid;
+  place-items: center;
+}
+
+.thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.thumbKind {
+  font-family: var(--font-body);
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--jm-slate);
+}

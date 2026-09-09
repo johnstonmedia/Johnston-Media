@@ -286,6 +286,35 @@ price changes.
 
 ---
 
+## Editing the site without touching code
+
+Admin has two tabs for content, and both write straight to Firestore — so a
+change is live within a minute, with nothing to redeploy.
+
+**Site content** (`settings/site`)
+
+| Section | What it changes |
+| ------- | --------------- |
+| Home page hero | Eyebrow, headline, sub-heading; standard gradient hero or your own video behind it |
+| About | The pull quote and your story — blank lines start new paragraphs |
+| Contact and socials | Public email, second email, Instagram, TikTok, YouTube, footer line |
+
+Leave any field empty and the built-in wording stays. Choosing "Video hero"
+without a video quietly reverts to standard rather than shipping a black band.
+
+**Portfolio** (`portfolio/{category}/projects`)
+
+Add, edit, reorder and remove the work shown on the home page and `/work`.
+Upload an image or video, or paste a URL. The up/down arrows set the order the
+public grid uses.
+
+These pages read their content **on the server** (`lib/serverSettings.ts`,
+60-second revalidate), so the words are in the HTML for search engines and AI
+answer engines rather than being fetched by the browser afterwards. If Firebase
+Admin isn't configured the read fails soft and the built-in copy is used.
+
+---
+
 ## Projects — the spine of a job
 
 Everything about a job hangs off one project record: the request it came from,

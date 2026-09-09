@@ -4,14 +4,28 @@ import Link from "next/link";
 import Hero from "@/components/Hero";
 import { ArrowRight } from "@/components/Icons";
 import Reveal from "@/components/Reveal";
+import { getSiteSettings, paragraphs } from "@/lib/serverSettings";
 
 import styles from "../page.module.css";
+
+/**
+ * Picks up edits made in the admin panel without a redeploy.
+ * Must be a literal — Next.js reads route config statically.
+ */
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "About",
   description:
     "Johnston Media is Will Johnston — a New South Wales photographer, videographer and drone operator telling stories with a cinematic eye.",
 };
+
+/** Shown until the story is written in Admin → Site content. */
+const DEFAULT_STORY = [
+  "Johnston Media is Will Johnston. Based in New South Wales, I shoot cinematic photography and video for sports teams, brands and events — and I stay on the project from the first conversation to final delivery.",
+  "That means the person you brief is the person behind the camera and in the edit. Nothing gets lost in a handover, and the story you set out to tell is the one that gets delivered.",
+  "More recently that same care has extended to the web — building the sites, portals and automation that studios and small businesses actually need.",
+];
 
 const STATS = [
   { num: "100+", label: "Projects" },
@@ -48,7 +62,11 @@ const PROCESS = [
   },
 ];
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const settings = await getSiteSettings();
+  const story = paragraphs(settings?.aboutText);
+  const body = story.length > 0 ? story : DEFAULT_STORY;
+
   return (
     <>
       <Hero
@@ -69,25 +87,24 @@ export default function AboutPage() {
             <Reveal>
               <span className="jm-eyebrow">The Studio</span>
               <h2 className="jm-section-title">
-                A one-person studio, <em>on purpose</em>
+                {settings?.aboutTitle ? (
+                  settings.aboutTitle
+                ) : (
+                  <>
+                    A one-person studio, <em>on purpose</em>
+                  </>
+                )}
               </h2>
               <hr className="jm-section-rule" />
-              <p className="jm-body">
-                Johnston Media is Will Johnston. Based in New South Wales, I
-                shoot cinematic photography and video for sports teams, brands
-                and events — and I stay on the project from the first
-                conversation to final delivery.
-              </p>
-              <p className="jm-body" style={{ marginTop: "1rem" }}>
-                That means the person you brief is the person behind the camera
-                and in the edit. Nothing gets lost in a handover, and the story
-                you set out to tell is the one that gets delivered.
-              </p>
-              <p className="jm-body" style={{ marginTop: "1rem" }}>
-                More recently that same care has extended to the web — building
-                the sites, portals and automation that studios and small
-                businesses actually need.
-              </p>
+              {body.map((para, i) => (
+                <p
+                  key={para.slice(0, 32)}
+                  className="jm-body"
+                  style={i > 0 ? { marginTop: "1rem" } : undefined}
+                >
+                  {para}
+                </p>
+              ))}
             </Reveal>
 
             <Reveal delay={100}>

@@ -321,6 +321,11 @@ export interface SiteSettings {
   heroSubtitle?: string;
   heroEyebrow?: string;
   heroVideoUrl?: string;
+  /**
+   * "standard" uses the built-in cinematic gradient hero; "custom" plays
+   * heroVideoUrl behind it. Falls back to standard when there's no video.
+   */
+  heroMode?: "standard" | "custom";
   aboutTitle?: string;
   aboutText?: string;
   primaryEmail?: string;
@@ -329,7 +334,24 @@ export interface SiteSettings {
   ttUrl?: string;
   ytUrl?: string;
   footerNote?: string;
+  updatedAt?: string;
 }
+
+/** The fields the content editor writes, in the order they're shown. */
+export const SETTINGS_FIELDS = [
+  "heroEyebrow",
+  "heroTitle",
+  "heroSubtitle",
+  "heroVideoUrl",
+  "aboutTitle",
+  "aboutText",
+  "primaryEmail",
+  "secondaryEmail",
+  "igUrl",
+  "ttUrl",
+  "ytUrl",
+  "footerNote",
+] as const satisfies readonly (keyof SiteSettings)[];
 
 export interface PortfolioProject {
   id: string;

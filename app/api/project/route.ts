@@ -1,11 +1,39 @@
 import { NextResponse } from "next/server";
 
 import { adminDb, requireAdmin } from "@/lib/firebaseAdmin";
-import type { Project, Quote } from "@/lib/types";
+import {
+  PIPELINE_STAGES,
+  type PipelineStage,
+  type Project,
+  type Quote,
+} from "@/lib/types";
 import { clean } from "@/lib/validation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+/**
+ * Where a new project starts on the board.
+ *
+ * Read from the quote, so a project opened against a job that's already paid
+ * doesn't land back at "Enquiry". Opening one by hand means you've agreed the
+ * work already, so that starts at "Booked".
+ */
+function defaultStage(quote: Quote | null): PipelineStage {
+  if (!quote) return "Booked";
+
+  switch (quote.status) {
+    case "Pending":
+    case "Reviewed":
+      return "Enquiry";
+    case "Estimate Sent":
+    case "Sent":
+      return "Proposal";
+    default:
+      // Accepted, Invoiced, Deposit Paid, Paid — the job is on.
+      return "Booked";
+  }
+}
 
 /**
  * Admin-only: open a project.
@@ -68,6 +96,22 @@ export async function POST(request: Request) {
     }
   }
 
+  const requestedStage = clean(body.pipelineStage, 40) as PipelineStage | "";
+  if (requestedStage && !PIPELINE_STAGES.includes(requestedStage)) {
+    return NextResponse.json(
+      { ok: false, error: `Unknown pipeline stage "${requestedStage}".` },
+      { status: 400 },
+    );
+  }
+
+  const squareProjectUrl = clean(body.squareProjectUrl, 600);
+  if (squareProjectUrl && !/^https?:\/\//i.test(squareProjectUrl)) {
+    return NextResponse.json(
+      { ok: false, error: "The Square link must start with http:// or https://" },
+      { status: 400 },
+    );
+  }
+
   const name = clean(body.name, 200) || quote?.name;
   const clientName = clean(body.clientName, 160) || quote?.clientName;
   const clientEmail =
@@ -97,10 +141,12 @@ export async function POST(request: Request) {
     clientEmail: clientEmail || undefined,
     serviceType: clean(body.serviceType, 160) || quote?.serviceType || "",
     name,
+    pipelineStage: requestedStage || defaultStage(quote),
     status: "Planning",
     files: [],
     quoteId: quoteId || undefined,
     squareCustomerId: quote?.squareCustomerId,
+    squareProjectUrl: squareProjectUrl || undefined,
     createdAt: new Date().toISOString(),
   };
 

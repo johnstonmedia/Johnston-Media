@@ -292,3 +292,57 @@
   color: var(--jm-slate);
   line-height: 1.7;
 }
+
+/* ─── Shared paperwork ───────────────────────────── */
+
+/*
+ * The estimate and contract, when Will has chosen to show them. Deliberately
+ * quieter than the delivery files — these are for reference, not action.
+ */
+.docs {
+  width: 100%;
+  margin-top: var(--space-sm);
+  display: grid;
+  gap: 0.5rem;
+}
+
+.doc {
+  padding: 0.6rem 0.85rem;
+  border: 1px solid var(--jm-border);
+  border-radius: var(--radius-md);
+  background: var(--jm-input-bg);
+}
+
+.docLabel {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--jm-slate);
+}
+
+.docDetail {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: var(--text-sm);
+  color: var(--jm-white);
+}
+
+.docDetail a {
+  color: var(--jm-blue);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.docDetail a:hover {
+  color: var(--jm-copper);
+}
+
+.docNote {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: var(--text-xs);
+  line-height: 1.6;
+  color: var(--jm-muted);
+}

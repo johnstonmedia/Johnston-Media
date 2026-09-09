@@ -67,11 +67,11 @@ html {
   --jm-amber: #f2c88d;
 
   /* ─── Lines, washes and depth (dark) ────────────── */
-  --jm-border: var(--jm-border);
-  --jm-border-strong: var(--jm-border-strong);
-  --jm-input-bg: var(--jm-input-bg);
-  --jm-input-bg-focus: var(--jm-border);
-  --jm-hover-wash: var(--jm-border);
+  --jm-border: rgba(255, 255, 255, 0.06);
+  --jm-border-strong: rgba(255, 255, 255, 0.12);
+  --jm-input-bg: rgba(255, 255, 255, 0.03);
+  --jm-input-bg-focus: rgba(255, 255, 255, 0.05);
+  --jm-hover-wash: rgba(255, 255, 255, 0.05);
   --jm-scrim: rgba(0, 0, 0, 0.85);
   --jm-shadow-md: 0 12px 40px rgba(0, 0, 0, 0.5);
   --jm-shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.6);

@@ -194,8 +194,11 @@ export async function POST(request: Request) {
           clientEmail: quote.clientEmail,
           serviceType: quote.serviceType,
           name: quote.name,
+          // Money has changed hands, so the job is booked on the board.
+          pipelineStage: "Booked",
           status: "Planning",
           quoteId: quote.id,
+          squareCustomerId: quote.squareCustomerId,
           files: [],
           createdAt: new Date().toISOString(),
         });

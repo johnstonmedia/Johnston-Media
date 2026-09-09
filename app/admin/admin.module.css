@@ -457,3 +457,144 @@
 .squareLinks a:hover {
   color: var(--jm-copper);
 }
+
+/* A button that reads as one of the links beside it. */
+.linkBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: var(--text-xs);
+  letter-spacing: 0.06em;
+  color: var(--jm-blue);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  transition: color 0.25s ease;
+}
+
+.linkBtn:hover {
+  color: var(--jm-copper);
+}
+
+/* ─── Project chain ──────────────────────────────── */
+
+/*
+ * The job read left to right: request → estimate → contract → invoice →
+ * delivery. Done steps are lit, the current one is ringed, the rest sit back
+ * so the eye lands on what's outstanding.
+ */
+.chain {
+  /* Its own full-width line inside .row — five steps never fit beside the
+     stage pickers without wrapping badly. */
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chainStep {
+  flex: 1 1 7rem;
+  min-width: 7rem;
+  padding: 0.5rem 0 0.5rem 0.7rem;
+  border-left: 2px solid var(--jm-border-strong);
+  opacity: 0.55;
+  transition:
+    opacity 0.25s ease,
+    border-color 0.25s ease;
+}
+
+.chainDone,
+.chainActive {
+  opacity: 1;
+}
+
+.chainDone {
+  border-left-color: var(--jm-blue);
+}
+
+.chainActive {
+  border-left-color: var(--jm-copper);
+}
+
+.chainLabel {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--jm-slate);
+}
+
+.chainActive .chainLabel {
+  color: var(--jm-amber);
+}
+
+.chainLabel a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.chainLabel a:hover {
+  color: var(--jm-copper);
+}
+
+.chainDetail {
+  display: block;
+  margin-top: 0.3rem;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: var(--jm-white);
+}
+
+.chainStep:not(.chainDone):not(.chainActive) .chainDetail {
+  color: var(--jm-muted);
+}
+
+/* A labelled dropdown — the label carries the meaning, so the value doesn't
+   also need a badge repeating it. */
+.stagePicker {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.stagePicker > span {
+  font-family: var(--font-body);
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--jm-slate);
+}
+
+.stagePicker select {
+  width: 150px;
+  padding: 0.45rem 2.5rem 0.45rem 0.85rem;
+}
+
+/* ─── Panel toolbar ──────────────────────────────── */
+
+.panelBar {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-md);
+}
+
+/* Two form fields side by side, stacking on narrow screens. */
+.fieldRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+}
+
+@media (max-width: 560px) {
+  .fieldRow {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}

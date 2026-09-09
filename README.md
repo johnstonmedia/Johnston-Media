@@ -35,7 +35,9 @@ Square invoicing possible.
 | `/api/estimate`       | Admin      | Send an estimate for a quote                     |
 | `/api/estimate/respond` | Client   | Accept or decline an estimate                    |
 | `/api/invoice`        | Admin      | Quote → Square invoice, published and emailed    |
-| `/api/project/stage`  | Admin      | Move a project stage and notify the client       |
+| `/api/project`        | Admin      | Open a project, optionally from a quote          |
+| `/api/project/record` | Admin      | Record a Square estimate or contract on a project |
+| `/api/project/stage`  | Admin      | Move a project's stage and notify the client     |
 | `/api/square/webhook` | Signed     | Square payment events → status, project, receipts |
 
 ---
@@ -284,6 +286,55 @@ price changes.
 
 ---
 
+## Projects — the spine of a job
+
+Everything about a job hangs off one project record: the request it came from,
+the estimate, the contract, the invoice, the stage it's at and the files you
+delivered. Admin → Projects shows that chain on every card, left to right:
+
+```
+Request  →  Estimate  →  Contract  →  Invoice  →  Delivery
+```
+
+Lit steps are done, the copper one is where the job sits, dimmed steps are still
+outstanding. It's meant to answer one question at a glance: what's next?
+
+### Two stages, not one
+
+A project carries two stages, and they mean different things:
+
+| Field | Values | Who it's for |
+| ----- | ------ | ------------ |
+| `pipelineStage` | Enquiry · Proposal · Booked · In progress · Complete | Mirrors your **Square Projects board**. You move it by hand to match what you did in Square. Silent — no email. |
+| `status` | Planning · Shooting · Editing · Delivering · Delivered | Production detail Square doesn't track. **This one emails the client** and drives the progress bar in their portal. |
+
+Square's board is where the work happens; the pipeline stage is that same
+pipeline reflected back, so the site and Square never tell different stories.
+
+### Where projects come from
+
+- **Automatically**, when a Square invoice takes its first payment — a paid
+  deposit confirms the booking, so it opens at **Booked** without waiting for
+  the balance.
+- **By hand**, with *+ New project*. Pick a quote to carry the client, service
+  and Square customer across, or start from scratch for a returning client.
+  One project per quote, so the timeline can't fork.
+
+### Estimates and contracts made in Square
+
+Square has no API for either (see [Estimates](#estimates) below), so nothing
+can be read back automatically. *Record estimate* / *Record contract* captures
+the few facts worth showing — reference, total, link, dates, status — and drops
+them into the chain.
+
+Each one has a **Show this in the client's portal** switch, **off by default**.
+Nothing you record reaches the client until you deliberately publish it.
+
+To make the *Open in Square* link go straight to the right card, paste the
+card's URL from your Square board into the project when you create it.
+
+---
+
 ## Packages
 
 `lib/packages.ts` is the single source of truth for pre-made packages. One
@@ -347,8 +398,17 @@ quotes/{id}
 
 projects/{id}
   clientId, clientName, clientEmail, serviceType, name
-  status: Planning → Shooting → Editing → Delivering → Delivered
-  files[], quoteId, clientNote, createdAt
+  pipelineStage: Enquiry → Proposal → Booked → In progress → Complete
+                 (mirrors the Square Projects board)
+  status:        Planning → Shooting → Editing → Delivering → Delivered
+                 (production detail; emails the client on change)
+  squareCustomerId, squareProjectUrl
+  estimateRef{}, contractRef{}   ← recorded from Square, see below
+  files[], quoteId, clientNote, createdAt, updatedAt
+
+  estimateRef / contractRef:
+    reference, amountCents, currency, url, status, sentAt, resolvedAt,
+    note, visibleToClient (default false), recordedAt, recordedBy
 
 messages/{id}      name, email, message, read, createdAt
 settings/site      hero + about copy, contact email, social links

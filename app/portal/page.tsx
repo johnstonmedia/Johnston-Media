@@ -21,6 +21,7 @@ import {
   PROJECT_STAGES,
   type Project,
   type Quote,
+  type SquareDocRef,
   type UserProfile,
 } from "@/lib/types";
 
@@ -64,6 +65,26 @@ function statusTone(status: Quote["status"]): string {
     default:
       return "jm-badge--amber";
   }
+}
+
+/**
+ * The estimate and contract, but only the ones marked visible.
+ *
+ * These are documents Will manages in Square; he records the details against
+ * the project and decides, per document, whether the client should see it. The
+ * default is not to, so nothing appears here by accident.
+ */
+function visibleDocs(
+  project: Project,
+): { label: string; doc: SquareDocRef }[] {
+  const docs: { label: string; doc: SquareDocRef }[] = [];
+  if (project.estimateRef?.visibleToClient) {
+    docs.push({ label: "Estimate", doc: project.estimateRef });
+  }
+  if (project.contractRef?.visibleToClient) {
+    docs.push({ label: "Contract", doc: project.contractRef });
+  }
+  return docs;
 }
 
 function PortalDashboard({
@@ -390,6 +411,44 @@ function PortalDashboard({
                     <span className="jm-badge jm-badge--copper">
                       {project.status}
                     </span>
+
+                    {/* Paperwork Will has chosen to share. Anything not marked
+                        visible stays out of the portal entirely. */}
+                    {visibleDocs(project).length > 0 ? (
+                      <div className={styles.docs}>
+                        {visibleDocs(project).map(({ label, doc }) => (
+                          <div key={label} className={styles.doc}>
+                            <span className={styles.docLabel}>{label}</span>
+                            <span className={styles.docDetail}>
+                              {[
+                                doc.reference,
+                                doc.amountCents !== undefined
+                                  ? formatMoney(doc.amountCents, doc.currency)
+                                  : "",
+                                doc.status,
+                              ]
+                                .filter(Boolean)
+                                .join(" · ")}
+                              {doc.url ? (
+                                <>
+                                  {" "}
+                                  <a
+                                    href={doc.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
+                                    View ↗
+                                  </a>
+                                </>
+                              ) : null}
+                            </span>
+                            {doc.note ? (
+                              <span className={styles.docNote}>{doc.note}</span>
+                            ) : null}
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
 
                     <div className={styles.stages}>
                       {PROJECT_STAGES.map((stage, i) => (

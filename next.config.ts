@@ -7,6 +7,8 @@ const nextConfig: NextConfig = {
     // Firebase Storage serves the portfolio media; allow it through next/image.
     remotePatterns: [
       { protocol: "https", hostname: "firebasestorage.googleapis.com" },
+      // Newer Firebase Storage buckets serve from *.firebasestorage.app
+      { protocol: "https", hostname: "*.firebasestorage.app" },
       { protocol: "https", hostname: "storage.googleapis.com" },
       { protocol: "https", hostname: "lh3.googleusercontent.com" },
       { protocol: "https", hostname: "i.ytimg.com" },

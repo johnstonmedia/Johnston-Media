@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 
 import ContactForm from "@/components/ContactForm";
+import Faq from "@/components/Faq";
 import Hero from "@/components/Hero";
 import { InstagramIcon, TikTokIcon, YouTubeIcon } from "@/components/Icons";
 import PackageCards from "@/components/PackageCards";
+import { STUDIO_FAQ } from "@/lib/faq";
 import { MEDIA_PACKAGES } from "@/lib/packages";
 import { PackageProvider } from "@/components/PackageContext";
 import QuoteForm from "@/components/QuoteForm";
@@ -11,10 +13,14 @@ import Reveal from "@/components/Reveal";
 
 import styles from "./contact.module.css";
 
+const SITE =
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://wjohnstonmedia.com";
+
 export const metadata: Metadata = {
   title: "Contact",
   description:
     "Request a quote from Johnston Media — cinematic photography, videography and aerial media across New South Wales.",
+  alternates: { canonical: "/contact" },
 };
 
 const PRIMARY_EMAIL =
@@ -130,6 +136,8 @@ export default function ContactPage() {
           </Reveal>
         </div>
       </section>
+
+      <Faq items={STUDIO_FAQ} schemaId={`${SITE}/contact#faq`} />
     </PackageProvider>
   );
 }

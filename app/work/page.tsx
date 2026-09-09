@@ -11,6 +11,7 @@ export const metadata: Metadata = {
   title: "Work",
   description:
     "Selected sports videography, sports photography and commercial work from Johnston Media across New South Wales.",
+  alternates: { canonical: "/work" },
 };
 
 export default function WorkPage() {

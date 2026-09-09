@@ -1,0 +1,85 @@
+.list {
+  margin-top: var(--space-lg);
+  max-width: 78ch;
+  border-top: 1px solid var(--jm-border);
+}
+
+.item {
+  border-bottom: 1px solid var(--jm-border);
+}
+
+.question {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-md) 0;
+  cursor: pointer;
+  list-style: none;
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--jm-white);
+  transition: color 0.25s ease;
+}
+
+/* Hide the native disclosure triangle in both engines. */
+.question::-webkit-details-marker {
+  display: none;
+}
+
+.question:hover {
+  color: var(--jm-amber);
+}
+
+.chevron {
+  position: relative;
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+.chevron::before,
+.chevron::after {
+  content: "";
+  position: absolute;
+  background: var(--jm-copper);
+  transition: transform 0.3s var(--ease-out);
+}
+
+/* A plus that becomes a minus. */
+.chevron::before {
+  top: 5px;
+  left: 0;
+  width: 12px;
+  height: 2px;
+}
+
+.chevron::after {
+  top: 0;
+  left: 5px;
+  width: 2px;
+  height: 12px;
+}
+
+.item[open] .chevron::after {
+  transform: scaleY(0);
+}
+
+.answer {
+  padding: 0 0 var(--space-md);
+  max-width: 68ch;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  line-height: 1.8;
+  color: var(--jm-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chevron::before,
+  .chevron::after,
+  .question {
+    transition: none;
+  }
+}

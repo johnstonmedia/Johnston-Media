@@ -52,12 +52,27 @@ export function BusinessSchema() {
         slogan: "Your Vision. My Lens.",
         url: SITE_URL,
         logo: `${SITE_URL}/logo.png`,
-        image: `${SITE_URL}/logo.png`,
+        image: `${SITE_URL}/og-image.jpg`,
         email: CONTACT_EMAIL,
+        // A named person, given an @id so the studio and the individual are
+        // one entity across the site rather than two loosely related strings.
+        // Answer engines lean on this to work out who "Will Johnston" is.
         founder: {
           "@type": "Person",
+          "@id": `${SITE_URL}/#will-johnston`,
           name: "Will Johnston",
+          jobTitle: "Photographer, videographer and web developer",
+          worksFor: { "@id": `${SITE_URL}/#business` },
+          knowsAbout: [
+            "Sports photography",
+            "Sports videography",
+            "Aerial and drone media",
+            "Video editing",
+            "Web development",
+          ],
         },
+        founders: [{ "@id": `${SITE_URL}/#will-johnston` }],
+        employee: { "@id": `${SITE_URL}/#will-johnston` },
         address: {
           "@type": "PostalAddress",
           addressRegion: "NSW",

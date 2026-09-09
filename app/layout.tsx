@@ -45,6 +45,11 @@ export const metadata: Metadata = {
     "web development Sydney",
   ],
   authors: [{ name: "Will Johnston" }],
+  creator: "Will Johnston",
+  publisher: "Johnston Media",
+  // Every page declares its own canonical relative to this base, so the
+  // vercel.app previews never compete with the real domain in search.
+  alternates: { canonical: "/" },
   openGraph: {
     type: "website",
     locale: "en_AU",
@@ -53,14 +58,43 @@ export const metadata: Metadata = {
     title: "Johnston Media — Your Vision. My Lens.",
     description:
       "Cinematic photography, videography, aerial media and web development across New South Wales.",
+    images: [
+      {
+        url: "/og-image.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Johnston Media — photography, videography, aerial and web, New South Wales",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Johnston Media — Your Vision. My Lens.",
     description:
       "Cinematic photography, videography, aerial media and web development across New South Wales.",
+    images: ["/og-image.jpg"],
   },
-  robots: { index: true, follow: true },
+  icons: {
+    // app/favicon.ico is picked up automatically — listing it here too would
+    // emit the tag twice.
+    icon: [
+      { url: "/icon-192.png", type: "image/png", sizes: "192x192" },
+      { url: "/icon-512.png", type: "image/png", sizes: "512x512" },
+    ],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180" }],
+  },
+  manifest: "/manifest.webmanifest",
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
 };
 
 export const viewport: Viewport = {

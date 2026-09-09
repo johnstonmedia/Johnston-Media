@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import Faq from "@/components/Faq";
 import PortalDemo from "@/components/demos/PortalDemo";
 import ScriberDemo from "@/components/demos/ScriberDemo";
 import Hero from "@/components/Hero";
@@ -10,14 +11,19 @@ import { PackageProvider } from "@/components/PackageContext";
 import QuoteForm from "@/components/QuoteForm";
 import Reveal from "@/components/Reveal";
 import { WebDevelopmentSchema } from "@/components/StructuredData";
+import { WEB_FAQ } from "@/lib/faq";
 
 import pageStyles from "../page.module.css";
 import styles from "./web.module.css";
+
+const SITE =
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://wjohnstonmedia.com";
 
 export const metadata: Metadata = {
   title: "Web Development",
   description:
     "Cinematic, fast websites and custom client portals built by Johnston Media — with booking forms, Square invoicing and email automation wired in.",
+  alternates: { canonical: "/web-development" },
 };
 
 const CAPABILITIES = [
@@ -377,6 +383,14 @@ export default function WebDevelopmentPage() {
           </div>
         </div>
       </section>
+
+      {/* ─── FAQ ──────────────────────────────────── */}
+      <Faq
+        items={WEB_FAQ}
+        schemaId={`${SITE}/web-development#faq`}
+        eyebrow="Before you ask"
+        title="Straight answers"
+      />
 
       {/* ─── Quote form ───────────────────────────── */}
       <section className="jm-section jm-section--alt" id="web-quote">

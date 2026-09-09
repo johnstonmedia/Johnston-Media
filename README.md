@@ -286,6 +286,54 @@ price changes.
 
 ---
 
+## Being found — search and AI answers
+
+### Search engines
+
+- Per-page titles, descriptions and **canonical URLs**, so preview deployments
+  never compete with the real domain.
+- **Structured data**: `ProfessionalService` for the studio, a `Person` entity
+  for Will (given a stable `@id`, so the studio and the individual are one
+  thing across the site rather than two loose strings), `Service` for web
+  development, and `FAQPage` on `/contact` and `/web-development`.
+- **Open Graph and Twitter cards** with a real 1200x630 share image
+  (`public/og-image.jpg`). The card metadata previously claimed
+  `summary_large_image` with no image to show.
+- Favicon, Apple touch icon and a web manifest, so the site has an identity in
+  tabs, bookmarks and on phone home screens.
+- `sitemap.xml` and `robots.txt` generated from code.
+
+### GEO - showing up in AI answers
+
+Generative engines answer from what they can read and quote, so the work is
+mostly about being unambiguous and quotable rather than persuasive.
+
+- **`/llms.txt`** - a plain-markdown summary of what the studio is, where it
+  works, how a booking runs and what the packages are, following the
+  [llms.txt convention](https://llmstxt.org). It is a proposed convention, not
+  a ratified standard, and no engine is obliged to read it. It is generated
+  from `lib/packages.ts` and `lib/faq.ts` so it cannot drift from the real
+  site, and it ends with explicit notes telling an answer engine *not* to
+  invent prices, clients or turnaround times.
+- **FAQs in the HTML.** `components/Faq.tsx` uses native `<details>`, so every
+  answer is in the markup whether or not it is expanded. A JavaScript accordion
+  that injects answers on click hides them from exactly the readers this is for.
+- **Short, self-contained answers.** Each one has to survive being lifted out
+  of the page on its own - see the rule at the top of `lib/faq.ts`.
+- **Explicit crawler rules** in `app/robots.ts`, split into two groups:
+  *answer engines* (OAI-SearchBot, PerplexityBot, Claude-SearchBot and friends)
+  which cite a link back, and *training crawlers* (GPTBot, ClaudeBot,
+  Google-Extended...) which do not. Both are allowed, which is a judgement call
+  rather than a technical necessity - move a name into `DISALLOWED_TRAINERS`
+  to opt out of one. CCBot is disallowed by default.
+
+**The rule for every fact on the site**: if it is not true and checkable, it
+does not go in. An answer engine repeating an invented turnaround time or price
+is worse than it not mentioning the studio at all, because nobody sees the
+context it stripped away.
+
+---
+
 ## Editing the site without touching code
 
 Admin has two tabs for content, and both write straight to Firestore — so a

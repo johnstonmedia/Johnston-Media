@@ -18,6 +18,7 @@ export const metadata: Metadata = {
   title: "About",
   description:
     "Johnston Media is Will Johnston — a New South Wales photographer, videographer and drone operator telling stories with a cinematic eye.",
+  alternates: { canonical: "/about" },
 };
 
 /** Shown until the story is written in Admin → Site content. */

@@ -5,7 +5,13 @@ import { useEffect, useState } from "react";
 
 import { useToast } from "@/components/Toast";
 import { getDb } from "@/lib/firebase";
-import type { EmailAccess, EmailTemplate, Mailbox } from "@/lib/emailTypes";
+import {
+  TEMPLATE_EXTRAS,
+  type EmailAccess,
+  type EmailTemplate,
+  type Mailbox,
+  type TemplateExtraKey,
+} from "@/lib/emailTypes";
 
 import styles from "./email.module.css";
 
@@ -61,6 +67,13 @@ export default function ComposeModal({
   const [primaryUrl, setPrimaryUrl] = useState("");
   const [footerNote, setFooterNote] = useState("");
 
+  /**
+   * The shoot-specific slots. Kept as one map rather than seven useStates
+   * because they're offered as a group and sent as a group.
+   */
+  const [extras, setExtras] = useState<Record<string, string>>({});
+  const [failure, setFailure] = useState<string | null>(null);
+
   useEffect(() => {
     (async () => {
       try {
@@ -87,6 +100,7 @@ export default function ComposeModal({
     }
 
     setSending(true);
+    setFailure(null);
     try {
       const token = await getToken();
       if (!token) {
@@ -113,17 +127,22 @@ export default function ComposeModal({
           primaryLabel,
           primaryUrl,
           footerNote,
+          ...extras,
         }),
       });
       const result = await response.json();
 
       if (!response.ok || !result.ok) {
-        toast(
-          result.error ?? result.errors?.[0] ?? "The email didn't send.",
-          "error",
-        );
+        const detail =
+          result.error ?? result.errors?.[0] ?? "The email didn't send.";
+        // A toast is gone in four seconds, and the provider's reason for
+        // refusing a send is the one thing worth reading twice — so it also
+        // stays on the form until the next attempt.
+        setFailure(detail);
+        toast(detail, "error");
         return;
       }
+      setFailure(null);
 
       toast(
         result.failed > 0
@@ -139,6 +158,20 @@ export default function ComposeModal({
   }
 
   const usingTemplate = Boolean(templateId);
+
+  /**
+   * Only offer a field the chosen template has somewhere to put. Asking for a
+   * shoot date on a template with no slot for it is noise, and a slot left
+   * unfilled is blanked server-side rather than sent as a visible {{TOKEN}}.
+   */
+  const chosen = templates.find((t) => t.id === templateId);
+  const wantedExtras = chosen
+    ? TEMPLATE_EXTRAS.filter((extra) =>
+        new RegExp(`\\{\\{\\s*${extra.token}\\s*\\}\\}`, "i").test(
+          chosen.html,
+        ),
+      )
+    : [];
 
   return (
     <div
@@ -333,6 +366,38 @@ export default function ComposeModal({
               placeholder="Reply to this and it comes straight to me."
               onChange={(e) => setFooterNote(e.target.value)}
             />
+          </div>
+        ) : null}
+
+        {wantedExtras.length ? (
+          <>
+            <p className={styles.rowMeta}>
+              This template also asks for:
+            </p>
+            {wantedExtras.map((extra) => (
+              <div className="jm-field" key={extra.key}>
+                <label className="jm-label" htmlFor={`co-${extra.key}`}>
+                  {extra.label}
+                </label>
+                <input
+                  id={`co-${extra.key}`}
+                  className="jm-input"
+                  value={extras[extra.key] ?? ""}
+                  onChange={(e) =>
+                    setExtras((prev) => ({
+                      ...prev,
+                      [extra.key satisfies TemplateExtraKey]: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+            ))}
+          </>
+        ) : null}
+
+        {failure ? (
+          <div className={styles.warn} role="alert">
+            <strong>The send was refused.</strong> {failure}
           </div>
         ) : null}
 

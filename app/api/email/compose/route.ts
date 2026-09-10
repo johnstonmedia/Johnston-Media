@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 
-import { merge } from "@/lib/broadcast";
+import { merge, stripTokens } from "@/lib/broadcast";
 import { canSendAs, requireEmailLevel } from "@/lib/emailAccess";
-import type { EmailTemplate, HelpThread } from "@/lib/emailTypes";
+import {
+  TEMPLATE_EXTRAS,
+  type EmailTemplate,
+  type HelpThread,
+} from "@/lib/emailTypes";
 import { adminDb } from "@/lib/firebaseAdmin";
 import { SITE_URL } from "@/lib/siteUrl";
 import { clean, cleanMultiline } from "@/lib/validation";
@@ -169,19 +173,29 @@ export async function POST(request: Request) {
       primary_url: clean(body.primaryUrl, 600),
       primary_label: clean(body.primaryLabel, 120),
       footer_note: clean(body.footerNote, 400),
+      // The slots the studio's own templates use. Anything left unset is
+      // blanked by stripTokens rather than shipped as a visible {{TOKEN}}.
+      ...Object.fromEntries(
+        TEMPLATE_EXTRAS.map((extra) => [
+          extra.token,
+          clean(body[extra.key], 300),
+        ]),
+      ),
       // Direct correspondence, not marketing — there is nothing to
       // unsubscribe from, so the token resolves to the site rather than
       // leaving a dead link in the template's footer.
       unsubscribe_url: SITE_URL,
     };
 
-    const html = template
-      ? merge(template.html, {
-          ...values,
-          content: bodyHtml,
-          message_body: bodyHtml,
-        })
-      : bodyHtml;
+    const html = stripTokens(
+      template
+        ? merge(template.html, {
+            ...values,
+            content: bodyHtml,
+            message_body: bodyHtml,
+          })
+        : bodyHtml,
+    );
 
     if (!KEY) {
       results.push({ to: recipient, ok: false, error: "RESEND_API_KEY is not set." });
@@ -220,6 +234,9 @@ export async function POST(request: Request) {
         ok: false,
         error: err instanceof Error ? err.message : "network error",
       });
+      // Nothing was sent, so nothing should be filed — a thread here would
+      // claim a conversation that never started.
+      continue;
     }
 
     // File it in the inbox so the conversation exists before they reply.
@@ -277,11 +294,25 @@ export async function POST(request: Request) {
   }
 
   const sent = results.filter((r) => r.ok).length;
+  const errors = results.filter((r) => !r.ok).map((r) => `${r.to}: ${r.error}`);
 
-  return NextResponse.json({
-    ok: sent > 0,
-    sent,
-    failed: results.length - sent,
-    errors: results.filter((r) => !r.ok).map((r) => `${r.to}: ${r.error}`),
-  });
+  if (sent === 0) {
+    console.error("[compose] nothing sent:", errors.join(" | "));
+  }
+
+  return NextResponse.json(
+    {
+      ok: sent > 0,
+      sent,
+      failed: results.length - sent,
+      errors,
+      // The provider's own words. Sending is the one place where a vague
+      // "it didn't work" costs an afternoon — an unverified domain and a
+      // wrong key look identical until you can read the response.
+      error: sent === 0 ? errors[0] : undefined,
+    },
+    // A 200 for a send where every message failed reads as success to
+    // anything that only checks the status.
+    { status: sent === 0 ? 502 : 200 },
+  );
 }

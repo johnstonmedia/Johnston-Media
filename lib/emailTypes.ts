@@ -205,6 +205,31 @@ export const MERGE_FIELDS = [
   { token: "{{year}}", describes: "The current year" },
 ] as const;
 
+/**
+ * The extra slots the studio's own templates use.
+ *
+ * The three uploaded templates are built around a shoot: they want a date, a
+ * location, a reference number, an amount. None of that is campaign data, so
+ * these are only offered on a one-off email, and only for the ones the chosen
+ * template actually contains — asking for a shoot date on a template with no
+ * place to put it is noise.
+ */
+export const TEMPLATE_EXTRAS = [
+  { key: "projectName", token: "project_name", label: "Project name" },
+  { key: "shootDate", token: "shoot_date", label: "Shoot date" },
+  { key: "location", token: "location", label: "Location" },
+  { key: "reference", token: "reference", label: "Reference" },
+  { key: "amount", token: "amount", label: "Amount" },
+  { key: "secondaryUrl", token: "secondary_url", label: "Second button link" },
+  {
+    key: "secondaryLabel",
+    token: "secondary_label",
+    label: "Second button text",
+  },
+] as const;
+
+export type TemplateExtraKey = (typeof TEMPLATE_EXTRAS)[number]["key"];
+
 // ─────────────────────────────────────────────────────
 // Mailboxes and the inbox
 // ─────────────────────────────────────────────────────

@@ -64,6 +64,19 @@ export function merge(
   });
 }
 
+/**
+ * Blanks any {{TOKEN}} the values didn't fill.
+ *
+ * merge() deliberately leaves an unknown token alone, which is right while
+ * you're editing — you want to see that {{SHOOT_DATE}} is unrecognised. It is
+ * wrong at the moment of sending: a client opening an email that says
+ * "Reference: {{REFERENCE}}" is worse than one that says nothing. So the last
+ * step before handing HTML to Resend is to drop whatever is left.
+ */
+export function stripTokens(source: string): string {
+  return source.replace(/\{\{\s*[A-Za-z0-9_]+\s*\}\}/g, "");
+}
+
 /** Escapes a value being dropped into HTML. */
 function escapeHtml(value: string): string {
   return value
@@ -124,13 +137,17 @@ export function renderForContact(
   // MESSAGE_BODY is the slot Will's templates use for the message; content is
   // the platform's own name for the same thing. Both work, so a template
   // written either way drops straight in.
-  const html = template
-    ? merge(template.html, { ...values, content: body, message_body: body })
-    : body;
+  const html = stripTokens(
+    template
+      ? merge(template.html, { ...values, content: body, message_body: body })
+      : body,
+  );
 
   return {
     to: contact.email,
-    subject: merge(campaign.subject, { ...values, subject: campaign.subject }),
+    subject: stripTokens(
+      merge(campaign.subject, { ...values, subject: campaign.subject }),
+    ),
     html,
     headers: {
       // One-click unsubscribe. Gmail and Outlook surface this as a native

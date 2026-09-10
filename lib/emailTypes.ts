@@ -141,8 +141,21 @@ export interface Campaign {
   replyTo?: string;
   /** Which saved template wraps the body. */
   templateId?: string;
-  /** The body, as HTML. */
+  /** The body, as HTML. Lands in the template's {{content}}/{{MESSAGE_BODY}}. */
   html: string;
+
+  /**
+   * The banner at the top of Will's templates. Optional — a template that
+   * doesn't use them simply ignores them.
+   */
+  eyebrow?: string;
+  headline?: string;
+  lead?: string;
+  /** The one big button. */
+  primaryUrl?: string;
+  primaryLabel?: string;
+  /** The line in the dark card above the footer. */
+  footerNote?: string;
   audienceId?: string;
   status: CampaignStatus;
   scheduledFor?: string;
@@ -162,6 +175,9 @@ export interface Campaign {
 export interface EmailTemplate {
   id: string;
   name: string;
+  description?: string;
+  /** Set on the templates installed from the built-in set. */
+  seedKey?: string;
   /**
    * Full HTML document. `{{content}}` is replaced with the campaign body, and
    * the merge fields below are substituted per recipient.
@@ -190,7 +206,59 @@ export const MERGE_FIELDS = [
 ] as const;
 
 // ─────────────────────────────────────────────────────
-// Help inbox
+// Mailboxes and the inbox
+// ─────────────────────────────────────────────────────
+
+/**
+ * An address that receives mail.
+ *
+ * The platform started with one (help@) and immediately wanted more, so a
+ * mailbox is a first-class thing rather than a hard-coded string: every
+ * incoming message records which address it was sent to, and the inbox groups
+ * on that. Adding an address is a row here plus a forwarding rule — no code.
+ */
+export interface Mailbox {
+  /** The address itself, lowercased. Also the document id. */
+  address: string;
+  /** Shown in the rail: "Help", "Hello", "Accounts". */
+  label: string;
+  /** One line under the label. */
+  description?: string;
+  /** Replies from this mailbox go out as this name. */
+  fromName?: string;
+  /** Ordering in the rail; lower first. */
+  order?: number;
+  createdAt?: string;
+}
+
+/**
+ * Mailboxes assumed to exist before anyone has configured any.
+ *
+ * Without this the inbox would be empty on first run even with mail sitting in
+ * it, which reads as broken rather than as unconfigured.
+ */
+export const DEFAULT_MAILBOXES: Mailbox[] = [
+  {
+    address: "help@wjohnstonmedia.com",
+    label: "Help",
+    description: "Support and questions",
+    fromName: "Johnston Media Help",
+    order: 1,
+  },
+  {
+    address: "hello@wjohnstonmedia.com",
+    label: "Hello",
+    description: "General enquiries",
+    fromName: "Johnston Media",
+    order: 2,
+  },
+];
+
+/** The pseudo-mailbox meaning "everything, from every address". */
+export const ALL_MAILBOXES = "__all__";
+
+// ─────────────────────────────────────────────────────
+// Threads
 // ─────────────────────────────────────────────────────
 
 export const HELP_STATUSES = ["Open", "Waiting", "Closed"] as const;
@@ -202,12 +270,21 @@ export interface HelpThread {
   /** Who wrote in. */
   fromEmail: string;
   fromName?: string;
+  /**
+   * Which of your addresses this landed on. Absent on threads recorded before
+   * mailboxes existed, which the inbox treats as help@.
+   */
+  mailbox?: string;
   status: HelpStatus;
   assignedTo?: string;
   /** Preview line for the list. */
   snippet: string;
   messageCount: number;
   unread: boolean;
+  /** Flagged by hand, for the things you keep coming back to. */
+  starred?: boolean;
+  /** Out of the inbox without being resolved. */
+  archived?: boolean;
   createdAt: string;
   lastMessageAt: string;
 }

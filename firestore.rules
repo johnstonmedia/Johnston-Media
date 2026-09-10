@@ -172,6 +172,11 @@ service cloud.firestore {
       allow delete: if canDraft();
     }
 
+    match /mailboxes/{address} {
+      allow read: if hasEmailAccess();
+      allow write: if isAdmin();
+    }
+
     match /emailTemplates/{templateId} {
       allow read: if hasEmailAccess();
       allow write: if canDraft();

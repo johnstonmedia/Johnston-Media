@@ -29,16 +29,16 @@ const DEFAULT_FROM =
   process.env.NEXT_PUBLIC_EMAIL_FROM ?? "hello@wjohnstonmedia.com";
 
 /** A starting body that already satisfies the unsubscribe requirement. */
-const STARTER = `<p>Hi {{name}},</p>
+/**
+ * The starting body.
+ *
+ * No unsubscribe link in here: the Johnston Media templates carry one in
+ * their footer, and the send is refused if neither has one — so this stays
+ * clean and the check still can't be bypassed.
+ */
+const STARTER = `<p>Write your message here.</p>
 
-<p>Write your message here.</p>
-
-<p>— {{sender_name}}</p>
-
-<p style="font-size:12px;color:#888">
-  You're getting this because you asked to hear from us.
-  <a href="{{unsubscribe_url}}">Unsubscribe</a>.
-</p>`;
+<p>It sits between the banner and the button, and the template wraps it.</p>`;
 
 function statusTone(status: Campaign["status"]): string {
   switch (status) {
@@ -215,9 +215,21 @@ export default function CampaignsPanel({
   // ── Composer ──────────────────────────────────────
   if (editing) {
     const template = templates.find((t) => t.id === editing.templateId);
-    const previewHtml = template
-      ? template.html.replace("{{content}}", editing.html)
-      : editing.html;
+    const previewHtml = (
+      template
+        ? template.html.replace(
+            /\{\{\s*(content|MESSAGE_BODY)\s*\}\}/g,
+            editing.html,
+          )
+        : editing.html
+    )
+      .replace(/\{\{\s*LOGO_URL\s*\}\}/g, "/logo.png")
+      .replace(/\{\{\s*FIRST_NAME\s*\}\}/g, "Sarah")
+      .replace(/\{\{\s*EYEBROW\s*\}\}/g, editing.eyebrow ?? "")
+      .replace(/\{\{\s*HEADLINE\s*\}\}/g, editing.headline ?? editing.subject)
+      .replace(/\{\{\s*LEAD_PARAGRAPH\s*\}\}/g, editing.lead ?? "")
+      .replace(/\{\{\s*PRIMARY_LABEL\s*\}\}/g, editing.primaryLabel ?? "")
+      .replace(/\{\{\s*FOOTER_NOTE\s*\}\}/g, editing.footerNote ?? "");
     const locked = editing.status === "Sent" || editing.status === "Sending";
 
     return (
@@ -412,9 +424,110 @@ export default function CampaignsPanel({
                 </select>
               </div>
 
+              {/* The banner block Will's templates render above the message.
+                  Harmless on a template that doesn't use them. */}
+              <div className={styles.field2}>
+                <div className="jm-field">
+                  <label className="jm-label" htmlFor="c-eyebrow">
+                    Eyebrow
+                  </label>
+                  <input
+                    id="c-eyebrow"
+                    className="jm-input"
+                    value={editing.eyebrow ?? ""}
+                    placeholder="Invoice ready"
+                    disabled={locked}
+                    onChange={(e) =>
+                      setEditing({ ...editing, eyebrow: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="jm-field">
+                  <label className="jm-label" htmlFor="c-headline">
+                    Headline
+                  </label>
+                  <input
+                    id="c-headline"
+                    className="jm-input"
+                    value={editing.headline ?? ""}
+                    placeholder="Defaults to the subject line"
+                    disabled={locked}
+                    onChange={(e) =>
+                      setEditing({ ...editing, headline: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="jm-field">
+                <label className="jm-label" htmlFor="c-lead">
+                  Lead paragraph
+                </label>
+                <input
+                  id="c-lead"
+                  className="jm-input"
+                  value={editing.lead ?? ""}
+                  placeholder="The line under the headline, in the dark banner"
+                  disabled={locked}
+                  onChange={(e) =>
+                    setEditing({ ...editing, lead: e.target.value })
+                  }
+                />
+              </div>
+
+              <div className={styles.field2}>
+                <div className="jm-field">
+                  <label className="jm-label" htmlFor="c-cta-label">
+                    Button text
+                  </label>
+                  <input
+                    id="c-cta-label"
+                    className="jm-input"
+                    value={editing.primaryLabel ?? ""}
+                    placeholder="Pay invoice"
+                    disabled={locked}
+                    onChange={(e) =>
+                      setEditing({ ...editing, primaryLabel: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="jm-field">
+                  <label className="jm-label" htmlFor="c-cta-url">
+                    Button link
+                  </label>
+                  <input
+                    id="c-cta-url"
+                    className="jm-input"
+                    type="url"
+                    value={editing.primaryUrl ?? ""}
+                    placeholder="https://…"
+                    disabled={locked}
+                    onChange={(e) =>
+                      setEditing({ ...editing, primaryUrl: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="jm-field">
+                <label className="jm-label" htmlFor="c-footer">
+                  Footer note
+                </label>
+                <input
+                  id="c-footer"
+                  className="jm-input"
+                  value={editing.footerNote ?? ""}
+                  placeholder="Questions? Reply and it comes straight to me."
+                  disabled={locked}
+                  onChange={(e) =>
+                    setEditing({ ...editing, footerNote: e.target.value })
+                  }
+                />
+              </div>
+
               <div className="jm-field">
                 <label className="jm-label" htmlFor="c-html">
-                  Content
+                  Message
                 </label>
                 <textarea
                   id="c-html"

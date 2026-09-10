@@ -6,12 +6,14 @@ import {
   deleteDoc,
   doc,
   getDocs,
+  setDoc,
   updateDoc,
 } from "firebase/firestore";
 import { useCallback, useEffect, useState } from "react";
 
 import { useToast } from "@/components/Toast";
 import { getDb } from "@/lib/firebase";
+import { SEED_TEMPLATES } from "@/lib/emailTemplateSeeds";
 import {
   atLeast,
   MERGE_FIELDS,
@@ -54,6 +56,45 @@ export default function TemplatePanel({ access }: { access: EmailAccess }) {
   useEffect(() => {
     void load();
   }, [load]);
+
+  /**
+   * Installs Will's three templates.
+   *
+   * Keyed by `seedKey` so pressing this twice updates them in place rather
+   * than filling the list with copies.
+   */
+  async function installSeeds() {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const db = getDb();
+      const now = new Date().toISOString();
+      await Promise.all(
+        SEED_TEMPLATES.map((seed) =>
+          setDoc(
+            doc(db, "emailTemplates", `jm-${seed.key}`),
+            {
+              name: seed.name,
+              description: seed.description,
+              html: seed.html,
+              isDefault: seed.isDefault,
+              seedKey: seed.key,
+              updatedAt: now,
+              updatedBy: access.email,
+            },
+            { merge: true },
+          ),
+        ),
+      );
+      toast(`${SEED_TEMPLATES.length} templates installed.`);
+      void load();
+    } catch (err) {
+      console.error("[email] seed install failed:", err);
+      toast("Could not install the templates.", "error");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function create() {
     setBusy(true);
@@ -121,7 +162,10 @@ export default function TemplatePanel({ access }: { access: EmailAccess }) {
   }
 
   if (editing) {
-    const missing = !editing.html.includes("{{content}}");
+    // Either slot name is honoured by the merge layer, so either satisfies this.
+    const missing =
+      !editing.html.includes("{{content}}") &&
+      !editing.html.includes("{{MESSAGE_BODY}}");
 
     return (
       <>
@@ -166,8 +210,9 @@ export default function TemplatePanel({ access }: { access: EmailAccess }) {
 
         {missing ? (
           <div className={styles.warn}>
-            This template has no <code>{"{{content}}"}</code>, so a campaign
-            body would have nowhere to go.
+            This template has neither <code>{"{{content}}"}</code> nor{" "}
+            <code>{"{{MESSAGE_BODY}}"}</code>, so a campaign body would have
+            nowhere to go.
           </div>
         ) : null}
 
@@ -176,10 +221,12 @@ export default function TemplatePanel({ access }: { access: EmailAccess }) {
             className={styles.preview}
             title="Template preview"
             sandbox=""
-            srcDoc={editing.html.replace(
-              "{{content}}",
-              "<p><em>The campaign body appears here.</em></p>",
-            )}
+            srcDoc={editing.html
+              .replace(
+                /\{\{\s*(content|MESSAGE_BODY)\s*\}\}/g,
+                "<p><em>The campaign body appears here.</em></p>",
+              )
+              .replace(/\{\{\s*LOGO_URL\s*\}\}/g, "/logo.png")}
           />
         ) : (
           <div className={styles.composer}>
@@ -270,6 +317,14 @@ export default function TemplatePanel({ access }: { access: EmailAccess }) {
           <div className={styles.actions}>
             <button
               type="button"
+              className="jm-btn-ghost jm-btn-sm"
+              onClick={installSeeds}
+              disabled={busy}
+            >
+              Install Johnston Media set
+            </button>
+            <button
+              type="button"
               className="jm-btn-primary jm-btn-sm"
               onClick={create}
               disabled={busy}
@@ -285,7 +340,9 @@ export default function TemplatePanel({ access }: { access: EmailAccess }) {
       ) : templates.length === 0 ? (
         <div className={styles.empty}>
           <strong>No templates yet</strong>
-          Create one and paste your HTML in — a starting point is provided.
+          Press <strong style={{ display: "inline" }}>Install Johnston Media
+          set</strong> to add the general, quote and payment templates — or
+          create one and paste your own HTML in.
         </div>
       ) : (
         <div className={styles.list}>
@@ -294,9 +351,9 @@ export default function TemplatePanel({ access }: { access: EmailAccess }) {
               <div className={styles.rowMain}>
                 <h3 className={styles.rowTitle}>{template.name}</h3>
                 <p className={styles.rowMeta}>
-                  Updated{" "}
+                  {template.description ? `${template.description} · ` : ""}
+                  updated{" "}
                   {new Date(template.updatedAt).toLocaleDateString("en-AU")}
-                  {template.updatedBy ? ` by ${template.updatedBy}` : ""}
                 </p>
               </div>
               <div className={styles.rowActions}>

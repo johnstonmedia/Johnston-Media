@@ -3,6 +3,8 @@
 import { doc, getDoc } from "firebase/firestore";
 import { useCallback, useEffect, useState } from "react";
 
+import Image from "next/image";
+
 import AuthGate from "@/components/AuthGate";
 import { getDb } from "@/lib/firebase";
 import {
@@ -17,18 +19,18 @@ import AccessPanel from "./AccessPanel";
 import AudiencePanel from "./AudiencePanel";
 import CampaignsPanel from "./CampaignsPanel";
 import ContactsPanel from "./ContactsPanel";
-import HelpPanel from "./HelpPanel";
+import InboxPanel from "./InboxPanel";
 import OverviewPanel from "./OverviewPanel";
 import TemplatePanel from "./TemplatePanel";
 import styles from "./email.module.css";
 
 type Section =
   | "overview"
+  | "inbox"
   | "campaigns"
   | "audiences"
   | "contacts"
   | "templates"
-  | "help"
   | "access";
 
 const NAV: {
@@ -38,11 +40,14 @@ const NAV: {
   needs: EmailLevel;
 }[] = [
   { id: "overview", label: "Overview", icon: "◈", needs: "read" },
-  { id: "campaigns", label: "Campaigns", icon: "✉", needs: "read" },
+  // The inbox covers every address, help@ included — which is why there is no
+  // separate Help tab any more; two inboxes showing the same mail was worse
+  // than one that can be filtered.
+  { id: "inbox", label: "Inbox", icon: "✉", needs: "read" },
+  { id: "campaigns", label: "Campaigns", icon: "◈", needs: "read" },
   { id: "audiences", label: "Audiences", icon: "◐", needs: "read" },
   { id: "contacts", label: "Contacts", icon: "◉", needs: "read" },
   { id: "templates", label: "Templates", icon: "◇", needs: "read" },
-  { id: "help", label: "Help inbox", icon: "◍", needs: "read" },
   { id: "access", label: "Access", icon: "⚿", needs: "admin" },
 ];
 
@@ -71,8 +76,8 @@ function Platform({
   const [access, setAccess] = useState<EmailAccess | null | "loading">(
     "loading",
   );
-  const [section, setSection] = useState<Section>("overview");
-  const [helpCount, setHelpCount] = useState(0);
+  const [section, setSection] = useState<Section>("inbox");
+  const [unread, setUnread] = useState(0);
 
   /**
    * Site admins get full access implicitly — they can already grant it to
@@ -137,13 +142,15 @@ function Platform({
     <div className={styles.shell}>
       <aside className={styles.side}>
         <div className={styles.brand}>
-          <span className={styles.brandMark} aria-hidden="true">
-            JM
-          </span>
-          <span className={styles.brandText}>
-            <span className={styles.brandTitle}>Email</span>
-            <span className={styles.brandSub}>Johnston Media</span>
-          </span>
+          <Image
+            src="/logo.png"
+            alt="Johnston Media"
+            width={170}
+            height={46}
+            className={styles.brandLogo}
+            priority
+          />
+          <span className={styles.brandSub}>Email</span>
         </div>
 
         <nav className={styles.nav} aria-label="Email platform">
@@ -161,8 +168,8 @@ function Platform({
                 {item.icon}
               </span>
               {item.label}
-              {item.id === "help" && helpCount > 0 ? (
-                <span className={styles.navCount}>{helpCount}</span>
+              {item.id === "inbox" && unread > 0 ? (
+                <span className={styles.navCount}>{unread}</span>
               ) : null}
             </button>
           ))}
@@ -206,12 +213,23 @@ function Platform({
         {section === "audiences" ? <AudiencePanel access={access} /> : null}
         {section === "contacts" ? <ContactsPanel access={access} /> : null}
         {section === "templates" ? <TemplatePanel access={access} /> : null}
-        {section === "help" ? (
-          <HelpPanel
-            access={access}
-            getToken={getToken}
-            onCount={setHelpCount}
-          />
+        {section === "inbox" ? (
+          <>
+            <div className={styles.head}>
+              <div>
+                <h1 className={styles.title}>Inbox</h1>
+                <p className={styles.sub}>
+                  Every address in one place. Pick a mailbox on the left, or
+                  stay on All inboxes and see the lot.
+                </p>
+              </div>
+            </div>
+            <InboxPanel
+              access={access}
+              getToken={getToken}
+              onCount={setUnread}
+            />
+          </>
         ) : null}
         {section === "access" ? <AccessPanel getToken={getToken} /> : null}
       </main>

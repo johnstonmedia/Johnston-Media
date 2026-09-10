@@ -92,6 +92,13 @@ export async function POST(request: Request) {
   }
 
   const fromRaw = pick(payload, "from", "sender", "envelope.from", "data.from");
+  // Which of our addresses this landed on — the inbox groups on it, so a
+  // message with no usable To falls back to the configured default rather
+  // than disappearing into an unnamed pile.
+  const toRaw =
+    pick(payload, "to", "recipient", "envelope.to", "data.to") ||
+    process.env.EMAIL_HELP_ADDRESS ||
+    "help@wjohnstonmedia.com";
   const subject =
     pick(payload, "subject", "data.subject") || "(no subject)";
   const body =
@@ -106,6 +113,8 @@ export async function POST(request: Request) {
   }
 
   const from = parseAddress(fromRaw);
+  // A To header can carry several addresses; the first ours is the mailbox.
+  const mailbox = parseAddress(toRaw.split(",")[0] ?? toRaw).email.toLowerCase();
   const now = new Date().toISOString();
   const db = adminDb();
 
@@ -117,6 +126,7 @@ export async function POST(request: Request) {
     .collection("helpThreads")
     .where("fromEmail", "==", from.email.toLowerCase())
     .where("subject", "==", normalised)
+    .where("mailbox", "==", mailbox)
     .limit(1)
     .get();
 
@@ -127,6 +137,7 @@ export async function POST(request: Request) {
       subject: normalised,
       fromEmail: from.email.toLowerCase(),
       fromName: from.name,
+      mailbox,
       status: "Open",
       snippet: snippetOf(body),
       messageCount: 1,
@@ -157,9 +168,10 @@ export async function POST(request: Request) {
       direction: "in",
       fromEmail: from.email.toLowerCase(),
       fromName: from.name ?? null,
+      toEmail: mailbox,
       body,
       createdAt: now,
     });
 
-  return NextResponse.json({ ok: true, threadId });
+  return NextResponse.json({ ok: true, threadId, mailbox });
 }

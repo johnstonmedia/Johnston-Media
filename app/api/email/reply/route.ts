@@ -13,6 +13,25 @@ const HELP_FROM =
   process.env.EMAIL_HELP_FROM ?? "Johnston Media Help <help@wjohnstonmedia.com>";
 
 /**
+ * Replies go out from the address the message arrived at.
+ *
+ * Someone who wrote to hello@ should get an answer from hello@, not from a
+ * support address they've never seen — the reply belongs to the conversation
+ * they started, and a different sender breaks the thread in their client.
+ */
+async function senderFor(mailbox: string | undefined): Promise<string> {
+  if (!mailbox) return HELP_FROM;
+
+  try {
+    const snap = await adminDb().collection("mailboxes").doc(mailbox).get();
+    const name = snap.exists ? (snap.data()?.fromName as string | undefined) : undefined;
+    return name ? `${name} <${mailbox}>` : mailbox;
+  } catch {
+    return mailbox;
+  }
+}
+
+/**
  * Replies to a help thread, and optionally closes it.
  *
  * Level "draft" is enough: answering someone who wrote in is support, not
@@ -62,6 +81,8 @@ export async function POST(request: Request) {
   const thread = { id: snap.id, ...snap.data() } as HelpThread;
   const now = new Date().toISOString();
 
+  const from = await senderFor(thread.mailbox);
+
   let emailed = false;
   let sendError: string | undefined;
 
@@ -74,10 +95,10 @@ export async function POST(request: Request) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          from: HELP_FROM,
+          from,
           to: [thread.fromEmail],
           subject: `Re: ${thread.subject}`,
-          reply_to: HELP_FROM,
+          reply_to: from,
           text: message,
           html: `<div style="font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;font-size:15px;line-height:1.7;color:#12181d">${message
             .split(/\n{2,}/)
@@ -98,7 +119,7 @@ export async function POST(request: Request) {
   // visible, or the next person answers the same question twice.
   await ref.collection("messages").add({
     direction: "out",
-    fromEmail: HELP_FROM,
+    fromEmail: from,
     body: message,
     authorEmail: caller.email,
     createdAt: now,

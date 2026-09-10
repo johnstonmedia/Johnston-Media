@@ -337,7 +337,20 @@ cannot double-send.
 
 ### Templates
 
-Paste a full HTML email. `{{content}}` is where the campaign body lands; the
+Press **Install Johnston Media set** and the three real templates — general,
+quote and payment — are added as they were designed, table layouts and MSO
+conditionals intact. They are keyed, so pressing it again updates them in place
+rather than making copies.
+
+Those templates slot the message into `{{MESSAGE_BODY}}` rather than the
+platform's own `{{content}}`; the merge layer accepts either, so they work
+unchanged. They also read `{{FIRST_NAME}}`, `{{EYEBROW}}`, `{{HEADLINE}}`,
+`{{LEAD_PARAGRAPH}}`, `{{PRIMARY_URL}}`, `{{PRIMARY_LABEL}}`, `{{FOOTER_NOTE}}`
+and `{{LOGO_URL}}` — all of which the campaign composer has fields for, and all
+of which fall back to something sensible rather than leaving a raw `{{TOKEN}}`
+in a sent email.
+
+To write your own: paste a full HTML email. `{{content}}` is where the campaign body lands; the
 other merge fields (`{{name}}`, `{{unsubscribe_url}}`, `{{sender_name}}` and so
 on) are substituted per recipient. Previews render in an iframe **sandboxed with
 scripts disabled** — a template is arbitrary HTML and has no business running
@@ -359,15 +372,29 @@ Australia to identify its sender and carry a working unsubscribe facility. So:
 - Unsubscribes are never deleted, only flagged. Remembering is how the promise
   gets kept next time, and re-importing a list cannot resubscribe someone.
 
-### The help inbox
+### The inbox
 
-Everything sent to **help@wjohnstonmedia.com** arrives as a conversation.
-Replies go from the same address through `/api/email/reply`, so the thread stays
-whole on both sides — which is the entire reason for a shared inbox instead of
-forwarding things around.
+Shaped like a mail client, because that is the shape people already know: a
+rail of mailboxes, a list of conversations, a reading pane. Starred, Archived
+and Done filter the list; search covers sender, subject and body.
 
-Wiring the address up: point a forwarder at `/api/email/inbound` with
-`EMAIL_INBOUND_SECRET` set. The endpoint accepts the payload shapes that Resend
+The one thing it does differently from a normal client is **open on "All
+inboxes"** — for a one-person studio the question is rarely "what's in help@",
+it's "has anyone written to me". Pick a single mailbox on the left when you
+want one, and the merged view labels each conversation with the address it
+landed on.
+
+**Replies go out from the address the message arrived at.** Someone who wrote
+to hello@ gets an answer from hello@, not from a support address they have
+never seen — a different sender breaks the thread in their mail client.
+
+Mailboxes are rows in `mailboxes/{address}`, so adding one is a document plus a
+forwarding rule, no code. `help@` and `hello@` are assumed to exist before
+anything is configured, so a fresh install has somewhere for mail to land.
+
+Wiring an address up: point a forwarder at `/api/email/inbound` with
+`EMAIL_INBOUND_SECRET` set. The endpoint reads the To header to decide which
+mailbox a message belongs to, and accepts the payload shapes that Resend
 Inbound, Cloudflare Email Workers and SendGrid Inbound Parse produce, so it
 isn't welded to whichever one you pick. **With no secret set it refuses
 everything** — an open inbound endpoint is a spam funnel into the team's inbox.

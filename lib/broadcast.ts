@@ -94,19 +94,38 @@ export function renderForContact(
 ): RenderedEmail {
   const unsub = unsubscribeUrl(contact.id, contact.email);
 
+  const full = contact.name?.trim() || "there";
+  // Templates greet with a first name; a contact record often holds a full one.
+  const first = full.split(/\s+/)[0] || full;
+
   const values: Record<string, string> = {
-    name: escapeHtml(contact.name?.trim() || "there"),
+    name: escapeHtml(full),
+    first_name: escapeHtml(first),
     email: escapeHtml(contact.email),
     subject: escapeHtml(campaign.subject),
+    preheader: escapeHtml(campaign.preheader ?? ""),
     unsubscribe_url: unsub,
     sender_name: escapeHtml(campaign.fromName),
     sender_address: escapeHtml(senderAddress),
+    postal_address: escapeHtml(senderAddress),
+    contact_email: escapeHtml(campaign.replyTo || campaign.fromEmail),
+    logo_url: `${SITE}/logo.png`,
     year: String(new Date().getFullYear()),
+    // The banner block. Blank rather than a leftover {{TOKEN}} when unset.
+    eyebrow: escapeHtml(campaign.eyebrow ?? ""),
+    headline: escapeHtml(campaign.headline ?? campaign.subject),
+    lead_paragraph: escapeHtml(campaign.lead ?? ""),
+    primary_url: campaign.primaryUrl ?? unsub,
+    primary_label: escapeHtml(campaign.primaryLabel ?? ""),
+    footer_note: escapeHtml(campaign.footerNote ?? ""),
   };
 
   const body = merge(campaign.html, values);
+  // MESSAGE_BODY is the slot Will's templates use for the message; content is
+  // the platform's own name for the same thing. Both work, so a template
+  // written either way drops straight in.
   const html = template
-    ? merge(template.html, { ...values, content: body })
+    ? merge(template.html, { ...values, content: body, message_body: body })
     : body;
 
   return {

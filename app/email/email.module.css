@@ -30,46 +30,26 @@
 }
 
 .brand {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-}
-
-.brandMark {
   display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  flex-shrink: 0;
-  border-radius: 9px;
-  background: var(--jm-gradient-subtle);
-  color: var(--jm-fixed-white);
-  font-family: var(--font-display);
-  font-size: 0.95rem;
-  font-weight: 700;
+  gap: 0.4rem;
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--jm-border);
 }
 
-.brandText {
-  min-width: 0;
-}
-
-.brandTitle {
-  display: block;
-  font-family: var(--font-display);
-  font-size: var(--text-base);
-  font-weight: 600;
-  color: var(--jm-white);
-  line-height: 1.2;
+.brandLogo {
+  height: 34px;
+  width: auto;
+  /* The wordmark is drawn for a light ground; on the dark rail it needs a
+     touch of lift to sit properly rather than looking pasted on. */
+  filter: brightness(1.18);
 }
 
 .brandSub {
-  display: block;
   font-family: var(--font-body);
   font-size: 0.62rem;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--jm-slate);
-  margin-top: 0.15rem;
+  color: var(--jm-copper);
 }
 
 .nav {
@@ -519,5 +499,519 @@
   }
   .field2 {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================================
+   The inbox
+   ------------------------------------------------------------
+   Three columns, the shape every mail client has had for
+   thirty years — mailboxes, conversations, the message. Worth
+   copying exactly, because it's the layout people already know
+   how to use. Everything Johnston Media about it is the
+   surface: the dark ground, the copper accent, the serif on
+   subjects.
+   ============================================================ */
+
+.mail {
+  display: grid;
+  grid-template-columns: 210px 340px minmax(0, 1fr);
+  gap: 1px;
+  background: var(--jm-border);
+  border: 1px solid var(--jm-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  /* Fill the window below the platform header, and scroll inside. */
+  height: calc(100svh - 190px);
+  min-height: 460px;
+}
+
+/* ── Mailbox rail ────────────────────────────────── */
+
+.rail {
+  background: var(--jm-surface);
+  padding: var(--space-sm) 0.5rem;
+  overflow-y: auto;
+}
+
+.railHead {
+  font-family: var(--font-body);
+  font-size: 0.6rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--jm-slate);
+  padding: var(--space-md) 0.65rem 0.4rem;
+}
+
+.railItem {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  border: none;
+  border-radius: var(--radius-md);
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  color: var(--jm-muted);
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+.railItem:hover {
+  background: var(--jm-hover-wash);
+  color: var(--jm-white);
+}
+
+.railOn,
+.railOn:hover {
+  background: var(--jm-hover-wash);
+  color: var(--jm-white);
+  box-shadow: inset 2px 0 0 var(--jm-copper);
+}
+
+.railIcon {
+  width: 15px;
+  flex-shrink: 0;
+  text-align: center;
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+.railText {
+  min-width: 0;
+  flex: 1;
+}
+
+.railText strong {
+  display: block;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.railText em {
+  display: block;
+  font-style: normal;
+  font-size: 0.66rem;
+  color: var(--jm-slate);
+  margin-top: 0.1rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.railSmall {
+  padding: 0.4rem 0.65rem;
+}
+
+.railSmall .railText em {
+  display: none;
+}
+
+.railCount {
+  min-width: 1.3rem;
+  text-align: center;
+  border-radius: var(--radius-pill);
+  background: var(--jm-copper);
+  color: var(--jm-fixed-white);
+  font-family: var(--font-body);
+  font-size: 0.62rem;
+  font-weight: 600;
+  padding: 0.1rem 0.4rem;
+  flex-shrink: 0;
+}
+
+/* ── Conversation list ───────────────────────────── */
+
+.threadList {
+  background: var(--jm-bg);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.searchBar {
+  padding: 0.6rem;
+  border-bottom: 1px solid var(--jm-border);
+  background: var(--jm-surface);
+}
+
+.search {
+  width: 100%;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid var(--jm-border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--jm-input-bg);
+  color: var(--jm-white);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+}
+
+.search:focus-visible {
+  outline: 2px solid var(--jm-copper);
+  outline-offset: 1px;
+}
+
+.threads {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.threads li {
+  position: relative;
+  border-bottom: 1px solid var(--jm-border);
+}
+
+.threadRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  width: 100%;
+  padding: 0.8rem 2.2rem 0.8rem 0.8rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.18s ease;
+}
+
+.threadRow:hover {
+  background: var(--jm-hover-wash);
+}
+
+.threadOpen,
+.threadOpen:hover {
+  background: var(--jm-hover-wash);
+  box-shadow: inset 3px 0 0 var(--jm-copper);
+}
+
+/* Unread is weight and colour, not a badge — same as every mail client. */
+.threadUnread .threadFrom,
+.threadUnread .threadSubject {
+  color: var(--jm-white);
+  font-weight: 600;
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--jm-teal);
+  color: var(--jm-fixed-white);
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.avatarSm {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--jm-border-strong);
+  color: var(--jm-white);
+  font-family: var(--font-body);
+  font-size: 0.62rem;
+  font-weight: 600;
+}
+
+.threadMain {
+  min-width: 0;
+  flex: 1;
+}
+
+.threadTop {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.threadFrom {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--jm-lightgrey);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.threadWhen {
+  font-family: var(--font-body);
+  font-size: 0.66rem;
+  color: var(--jm-slate);
+  flex-shrink: 0;
+}
+
+.threadSubject {
+  display: block;
+  margin-top: 0.15rem;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  color: var(--jm-lightgrey);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.threadSnippet {
+  display: block;
+  margin-top: 0.2rem;
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  color: var(--jm-slate);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* Which address it landed on — only useful in the merged view. */
+.threadBox {
+  display: inline-block;
+  margin-top: 0.35rem;
+  padding: 0.1rem 0.5rem;
+  border: 1px solid var(--jm-border-strong);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-body);
+  font-size: 0.6rem;
+  color: var(--jm-slate);
+}
+
+.star {
+  position: absolute;
+  top: 0.7rem;
+  right: 0.55rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.95rem;
+  line-height: 1;
+  color: var(--jm-border-strong);
+  transition: color 0.2s ease;
+}
+
+.star:hover {
+  color: var(--jm-muted);
+}
+
+.starOn,
+.starOn:hover {
+  color: var(--jm-amber);
+}
+
+/* ── Reading pane ────────────────────────────────── */
+
+.reader {
+  background: var(--jm-surface);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.readerEmpty {
+  margin: auto;
+  text-align: center;
+  color: var(--jm-slate);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+}
+
+.readerMark {
+  display: block;
+  font-size: 2.4rem;
+  opacity: 0.25;
+  margin-bottom: 0.75rem;
+}
+
+.readerHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+  padding: var(--space-md);
+  border-bottom: 1px solid var(--jm-border);
+}
+
+.readerSubject {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: 600;
+  color: var(--jm-white);
+  line-height: 1.25;
+}
+
+.readerMeta {
+  margin-top: 0.3rem;
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--jm-slate);
+  line-height: 1.6;
+}
+
+.readerActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.readerBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-md);
+  display: grid;
+  gap: var(--space-md);
+  align-content: start;
+}
+
+.mailMsg {
+  border: 1px solid var(--jm-border);
+  border-radius: var(--radius-md);
+  background: var(--jm-input-bg);
+  overflow: hidden;
+}
+
+/* Ours reads as ours — a copper edge, nothing louder. */
+.mailMsgOut {
+  border-left: 3px solid var(--jm-copper);
+}
+
+.mailMsgHead {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.7rem var(--space-md);
+  border-bottom: 1px solid var(--jm-border);
+}
+
+.mailMsgHead strong {
+  display: block;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--jm-white);
+}
+
+.mailMsgHead em {
+  display: block;
+  font-style: normal;
+  font-size: 0.66rem;
+  color: var(--jm-slate);
+  margin-top: 0.1rem;
+}
+
+.mailMsgBody {
+  padding: var(--space-md);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  line-height: 1.75;
+  color: var(--jm-lightgrey);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.composeBar {
+  border-top: 1px solid var(--jm-border);
+  padding: var(--space-md);
+  background: var(--jm-bg);
+}
+
+.composeBox {
+  width: 100%;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--jm-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--jm-input-bg);
+  color: var(--jm-white);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  line-height: 1.7;
+  resize: vertical;
+}
+
+.composeBox:focus-visible {
+  outline: 2px solid var(--jm-copper);
+  outline-offset: 1px;
+}
+
+.composeActions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.mailEmpty {
+  padding: var(--space-xl) var(--space-md);
+  text-align: center;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  line-height: 1.7;
+  color: var(--jm-slate);
+}
+
+.mailEmpty strong {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: var(--text-base);
+  color: var(--jm-white);
+  font-weight: 500;
+}
+
+/* ── Narrow screens ──────────────────────────────── */
+
+@media (max-width: 1180px) {
+  .mail {
+    grid-template-columns: 180px minmax(0, 1fr);
+    height: auto;
+  }
+  /* The reading pane drops below rather than squeezing to nothing. */
+  .reader {
+    grid-column: 1 / -1;
+    min-height: 420px;
+  }
+  .threads {
+    max-height: 46svh;
+  }
+}
+
+@media (max-width: 720px) {
+  .mail {
+    grid-template-columns: 1fr;
+  }
+  .rail {
+    display: flex;
+    gap: 0.35rem;
+    overflow-x: auto;
+    padding: 0.5rem;
+  }
+  .railHead {
+    display: none;
+  }
+  .railItem {
+    width: auto;
+    white-space: nowrap;
+  }
+  .railText em {
+    display: none;
   }
 }

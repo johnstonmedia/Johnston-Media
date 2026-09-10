@@ -28,7 +28,7 @@ export default function OverviewPanel({
   onJump,
 }: {
   access: EmailAccess;
-  onJump: (section: "campaigns" | "contacts" | "help") => void;
+  onJump: (section: "campaigns" | "contacts" | "inbox") => void;
 }) {
   const [counts, setCounts] = useState<Counts | null>(null);
 
@@ -158,7 +158,7 @@ export default function OverviewPanel({
               <button
                 type="button"
                 className="jm-btn-primary jm-btn-sm"
-                onClick={() => onJump("help")}
+                onClick={() => onJump("inbox")}
               >
                 Open the inbox
               </button>

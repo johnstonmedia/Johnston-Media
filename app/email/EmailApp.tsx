@@ -334,7 +334,9 @@ function Platform({
         </div>
       </aside>
 
-      <main className={styles.main}>
+      {/* The inbox is a mail client, not a page about mail: it takes the
+          whole window and scrolls inside its own panes. */}
+      <main className={styles.main} data-full={section === "inbox" ? "true" : "false"}>
         {section === "overview" ? (
           <OverviewPanel access={access} onJump={setSection} />
         ) : null}
@@ -346,15 +348,6 @@ function Platform({
         {section === "templates" ? <TemplatePanel access={access} /> : null}
         {section === "inbox" ? (
           <>
-            <div className={styles.head}>
-              <div>
-                <h1 className={styles.title}>Inbox</h1>
-                <p className={styles.sub}>
-                  Every address in one place. Pick a mailbox on the left, or
-                  stay on All inboxes and see the lot.
-                </p>
-              </div>
-            </div>
             <InboxPanel
               access={access}
               getToken={getToken}

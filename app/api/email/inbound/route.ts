@@ -142,6 +142,7 @@ export async function POST(request: Request) {
       snippet: snippetOf(body),
       messageCount: 1,
       unread: true,
+      hasInbound: true,
       createdAt: now,
       lastMessageAt: now,
     };
@@ -156,6 +157,9 @@ export async function POST(request: Request) {
       snippet: snippetOf(body),
       messageCount: (current.messageCount ?? 0) + 1,
       unread: true,
+      // A reply to something you sent moves that thread into the Inbox as
+      // well, without taking it out of Sent — it is now a conversation.
+      hasInbound: true,
       lastMessageAt: now,
     });
   }

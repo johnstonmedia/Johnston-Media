@@ -356,6 +356,17 @@ export interface HelpThread {
   starred?: boolean;
   /** Out of the inbox without being resolved. */
   archived?: boolean;
+  /**
+   * Which directions this conversation has been through.
+   *
+   * A thread you started by composing has only gone out; one someone wrote to
+   * you has only come in; a conversation has both. Folders read these rather
+   * than guessing, so Sent and Inbox stop being the same list. Threads
+   * recorded before these existed have neither, and are treated as received —
+   * which is what they were, since composing didn't exist yet.
+   */
+  hasInbound?: boolean;
+  hasOutbound?: boolean;
   createdAt: string;
   lastMessageAt: string;
 }

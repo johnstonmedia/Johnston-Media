@@ -29,14 +29,23 @@ import styles from "./email.module.css";
 /** Threads recorded before mailboxes existed all came from help@. */
 const LEGACY_MAILBOX = "help@wjohnstonmedia.com";
 
-type View = "inbox" | "starred" | "archived" | "closed";
+type View = "inbox" | "sent" | "starred" | "archived" | "closed";
 
 const VIEWS: { id: View; label: string; icon: string }[] = [
   { id: "inbox", label: "Inbox", icon: "▤" },
+  { id: "sent", label: "Sent", icon: "➤" },
   { id: "starred", label: "Starred", icon: "★" },
   { id: "archived", label: "Archived", icon: "▣" },
   { id: "closed", label: "Done", icon: "✓" },
 ];
+
+/**
+ * Threads written before the direction flags existed predate composing, so
+ * everything on record then had arrived rather than been sent.
+ */
+function received(t: HelpThread): boolean {
+  return t.hasInbound ?? !t.hasOutbound;
+}
 
 function initials(name: string | undefined, email: string): string {
   const source = name?.trim() || email;
@@ -142,7 +151,13 @@ export default function InboxPanel({
       );
       setThreads(rows);
       onCount(
-        rows.filter((t) => t.unread && !t.archived && t.status !== "Closed")
+        rows.filter(
+          (t) =>
+            t.unread &&
+            (t.hasInbound ?? !t.hasOutbound) &&
+            !t.archived &&
+            t.status !== "Closed",
+        )
           .length,
       );
     } catch (err) {
@@ -184,10 +199,14 @@ export default function InboxPanel({
         selected === ALL_MAILBOXES ? true : mailboxOf(t) === selected,
       )
       .filter((t) => {
+        if (view === "sent") return Boolean(t.hasOutbound) && !t.archived;
         if (view === "starred") return t.starred;
         if (view === "archived") return t.archived;
         if (view === "closed") return t.status === "Closed";
-        return !t.archived && t.status !== "Closed";
+        // The Inbox is mail that came to you. A thread you started by writing
+        // to someone lives in Sent until they answer — showing both in one
+        // undivided list is what made this feel unlike a mail client.
+        return received(t) && !t.archived && t.status !== "Closed";
       })
       .filter(
         (t) =>
@@ -318,9 +337,35 @@ export default function InboxPanel({
           </button>
         ) : null}
 
+        {VIEWS.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            className={`${styles.railItem} ${
+              view === item.id ? styles.railOn : ""
+            }`}
+            onClick={() => {
+              setView(item.id);
+              setOpenId(null);
+            }}
+          >
+            <span className={styles.railIcon} aria-hidden="true">
+              {item.icon}
+            </span>
+            <span className={styles.railText}>
+              <strong>{item.label}</strong>
+            </span>
+            {item.id === "inbox" && totalUnread > 0 ? (
+              <span className={styles.railCount}>{totalUnread}</span>
+            ) : null}
+          </button>
+        ))}
+
+        <p className={styles.railHead}>Mailboxes</p>
+
         <button
           type="button"
-          className={`${styles.railItem} ${
+          className={`${styles.railItem} ${styles.railSmall} ${
             selected === ALL_MAILBOXES ? styles.railOn : ""
           }`}
           onClick={() => {
@@ -332,15 +377,9 @@ export default function InboxPanel({
             ✉
           </span>
           <span className={styles.railText}>
-            <strong>All inboxes</strong>
-            <em>Everything, every address</em>
+            <strong>All addresses</strong>
           </span>
-          {totalUnread > 0 ? (
-            <span className={styles.railCount}>{totalUnread}</span>
-          ) : null}
         </button>
-
-        <p className={styles.railHead}>Mailboxes</p>
 
         {mailboxes.map((box) => {
           const unread = unreadBy.get(box.address) ?? 0;
@@ -348,7 +387,7 @@ export default function InboxPanel({
             <button
               key={box.address}
               type="button"
-              className={`${styles.railItem} ${
+              className={`${styles.railItem} ${styles.railSmall} ${
                 selected === box.address ? styles.railOn : ""
               }`}
               onClick={() => {
@@ -370,27 +409,6 @@ export default function InboxPanel({
           );
         })}
 
-        <p className={styles.railHead}>Show</p>
-        {VIEWS.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            className={`${styles.railItem} ${styles.railSmall} ${
-              view === item.id ? styles.railOn : ""
-            }`}
-            onClick={() => {
-              setView(item.id);
-              setOpenId(null);
-            }}
-          >
-            <span className={styles.railIcon} aria-hidden="true">
-              {item.icon}
-            </span>
-            <span className={styles.railText}>
-              <strong>{item.label}</strong>
-            </span>
-          </button>
-        ))}
       </aside>
 
       {/* ── Conversations ─────────────────────────── */}
@@ -436,6 +454,10 @@ export default function InboxPanel({
                   <span className={styles.threadMain}>
                     <span className={styles.threadTop}>
                       <span className={styles.threadFrom}>
+                        {/* In Sent, the useful name is the person it went to.
+                            The thread is keyed on the other party either way,
+                            so it is the same field — only the label changes. */}
+                        {view === "sent" ? "To " : ""}
                         {thread.fromName || thread.fromEmail}
                       </span>
                       <span className={styles.threadWhen}>

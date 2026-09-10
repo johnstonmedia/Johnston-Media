@@ -238,6 +238,15 @@
   padding: var(--space-lg) var(--space-xl) var(--space-2xl);
 }
 
+/* The inbox is a mail client: it fills the window, has no page heading and
+   no page padding, and every pane scrolls inside itself rather than the
+   document scrolling underneath them. */
+.main[data-full="true"] {
+  padding: 0;
+  height: 100svh;
+  overflow: hidden;
+}
+
 .head {
   display: flex;
   align-items: flex-end;
@@ -572,6 +581,19 @@
   .shell,
   .shell[data-pinned="false"] {
     grid-template-columns: 1fr;
+    /* The phone header takes the first row and the content takes the rest.
+       The sidebar is fixed at this width, so it is out of the flow and does
+       not claim a row of its own. */
+    grid-template-rows: auto minmax(0, 1fr);
+    height: 100svh;
+    overflow: hidden;
+  }
+
+  /* Height comes from the 1fr row now — a hard 100svh here would push the
+     phone header off the top by exactly its own height. */
+  .main[data-full="true"] {
+    height: auto;
+    min-height: 0;
   }
 
   .mobileBar {
@@ -707,15 +729,13 @@
 
 .mail {
   display: grid;
-  grid-template-columns: 210px 340px minmax(0, 1fr);
+  grid-template-columns: 232px 360px minmax(0, 1fr);
   gap: 1px;
   background: var(--jm-border);
-  border: 1px solid var(--jm-border);
-  border-radius: var(--radius-md);
   overflow: hidden;
-  /* Fill the window below the platform header, and scroll inside. */
-  height: calc(100svh - 190px);
-  min-height: 460px;
+  /* Edge to edge inside the shell — the window is the frame, so a border and
+     a radius here would just draw a box around the whole screen. */
+  height: 100%;
 }
 
 /* ── Mailbox rail ────────────────────────────────── */
@@ -838,12 +858,15 @@
   white-space: nowrap;
 }
 
+/* Mailbox rows: a filter within the folder you're in, so they sit tighter
+   than the folders above them. The address stays visible — it is the whole
+   point of picking one address over another. */
 .railSmall {
   padding: 0.4rem 0.65rem;
 }
 
 .railSmall .railText em {
-  display: none;
+  font-size: 0.68rem;
 }
 
 .railCount {

@@ -262,6 +262,7 @@ export async function POST(request: Request) {
           snippet: message.replace(/\s+/g, " ").slice(0, 180),
           messageCount: 1,
           unread: false,
+          hasOutbound: true,
           createdAt: now,
           lastMessageAt: now,
         };
@@ -273,6 +274,7 @@ export async function POST(request: Request) {
           status: "Waiting",
           snippet: message.replace(/\s+/g, " ").slice(0, 180),
           messageCount: (current.messageCount ?? 0) + 1,
+          hasOutbound: true,
           lastMessageAt: now,
         });
       }

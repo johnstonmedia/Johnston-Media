@@ -130,6 +130,9 @@ export async function POST(request: Request) {
     status: close ? "Closed" : "Waiting",
     unread: false,
     messageCount: (thread.messageCount ?? 0) + 1,
+    // Replying puts the thread in Sent too; it stays in the Inbox because
+    // hasInbound is what put it there and nothing here clears it.
+    hasOutbound: true,
     lastMessageAt: now,
   });
 

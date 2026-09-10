@@ -146,6 +146,27 @@ service cloud.firestore {
       return isAdmin() || emailLevel() in ['draft', 'send', 'admin'];
     }
 
+    /**
+     * The mailboxes this person may read.
+     *
+     * Absent or empty means all of them — that is what everyone had before
+     * the setting existed, and defaulting to "none" would lock people out of
+     * mail they were already handling. A non-empty list is a restriction.
+     *
+     * The client also filters its list, but that only decides what is shown.
+     * This is what decides what can be fetched.
+     */
+    function visibleMailboxes() {
+      return get(/databases/$(database)/documents/emailAccess/$(request.auth.uid))
+        .data.get('visibleMailboxes', []);
+    }
+
+    function canReadMailbox(box) {
+      return isAdmin()
+        || visibleMailboxes().size() == 0
+        || box in visibleMailboxes();
+    }
+
     match /emailAccess/{uid} {
       // You may see your own grant, so the app can tell you what you have.
       allow read: if isAdmin() || (isSignedIn() && request.auth.uid == uid);
@@ -183,14 +204,20 @@ service cloud.firestore {
     }
 
     match /helpThreads/{threadId} {
-      allow read: if hasEmailAccess();
+      // Legacy threads predate mailboxes and were all help@.
+      allow read: if hasEmailAccess()
+        && canReadMailbox(resource.data.get('mailbox', 'help@wjohnstonmedia.com'));
       // Only the read/unread flag is worth a direct write; everything else
       // arrives from the inbound webhook or goes out through /api/email/reply.
       allow update: if canDraft();
       allow create, delete: if false;
 
       match /messages/{messageId} {
-        allow read: if hasEmailAccess();
+        // A message is only as readable as the thread that holds it.
+        allow read: if hasEmailAccess()
+          && canReadMailbox(
+            get(/databases/$(database)/documents/helpThreads/$(threadId))
+              .data.get('mailbox', 'help@wjohnstonmedia.com'));
         allow write: if false;
       }
     }

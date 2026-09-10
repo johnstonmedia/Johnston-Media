@@ -59,6 +59,27 @@ export interface EmailAccess {
    */
   allowedFrom: string[];
   /**
+   * The address that is *theirs* — marketing@ for whoever runs campaigns,
+   * their own name for someone who corresponds as themselves. It is the one
+   * pre-selected when they write, so the common case takes no thought.
+   *
+   * Always also present in allowedFrom; the panel keeps the two in step so a
+   * primary address can never be one they aren't allowed to use.
+   */
+  primaryFrom?: string;
+  /**
+   * Mailboxes this person may read.
+   *
+   * Absent or empty means every mailbox, which is what everyone had before
+   * this existed — narrowing by default would have silently locked people out
+   * of mail they were already handling. A non-empty list is a restriction:
+   * someone who runs campaigns has no reason to read invoice@.
+   *
+   * Enforced in firestore.rules as well as here. Filtering a list in the
+   * browser decides what is shown, not what can be fetched.
+   */
+  visibleMailboxes?: string[];
+  /**
    * Marketing sends can go to thousands of people at once, so it's gated
    * separately from transactional sending even at level "send".
    */

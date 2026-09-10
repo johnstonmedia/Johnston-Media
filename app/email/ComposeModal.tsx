@@ -51,7 +51,12 @@ export default function ComposeModal({
       ? mailboxes.map((m) => m.address)
       : access.allowedFrom;
 
-  const [from, setFrom] = useState(allowed[0] ?? "");
+  // Their own address first — the common case should take no thought.
+  const [from, setFrom] = useState(
+    access.primaryFrom && allowed.includes(access.primaryFrom)
+      ? access.primaryFrom
+      : (allowed[0] ?? ""),
+  );
   const [to, setTo] = useState(initialTo);
   const [subject, setSubject] = useState(initialSubject);
   const [message, setMessage] = useState("");

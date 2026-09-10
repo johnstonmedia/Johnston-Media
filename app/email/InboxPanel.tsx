@@ -7,6 +7,7 @@ import {
   limit,
   orderBy,
   query,
+  where,
   updateDoc,
 } from "firebase/firestore";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -121,14 +122,30 @@ export default function InboxPanel({
   const load = useCallback(async () => {
     try {
       const db = getDb();
+      // A restricted person must ask only for what they're allowed to read.
+      // Firestore evaluates the rule against every document a list returns,
+      // so an unconstrained query doesn't return a filtered list — it fails
+      // outright. The rules are the boundary; this is how you stay inside it.
+      const limitedTo = access.visibleMailboxes ?? [];
+      const restricted = limitedTo.length > 0;
+
       const [boxSnap, threadSnap] = await Promise.all([
         getDocs(collection(db, "mailboxes")),
         getDocs(
-          query(
-            collection(db, "helpThreads"),
-            orderBy("lastMessageAt", "desc"),
-            limit(300),
-          ),
+          restricted
+            ? query(
+                collection(db, "helpThreads"),
+                // "in" takes at most 30 values, which is far more mailboxes
+                // than anyone is going to be granted.
+                where("mailbox", "in", limitedTo.slice(0, 30)),
+                orderBy("lastMessageAt", "desc"),
+                limit(300),
+              )
+            : query(
+                collection(db, "helpThreads"),
+                orderBy("lastMessageAt", "desc"),
+                limit(300),
+              ),
         ),
       ]);
 
@@ -144,7 +161,9 @@ export default function InboxPanel({
         }
       }
       merged.sort((a, b) => (a.order ?? 99) - (b.order ?? 99));
-      setMailboxes(merged);
+      setMailboxes(
+        restricted ? merged.filter((m) => limitedTo.includes(m.address)) : merged,
+      );
 
       const rows = threadSnap.docs.map(
         (d) => ({ id: d.id, ...d.data() }) as HelpThread,

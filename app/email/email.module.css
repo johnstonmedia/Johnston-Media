@@ -1298,3 +1298,57 @@
     max-height: none;
   }
 }
+
+/* ── Tick lists (access) ─────────────────────────────
+   Picking addresses from the real mailbox list rather than typing them: a
+   typo in a from-address is a send that fails at the provider, long after
+   the moment anyone would connect the two.
+   ─────────────────────────────────────────────────── */
+
+.tickList {
+  display: grid;
+  gap: 0.15rem;
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 0.35rem;
+  border: 1px solid var(--jm-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--jm-input-bg);
+}
+
+.tick {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--jm-white);
+}
+
+.tick:hover {
+  background: var(--jm-hover-wash);
+}
+
+.tick input {
+  margin-top: 0.15rem;
+  accent-color: var(--jm-copper);
+}
+
+.tick input:disabled {
+  opacity: 0.6;
+}
+
+.tick strong {
+  display: block;
+  font-weight: 500;
+}
+
+.tick em {
+  display: block;
+  font-style: normal;
+  font-size: var(--text-xs);
+  color: var(--jm-slate);
+}

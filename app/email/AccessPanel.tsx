@@ -6,11 +6,13 @@ import { useCallback, useEffect, useState } from "react";
 import { useToast } from "@/components/Toast";
 import { getDb } from "@/lib/firebase";
 import {
+  DEFAULT_MAILBOXES,
   EMAIL_LEVEL_HINTS,
   EMAIL_LEVEL_LABELS,
   EMAIL_LEVELS,
   type EmailAccess,
   type EmailLevel,
+  type Mailbox,
 } from "@/lib/emailTypes";
 import { ADMIN_ROLES, type UserProfile } from "@/lib/types";
 
@@ -38,7 +40,10 @@ export default function AccessPanel({
   const [people, setPeople] = useState<Person[] | null>(null);
   const [editing, setEditing] = useState<Person | null>(null);
   const [level, setLevel] = useState<EmailLevel>("read");
-  const [allowedFrom, setAllowedFrom] = useState("");
+  const [allowedFrom, setAllowedFrom] = useState<string[]>([]);
+  const [primaryFrom, setPrimaryFrom] = useState("");
+  const [visible, setVisible] = useState<string[]>([]);
+  const [mailboxes, setMailboxes] = useState<Mailbox[]>(DEFAULT_MAILBOXES);
   const [canBroadcast, setCanBroadcast] = useState(false);
   const [maxRecipients, setMaxRecipients] = useState("");
   const [busy, setBusy] = useState(false);
@@ -46,10 +51,25 @@ export default function AccessPanel({
   const load = useCallback(async () => {
     try {
       const db = getDb();
-      const [users, grants] = await Promise.all([
+      const [users, grants, boxes] = await Promise.all([
         getDocs(collection(db, "users")),
         getDocs(collection(db, "emailAccess")),
+        getDocs(collection(db, "mailboxes")),
       ]);
+
+      // Configured mailboxes win, defaults fill the gaps — the same merge the
+      // inbox does, so both offer exactly the same set of addresses.
+      const configured = boxes.docs.map(
+        (d) => ({ address: d.id, ...d.data() }) as Mailbox,
+      );
+      const merged = [...configured];
+      for (const fallback of DEFAULT_MAILBOXES) {
+        if (!merged.some((m) => m.address === fallback.address)) {
+          merged.push(fallback);
+        }
+      }
+      merged.sort((a, b) => (a.order ?? 99) - (b.order ?? 99));
+      setMailboxes(merged);
 
       const byUid = new Map<string, EmailAccess>();
       grants.docs.forEach((d) =>
@@ -78,7 +98,9 @@ export default function AccessPanel({
   function open(person: Person) {
     setEditing(person);
     setLevel(person.access?.level ?? "read");
-    setAllowedFrom((person.access?.allowedFrom ?? []).join("\n"));
+    setAllowedFrom(person.access?.allowedFrom ?? []);
+    setPrimaryFrom(person.access?.primaryFrom ?? "");
+    setVisible(person.access?.visibleMailboxes ?? []);
     setCanBroadcast(person.access?.canBroadcast ?? false);
     setMaxRecipients(
       person.access?.maxRecipients ? String(person.access.maxRecipients) : "",
@@ -104,10 +126,9 @@ export default function AccessPanel({
         body: JSON.stringify({
           uid: editing.profile.id,
           level,
-          allowedFrom: allowedFrom
-            .split(/[\n,]+/)
-            .map((a) => a.trim())
-            .filter(Boolean),
+          allowedFrom,
+          primaryFrom,
+          visibleMailboxes: visible,
           canBroadcast,
           maxRecipients,
         }),
@@ -249,17 +270,101 @@ export default function AccessPanel({
             </div>
 
             <div className="jm-field">
-              <label className="jm-label" htmlFor="ac-from">
-                May send as — one address per line
+              <label className="jm-label" htmlFor="ac-primary">
+                Their address
               </label>
-              <textarea
-                id="ac-from"
-                className="jm-textarea"
-                rows={3}
-                value={allowedFrom}
-                placeholder="hello@wjohnstonmedia.com"
-                onChange={(e) => setAllowedFrom(e.target.value)}
-              />
+              <select
+                id="ac-primary"
+                className="jm-select"
+                value={primaryFrom}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  setPrimaryFrom(next);
+                  // Their own address is always one they may send as; letting
+                  // the two drift apart is how you get a person whose default
+                  // From is refused the moment they press send.
+                  if (next && !allowedFrom.includes(next)) {
+                    setAllowedFrom([...allowedFrom, next]);
+                  }
+                }}
+              >
+                <option value="">No address of their own</option>
+                {mailboxes.map((box) => (
+                  <option key={box.address} value={box.address}>
+                    {box.label} — {box.address}
+                  </option>
+                ))}
+              </select>
+              <p className={styles.rowMeta} style={{ marginTop: "0.5rem" }}>
+                Pre-selected when they write. Marketing for whoever runs
+                campaigns, their own name for someone corresponding as
+                themselves.
+              </p>
+            </div>
+
+            <div className="jm-field">
+              <span className="jm-label">May send as</span>
+              <div className={styles.tickList}>
+                {mailboxes.map((box) => (
+                  <label key={box.address} className={styles.tick}>
+                    <input
+                      type="checkbox"
+                      checked={allowedFrom.includes(box.address)}
+                      // Unticking the primary would leave them defaulting to
+                      // an address they can't use, so that one is held.
+                      disabled={box.address === primaryFrom}
+                      onChange={(e) =>
+                        setAllowedFrom(
+                          e.target.checked
+                            ? [...allowedFrom, box.address]
+                            : allowedFrom.filter((a) => a !== box.address),
+                        )
+                      }
+                    />
+                    <span>
+                      <strong>{box.label}</strong>
+                      <em>{box.address}</em>
+                    </span>
+                  </label>
+                ))}
+              </div>
+              {level !== "admin" && allowedFrom.length === 0 ? (
+                <p className={styles.rowMeta} style={{ marginTop: "0.5rem" }}>
+                  Nothing ticked means they can send as nothing at all — which
+                  is the safe reading of an empty list, not a shortcut for
+                  &ldquo;any address&rdquo;.
+                </p>
+              ) : null}
+            </div>
+
+            <div className="jm-field">
+              <span className="jm-label">May read</span>
+              <div className={styles.tickList}>
+                {mailboxes.map((box) => (
+                  <label key={box.address} className={styles.tick}>
+                    <input
+                      type="checkbox"
+                      checked={visible.includes(box.address)}
+                      onChange={(e) =>
+                        setVisible(
+                          e.target.checked
+                            ? [...visible, box.address]
+                            : visible.filter((a) => a !== box.address),
+                        )
+                      }
+                    />
+                    <span>
+                      <strong>{box.label}</strong>
+                      <em>{box.address}</em>
+                    </span>
+                  </label>
+                ))}
+              </div>
+              <p className={styles.rowMeta} style={{ marginTop: "0.5rem" }}>
+                {visible.length === 0
+                  ? "Nothing ticked means every mailbox — the way it worked before this setting existed."
+                  : `They will see ${visible.length} of ${mailboxes.length} mailboxes and nothing else.`}
+              </p>
             </div>
 
             <div className="jm-field">

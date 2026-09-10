@@ -74,6 +74,38 @@ export async function POST(request: Request) {
     allowedFrom.push(address);
   }
 
+  // Their own address. Kept inside allowedFrom so the primary can never be
+  // one they aren't permitted to use.
+  const primaryFrom = clean(body.primaryFrom, 200).toLowerCase();
+  if (primaryFrom) {
+    if (!EMAIL_RE.test(primaryFrom)) {
+      return NextResponse.json(
+        { ok: false, error: `"${primaryFrom}" isn't a valid email address.` },
+        { status: 400 },
+      );
+    }
+    if (!allowedFrom.includes(primaryFrom)) allowedFrom.push(primaryFrom);
+  }
+
+  // Which mailboxes they may read. Empty means all — that is what everyone
+  // had before this field existed, and narrowing by default would silently
+  // cut people off from mail they were already handling.
+  const rawVisible = Array.isArray(body.visibleMailboxes)
+    ? body.visibleMailboxes
+    : [];
+  const visibleMailboxes: string[] = [];
+  for (const entry of rawVisible.slice(0, 30)) {
+    const address = clean(entry, 200).toLowerCase();
+    if (!address) continue;
+    if (!EMAIL_RE.test(address)) {
+      return NextResponse.json(
+        { ok: false, error: `"${address}" isn't a valid mailbox.` },
+        { status: 400 },
+      );
+    }
+    visibleMailboxes.push(address);
+  }
+
   const maxRaw = body.maxRecipients;
   let maxRecipients: number | undefined;
   if (maxRaw !== undefined && maxRaw !== null && maxRaw !== "") {
@@ -101,6 +133,8 @@ export async function POST(request: Request) {
     name: profile.name ?? undefined,
     level,
     allowedFrom,
+    primaryFrom: primaryFrom || undefined,
+    visibleMailboxes,
     canBroadcast: body.canBroadcast === true,
     ...(maxRecipients !== undefined ? { maxRecipients } : {}),
     updatedAt: new Date().toISOString(),

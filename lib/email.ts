@@ -17,6 +17,40 @@ const FROM =
 const OWNER_NOTIFY =
   process.env.OWNER_NOTIFY_EMAIL ?? "wjohnston.media@gmail.com";
 
+/**
+ * Which address each kind of message goes out from.
+ *
+ * A quote and a payment receipt are different conversations, and sending both
+ * from hello@ means every reply lands in one undifferentiated pile. Sending
+ * them from quote@ and invoice@ makes the reply arrive at the mailbox that
+ * already exists for it, so the inbox groups the thread correctly without
+ * anyone sorting it by hand.
+ *
+ * Resend verifies a *domain*, not an address, so every one of these works the
+ * moment wjohnstonmedia.com is verified — there is nothing to set up per
+ * address on the sending side. Receiving is separate: each address still needs
+ * to exist at the mail host and forward to /api/email/inbound.
+ *
+ * Each is overridable by env so the wording can change without a deploy, and
+ * all of them fall back to FROM rather than to a hard-coded address — an
+ * unverified sender is a bounced email, and inheriting the one address known
+ * to work is the safer failure.
+ */
+const SENDERS = {
+  /** Quotes and estimates — the pre-sale conversation. */
+  quotes:
+    process.env.EMAIL_FROM_QUOTES ??
+    "Johnston Media Quotes <quote@wjohnstonmedia.com>",
+  /** Invoices, receipts and anything about money owed. */
+  invoices:
+    process.env.EMAIL_FROM_INVOICES ??
+    "Johnston Media Accounts <invoice@wjohnstonmedia.com>",
+  /** Everything else: contact form, project progress. */
+  general: FROM,
+} as const;
+
+type Sender = keyof typeof SENDERS;
+
 
 export function isEmailConfigured(): boolean {
   return Boolean(process.env.RESEND_API_KEY);
@@ -51,6 +85,8 @@ async function send(input: {
   subject: string;
   html: string;
   replyTo?: string;
+  /** Which of the studio's addresses this goes out from. Defaults to general. */
+  sender?: Sender;
 }): Promise<SendResult> {
   if (!isEmailConfigured()) {
     console.warn(`[email] RESEND_API_KEY missing — skipped: ${input.subject}`);
@@ -59,7 +95,7 @@ async function send(input: {
 
   try {
     const { data, error } = await resend().emails.send({
-      from: FROM,
+      from: SENDERS[input.sender ?? "general"],
       to: Array.isArray(input.to) ? input.to : [input.to],
       subject: input.subject,
       html: input.html,
@@ -222,6 +258,7 @@ export function sendQuoteReceivedToClient(quote: Quote): Promise<SendResult> {
   });
 
   return send({
+    sender: "quotes",
     to: quote.clientEmail,
     subject: `Quote request received — ${quote.name}`,
     html,
@@ -257,6 +294,7 @@ export function sendQuoteAlertToOwner(quote: Quote): Promise<SendResult> {
   });
 
   return send({
+    sender: "quotes",
     to: OWNER_NOTIFY,
     subject: `New quote request — ${quote.clientName} (${quote.serviceType})`,
     html,
@@ -314,6 +352,7 @@ export function sendInvoiceToClient(
   });
 
   return send({
+    sender: "invoices",
     to: quote.clientEmail,
     subject: `Your quote is ready — ${quote.name}`,
     html,
@@ -384,6 +423,7 @@ export function sendPaymentReceiptToClient(
   });
 
   return send({
+    sender: "invoices",
     to: quote.clientEmail,
     subject: partial
       ? `Deposit received — ${quote.name}`
@@ -434,6 +474,7 @@ export function sendPaymentAlertToOwner(
   });
 
   return send({
+    sender: "invoices",
     to: OWNER_NOTIFY,
     subject: partial
       ? `Deposit paid — ${quote.clientName} · ${paid}`
@@ -580,6 +621,7 @@ export function sendEstimateToClient(quote: Quote): Promise<SendResult> {
   });
 
   return send({
+    sender: "quotes",
     to: quote.clientEmail,
     subject: `Your estimate — ${quote.name}`,
     html,
@@ -624,6 +666,7 @@ export function sendEstimateReplyToOwner(
   });
 
   return send({
+    sender: "quotes",
     to: OWNER_NOTIFY,
     subject: accepted
       ? `Accepted — ${quote.clientName} · ${total}`

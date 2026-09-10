@@ -25,7 +25,7 @@ Square invoicing possible.
 | `/contact`         | Quote request form + short contact form                      |
 | `/portal`          | Client portal — quotes, project progress, file delivery      |
 | `/admin`           | Admin panel — quotes, invoicing, clients, projects, messages |
-| `/email`           | Email platform — campaigns, contacts, templates, help inbox   |
+| `/email`           | Email platform — inbox, campaigns, contacts, templates       |
 
 ### API routes
 
@@ -41,9 +41,9 @@ Square invoicing possible.
 | `/api/project/stage`  | Admin      | Move a project's stage and notify the client     |
 | `/api/square/webhook` | Signed     | Square payment events → status, project, receipts |
 | `/api/email/send`     | Email send | Send a campaign, or a test to one address         |
-| `/api/email/reply`    | Email draft| Reply in a help thread                            |
+| `/api/email/reply`    | Email draft| Reply in a conversation, from its own mailbox     |
 | `/api/email/access`   | Email admin| Grant or change someone's email access            |
-| `/api/email/inbound`  | Signed     | Inbound mail for help@ → a help thread            |
+| `/api/email/inbound`  | Signed     | Inbound mail → a conversation in its mailbox      |
 | `/api/email/unsubscribe` | Public  | Signed one-click unsubscribe (RFC 8058)           |
 
 ---

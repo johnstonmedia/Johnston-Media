@@ -75,6 +75,11 @@ function AdminDashboard({
             </div>
           </div>
           <div className={styles.rowActions}>
+            {/* The email platform is a separate tool on its own subdomain, so
+                it needs a door from here — otherwise it's a URL to remember. */}
+            <a href="/email" className="jm-btn-ghost jm-btn-sm">
+              Email
+            </a>
             <a href="/portal" className="jm-btn-ghost jm-btn-sm">
               Client view
             </a>

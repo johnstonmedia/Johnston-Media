@@ -1,10 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Montserrat, Playfair_Display } from "next/font/google";
 
-import ChromeGate from "@/components/ChromeGate";
-import Footer from "@/components/Footer";
-import Nav from "@/components/Nav";
-import ScrollProgress from "@/components/ScrollProgress";
 import { BusinessSchema } from "@/components/StructuredData";
 import { THEME_INIT_SCRIPT } from "@/components/ThemeToggle";
 import { ToastProvider } from "@/components/Toast";
@@ -124,19 +120,9 @@ export default function RootLayout({
       </head>
       <body>
         <BusinessSchema />
-        <ToastProvider>
-          <a href="#main" className="jm-skip-link">
-            Skip to content
-          </a>
-          <ScrollProgress />
-          <ChromeGate>
-            <Nav />
-          </ChromeGate>
-          <main id="main">{children}</main>
-          <ChromeGate>
-            <Footer />
-          </ChromeGate>
-        </ToastProvider>
+        {/* Chrome (nav, footer, skip link) belongs to the (site) route
+            group; the email platform supplies its own. */}
+        <ToastProvider>{children}</ToastProvider>
       </body>
     </html>
   );

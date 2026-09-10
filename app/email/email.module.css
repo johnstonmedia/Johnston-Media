@@ -7,29 +7,121 @@
    nobody wants a hero section above their outbox.
    ============================================================ */
 
+/*
+ * The shell has three widths, driven by data attributes on the root:
+ *   pinned    the sidebar at full width, labels showing
+ *   collapsed icons only, so the work gets the space back
+ *   drawer    phone-sized: the sidebar slides over the content
+ *
+ * The choice persists, because someone who lives in the inbox shouldn't have
+ * to re-state it every morning.
+ */
 .shell {
   display: grid;
   grid-template-columns: 248px 1fr;
   min-height: 100svh;
   background: var(--jm-bg);
+  transition: grid-template-columns 0.22s var(--ease-out);
+}
+
+.shell[data-pinned="false"] {
+  grid-template-columns: 64px 1fr;
+}
+
+/* Collapsed: the labels go, the icons stay centred. */
+.shell[data-pinned="false"] .navLabel,
+.shell[data-pinned="false"] .brandSub,
+.shell[data-pinned="false"] .sideFoot,
+.shell[data-pinned="false"] .brandLogo {
+  display: none;
+}
+
+.shell[data-pinned="false"] .navItem {
+  justify-content: center;
+  padding-inline: 0;
+}
+
+.shell[data-pinned="false"] .navCount {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.35rem;
+  margin: 0;
+  min-width: auto;
+  padding: 0.05rem 0.3rem;
+  font-size: 0.55rem;
+}
+
+.shell[data-pinned="false"] .navItem {
+  position: relative;
+}
+
+.shell[data-pinned="false"] .brand {
+  justify-items: center;
+}
+
+.shell[data-pinned="false"] .side {
+  padding-inline: 0.5rem;
+}
+
+/* ── Pin and drawer controls ─────────────────────── */
+
+.pinBtn {
+  position: absolute;
+  top: var(--space-lg);
+  right: 0.5rem;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--jm-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--jm-surface);
+  color: var(--jm-muted);
+  cursor: pointer;
+  font-size: 0.75rem;
+  line-height: 1;
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.pinBtn:hover {
+  color: var(--jm-white);
+  border-color: var(--jm-copper);
+}
+
+/* The drawer's own close button and the phone header only exist on phones. */
+.drawerClose,
+.mobileBar,
+.scrim {
+  display: none;
+}
+
+.navLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ── Sidebar ─────────────────────────────────────── */
 
 .side {
+  position: sticky;
+  top: 0;
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
   padding: var(--space-lg) var(--space-md);
   background: var(--jm-surface);
   border-right: 1px solid var(--jm-border);
-  position: sticky;
-  top: 0;
   height: 100svh;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .brand {
+  position: relative;
   display: grid;
   gap: 0.4rem;
   padding-bottom: var(--space-sm);
@@ -470,35 +562,135 @@
   }
 }
 
+/* ── Phones ──────────────────────────────────────────
+   The sidebar becomes a drawer over the content, because at this width
+   there is no column to spare. It starts shut; the hamburger opens it,
+   and choosing anything puts it away again.
+   ─────────────────────────────────────────────────── */
+
 @media (max-width: 860px) {
-  .shell {
+  .shell,
+  .shell[data-pinned="false"] {
     grid-template-columns: 1fr;
   }
-  .side {
-    position: static;
-    height: auto;
-    flex-direction: row;
+
+  .mobileBar {
+    display: flex;
     align-items: center;
-    gap: var(--space-md);
-    overflow-x: auto;
-    border-right: none;
+    gap: var(--space-sm);
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    padding: 0.65rem var(--space-md);
+    background: var(--jm-surface);
     border-bottom: 1px solid var(--jm-border);
   }
-  .nav {
-    flex-direction: row;
+
+  .mobileTitle {
+    flex: 1;
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: 600;
+    color: var(--jm-white);
   }
-  .navItem {
-    white-space: nowrap;
+
+  .hamburger {
+    display: grid;
+    gap: 4px;
+    width: 34px;
+    padding: 0.4rem 0.35rem;
+    background: none;
+    border: none;
+    cursor: pointer;
   }
-  .sideFoot,
-  .brandSub {
+
+  .hamburger span {
+    display: block;
+    height: 2px;
+    background: var(--jm-white);
+    border-radius: 2px;
+  }
+
+  .side {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 60;
+    width: min(80vw, 280px);
+    height: 100svh;
+    transform: translateX(-102%);
+    transition: transform 0.24s var(--ease-out);
+    box-shadow: var(--jm-shadow-lg);
+  }
+
+  .shell[data-drawer="open"] .side {
+    transform: none;
+  }
+
+  /* Labels always show in the drawer — collapsing is a desktop idea. */
+  .shell[data-pinned="false"] .navLabel,
+  .shell[data-pinned="false"] .brandSub,
+  .shell[data-pinned="false"] .brandLogo,
+  .shell[data-pinned="false"] .sideFoot {
+    display: revert;
+  }
+
+  .shell[data-pinned="false"] .navItem {
+    justify-content: flex-start;
+    padding-inline: 0.75rem;
+  }
+
+  .pinBtn {
     display: none;
   }
+
+  .drawerClose {
+    position: absolute;
+    top: var(--space-lg);
+    right: 0.25rem;
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    background: none;
+    border: none;
+    color: var(--jm-muted);
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    background: var(--jm-scrim);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.24s ease;
+  }
+
+  .shell[data-drawer="open"] .scrim {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
   .main {
     padding: var(--space-md);
   }
+
   .field2 {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shell,
+  .side,
+  .scrim {
+    transition: none;
   }
 }
 
@@ -532,6 +724,45 @@
   background: var(--jm-surface);
   padding: var(--space-sm) 0.5rem;
   overflow-y: auto;
+}
+
+.composeBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  width: 100%;
+  margin-bottom: 0.6rem;
+  padding: 0.6rem 0.85rem;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--jm-copper);
+  color: var(--jm-fixed-white);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: filter 0.2s ease;
+}
+
+.composeBtn:hover {
+  filter: brightness(1.08);
+}
+
+/* Only meaningful on a phone, where the reader covers the list. */
+.backBtn {
+  display: none;
+  align-items: center;
+  gap: 0.3rem;
+  background: none;
+  border: none;
+  padding: 0 0 0.5rem;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--jm-blue);
 }
 
 .railHead {
@@ -635,6 +866,7 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
+  min-width: 0;
 }
 
 .searchBar {
@@ -995,23 +1227,51 @@
 }
 
 @media (max-width: 720px) {
+  /* minmax(0, 1fr) rather than 1fr: a grid item's automatic minimum is its
+     content, so a long subject line would otherwise push the column past
+     the width of the phone. */
   .mail {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .rail {
     display: flex;
+    align-items: center;
     gap: 0.35rem;
     overflow-x: auto;
     padding: 0.5rem;
+  }
+  /* In a horizontal rail the compose button is one chip among many, not a
+     full-width block — left as-is it forces the rail wider than the phone. */
+  .composeBtn {
+    width: auto;
+    margin-bottom: 0;
+    flex: 0 0 auto;
+    padding: 0.55rem 0.9rem;
   }
   .railHead {
     display: none;
   }
   .railItem {
     width: auto;
+    flex: 0 0 auto;
     white-space: nowrap;
   }
   .railText em {
     display: none;
+  }
+  /* One pane at a time: the reader takes over the whole width once a
+     conversation is open, and the back button brings the list back. */
+  .backBtn {
+    display: flex;
+  }
+  .mail[data-reading="true"] .threadList,
+  .mail[data-reading="true"] .rail {
+    display: none;
+  }
+  .mail[data-reading="false"] .reader {
+    display: none;
+  }
+  .threads {
+    max-height: none;
   }
 }

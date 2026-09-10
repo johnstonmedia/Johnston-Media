@@ -23,6 +23,7 @@ import {
   type Mailbox,
 } from "@/lib/emailTypes";
 
+import ComposeModal from "./ComposeModal";
 import styles from "./email.module.css";
 
 /** Threads recorded before mailboxes existed all came from help@. */
@@ -76,22 +77,35 @@ export default function InboxPanel({
   access,
   getToken,
   onCount,
+  initialThreadId,
+  initialMailbox,
+  openCompose = false,
 }: {
   access: EmailAccess;
   getToken: () => Promise<string | null>;
   onCount: (n: number) => void;
+  /** From ?thread= — opens straight onto that conversation. */
+  initialThreadId?: string;
+  /** From ?mailbox= — selects that mailbox on arrival. */
+  initialMailbox?: string;
+  openCompose?: boolean;
 }) {
   const { toast } = useToast();
   const [mailboxes, setMailboxes] = useState<Mailbox[]>(DEFAULT_MAILBOXES);
   const [threads, setThreads] = useState<HelpThread[] | null>(null);
   const [messages, setMessages] = useState<HelpMessage[] | null>(null);
 
-  const [selected, setSelected] = useState<string>(ALL_MAILBOXES);
+  const [selected, setSelected] = useState<string>(
+    initialMailbox ?? ALL_MAILBOXES,
+  );
   const [view, setView] = useState<View>("inbox");
   const [openId, setOpenId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [reply, setReply] = useState("");
   const [busy, setBusy] = useState(false);
+  const [composing, setComposing] = useState(openCompose);
+  /** So a linked thread only auto-opens once, not on every reload of the list. */
+  const [linkHandled, setLinkHandled] = useState(false);
 
   const canReply = atLeast(access.level, "draft");
 
@@ -189,6 +203,14 @@ export default function InboxPanel({
 
   const openThread = useCallback(async (thread: HelpThread) => {
     setOpenId(thread.id);
+    // The address bar now names this conversation, so the link is copyable.
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set("thread", thread.id);
+      window.history.replaceState(null, "", url);
+    } catch {
+      // Not worth failing the click over.
+    }
     setMessages(null);
     setReply("");
     try {
@@ -214,6 +236,14 @@ export default function InboxPanel({
       setMessages([]);
     }
   }, []);
+
+  // A linked conversation opens itself once the list has arrived.
+  useEffect(() => {
+    if (linkHandled || !initialThreadId || !threads) return;
+    const wanted = threads.find((t) => t.id === initialThreadId);
+    setLinkHandled(true);
+    if (wanted) void openThread(wanted);
+  }, [initialThreadId, threads, linkHandled, openThread]);
 
   /** Optimistic flag toggles — starring shouldn't feel like a round trip. */
   async function flag(thread: HelpThread, patch: Partial<HelpThread>) {
@@ -275,9 +305,19 @@ export default function InboxPanel({
   const selectedBox = mailboxes.find((m) => m.address === selected);
 
   return (
-    <div className={styles.mail}>
+    <div className={styles.mail} data-reading={openId ? "true" : "false"}>
       {/* ── Mailboxes ─────────────────────────────── */}
       <aside className={styles.rail}>
+        {atLeast(access.level, "send") ? (
+          <button
+            type="button"
+            className={styles.composeBtn}
+            onClick={() => setComposing(true)}
+          >
+            <span aria-hidden="true">✎</span> Write
+          </button>
+        ) : null}
+
         <button
           type="button"
           className={`${styles.railItem} ${
@@ -443,6 +483,23 @@ export default function InboxPanel({
         ) : (
           <>
             <header className={styles.readerHead}>
+              {/* Only shown on phones, where the reader covers the list. */}
+              <button
+                type="button"
+                className={styles.backBtn}
+                onClick={() => {
+                  setOpenId(null);
+                  try {
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete("thread");
+                    window.history.replaceState(null, "", url);
+                  } catch {
+                    // Same — cosmetic.
+                  }
+                }}
+              >
+                ← Inbox
+              </button>
               <div>
                 <h2 className={styles.readerSubject}>{current.subject}</h2>
                 <p className={styles.readerMeta}>
@@ -551,6 +608,19 @@ export default function InboxPanel({
           </>
         )}
       </section>
+
+      {composing ? (
+        <ComposeModal
+          access={access}
+          mailboxes={mailboxes}
+          getToken={getToken}
+          onClose={() => setComposing(false)}
+          onSent={() => {
+            setComposing(false);
+            void load();
+          }}
+        />
+      ) : null}
     </div>
   );
 }

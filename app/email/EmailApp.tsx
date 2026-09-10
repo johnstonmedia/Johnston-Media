@@ -1,7 +1,8 @@
 "use client";
 
 import { doc, getDoc } from "firebase/firestore";
-import { useCallback, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useState } from "react";
 
 import Image from "next/image";
 
@@ -53,16 +54,27 @@ const NAV: {
 
 export default function EmailApp() {
   return (
-    <AuthGate
-      title="Email"
-      subtitle="Sign in to open the email platform."
-    >
-      {({ profile, signOut, getToken }) => (
-        <Platform profile={profile} signOut={signOut} getToken={getToken} />
-      )}
-    </AuthGate>
+    // useSearchParams needs a boundary, and the gate is the natural one.
+    <Suspense fallback={null}>
+      <AuthGate title="Email" subtitle="Sign in to open the email platform.">
+        {({ profile, signOut, getToken }) => (
+          <Platform profile={profile} signOut={signOut} getToken={getToken} />
+        )}
+      </AuthGate>
+    </Suspense>
   );
 }
+
+/** Sections that can be linked to. */
+const LINKABLE = new Set<Section>([
+  "overview",
+  "inbox",
+  "campaigns",
+  "audiences",
+  "contacts",
+  "templates",
+  "access",
+]);
 
 function Platform({
   profile,
@@ -76,8 +88,68 @@ function Platform({
   const [access, setAccess] = useState<EmailAccess | null | "loading">(
     "loading",
   );
-  const [section, setSection] = useState<Section>("inbox");
+  const router = useRouter();
+  const params = useSearchParams();
+
+  /**
+   * The section, the mailbox and the open conversation all live in the URL.
+   *
+   * Which means a conversation has an address you can send someone, bookmark,
+   * or land on from a notification — rather than "open the platform, click
+   * Inbox, find the thread". It's what makes a link to a reply actually take
+   * you to the reply.
+   */
+  const linked = params.get("section") as Section | null;
+  const [section, setSection] = useState<Section>(
+    linked && LINKABLE.has(linked) ? linked : "inbox",
+  );
   const [unread, setUnread] = useState(0);
+
+  /**
+   * The sidebar has three states, not two.
+   *
+   * On a wide screen it's pinned open or collapsed to icons, and the choice
+   * sticks — someone who works in the inbox all day wants the width back, and
+   * shouldn't have to say so every morning. On a phone it's a drawer that
+   * starts shut, because there is no room for it to be anything else.
+   */
+  const [pinned, setPinned] = useState(true);
+  const [drawer, setDrawer] = useState(false);
+
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem("jm-email-nav");
+      if (saved === "collapsed") setPinned(false);
+    } catch {
+      // Private browsing, blocked storage — the default is fine.
+    }
+  }, []);
+
+  function togglePin() {
+    setPinned((was) => {
+      const next = !was;
+      try {
+        window.localStorage.setItem(
+          "jm-email-nav",
+          next ? "pinned" : "collapsed",
+        );
+      } catch {
+        // Not worth failing the click over.
+      }
+      return next;
+    });
+  }
+
+  /** Choosing a section on a phone should also put the drawer away. */
+  function choose(next: Section) {
+    setSection(next);
+    setDrawer(false);
+    // Replace rather than push: flicking between sections shouldn't fill the
+    // back button with steps nobody wants to retrace.
+    router.replace(next === "inbox" ? "/email" : `/email?section=${next}`, {
+      scroll: false,
+    });
+  }
 
   /**
    * Site admins get full access implicitly — they can already grant it to
@@ -139,7 +211,40 @@ function Platform({
   const visible = NAV.filter((item) => atLeast(access.level, item.needs));
 
   return (
-    <div className={styles.shell}>
+    <div
+      className={styles.shell}
+      data-pinned={pinned ? "true" : "false"}
+      data-drawer={drawer ? "open" : "shut"}
+    >
+      {/* Phone header. The sidebar is a drawer at this size, so it needs
+          something to open it and somewhere for the section name to live. */}
+      <header className={styles.mobileBar}>
+        <button
+          type="button"
+          className={styles.hamburger}
+          onClick={() => setDrawer(true)}
+          aria-label="Open menu"
+          aria-expanded={drawer}
+        >
+          <span />
+          <span />
+          <span />
+        </button>
+        <span className={styles.mobileTitle}>
+          {visible.find((item) => item.id === section)?.label ?? "Email"}
+        </span>
+        {unread > 0 ? (
+          <span className={styles.navCount}>{unread}</span>
+        ) : null}
+      </header>
+
+      {/* Tapping away closes the drawer, which is what everyone expects. */}
+      <div
+        className={styles.scrim}
+        onClick={() => setDrawer(false)}
+        aria-hidden="true"
+      />
+
       <aside className={styles.side}>
         <div className={styles.brand}>
           <Image
@@ -151,6 +256,25 @@ function Platform({
             priority
           />
           <span className={styles.brandSub}>Email</span>
+
+          <button
+            type="button"
+            className={styles.pinBtn}
+            onClick={togglePin}
+            aria-label={pinned ? "Collapse the menu" : "Pin the menu open"}
+            title={pinned ? "Collapse the menu" : "Pin the menu open"}
+          >
+            {pinned ? "«" : "»"}
+          </button>
+
+          <button
+            type="button"
+            className={styles.drawerClose}
+            onClick={() => setDrawer(false)}
+            aria-label="Close menu"
+          >
+            ×
+          </button>
         </div>
 
         <nav className={styles.nav} aria-label="Email platform">
@@ -161,13 +285,14 @@ function Platform({
               className={`${styles.navItem} ${
                 section === item.id ? styles.navOn : ""
               }`}
-              onClick={() => setSection(item.id)}
+              onClick={() => choose(item.id)}
               aria-current={section === item.id}
+              title={item.label}
             >
               <span className={styles.navIcon} aria-hidden="true">
                 {item.icon}
               </span>
-              {item.label}
+              <span className={styles.navLabel}>{item.label}</span>
               {item.id === "inbox" && unread > 0 ? (
                 <span className={styles.navCount}>{unread}</span>
               ) : null}
@@ -228,6 +353,9 @@ function Platform({
               access={access}
               getToken={getToken}
               onCount={setUnread}
+              initialThreadId={params.get("thread") ?? undefined}
+              initialMailbox={params.get("mailbox") ?? undefined}
+              openCompose={params.get("compose") === "1"}
             />
           </>
         ) : null}

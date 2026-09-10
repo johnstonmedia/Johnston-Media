@@ -294,7 +294,7 @@ price changes.
 
 ## The email platform
 
-Lives at **email.wjohnstonmedia.com**, and at `/email` on any deployment
+Lives at **mail.wjohnstonmedia.com**, and at `/email` on any deployment
 (`middleware.ts` rewrites the subdomain onto that path, so previews and local
 development work without wildcard DNS). The marketing site's nav and footer are
 hidden inside it — it is an application, not a page.
@@ -401,8 +401,12 @@ everything** — an open inbound endpoint is a spam funnel into the team's inbox
 
 ### DNS for the subdomain
 
-Add `email.wjohnstonmedia.com` as a domain on the same Vercel project (it serves
+Add `mail.wjohnstonmedia.com` as a domain on the same Vercel project (it serves
 the same deployment; no second project). The middleware does the rest.
+
+`email.wjohnstonmedia.com` is still accepted if you'd rather use that, or had
+already pointed it — a subdomain that has been handed out even once shouldn't
+start 404ing.
 
 ---
 

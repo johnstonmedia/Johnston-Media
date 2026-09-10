@@ -239,18 +239,64 @@ export interface Mailbox {
  */
 export const DEFAULT_MAILBOXES: Mailbox[] = [
   {
-    address: "help@wjohnstonmedia.com",
-    label: "Help",
-    description: "Support and questions",
-    fromName: "Johnston Media Help",
-    order: 1,
-  },
-  {
     address: "hello@wjohnstonmedia.com",
     label: "Hello",
     description: "General enquiries",
     fromName: "Johnston Media",
+    order: 1,
+  },
+  {
+    address: "help@wjohnstonmedia.com",
+    label: "Help",
+    description: "Support and questions",
+    fromName: "Johnston Media Help",
     order: 2,
+  },
+  {
+    address: "will@wjohnstonmedia.com",
+    label: "Will",
+    description: "Straight to me",
+    fromName: "Will Johnston",
+    order: 3,
+  },
+  {
+    address: "quote@wjohnstonmedia.com",
+    label: "Quotes",
+    description: "Quote requests and estimates",
+    fromName: "Johnston Media Quotes",
+    order: 4,
+  },
+  {
+    address: "invoice@wjohnstonmedia.com",
+    label: "Invoices",
+    description: "Invoices, receipts and payment questions",
+    fromName: "Johnston Media Accounts",
+    order: 5,
+  },
+  {
+    address: "admin@wjohnstonmedia.com",
+    label: "Admin",
+    description: "Accounts, suppliers, paperwork",
+    fromName: "Johnston Media",
+    order: 6,
+  },
+  {
+    address: "owner@wjohnstonmedia.com",
+    label: "Owner",
+    description: "Ownership and business matters",
+    fromName: "Will Johnston",
+    order: 7,
+  },
+  {
+    // Campaigns go out from here. It still receives, because a marketing
+    // address nobody reads is how you miss the one person who replied
+    // instead of clicking unsubscribe — and under the Spam Act that reply
+    // is a withdrawal of consent you are obliged to honour.
+    address: "announcements@wjohnstonmedia.com",
+    label: "Announcements",
+    description: "Campaign sends and replies to them",
+    fromName: "Johnston Media",
+    order: 8,
   },
 ];
 

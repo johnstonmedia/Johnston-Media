@@ -21,6 +21,7 @@ import AudiencePanel from "./AudiencePanel";
 import CampaignsPanel from "./CampaignsPanel";
 import ContactsPanel from "./ContactsPanel";
 import InboxPanel from "./InboxPanel";
+import MailboxesPanel from "./MailboxesPanel";
 import OverviewPanel from "./OverviewPanel";
 import TemplatePanel from "./TemplatePanel";
 import styles from "./email.module.css";
@@ -32,6 +33,7 @@ type Section =
   | "audiences"
   | "contacts"
   | "templates"
+  | "mailboxes"
   | "access";
 
 const NAV: {
@@ -49,6 +51,9 @@ const NAV: {
   { id: "audiences", label: "Audiences", icon: "◐", needs: "read" },
   { id: "contacts", label: "Contacts", icon: "◉", needs: "read" },
   { id: "templates", label: "Templates", icon: "◇", needs: "read" },
+  // Both admin-only, and both about how the platform is set up rather than
+  // about today's mail — so they sit together at the bottom of the rail.
+  { id: "mailboxes", label: "Mailboxes", icon: "◍", needs: "admin" },
   { id: "access", label: "Access", icon: "⚿", needs: "admin" },
 ];
 
@@ -73,6 +78,7 @@ const LINKABLE = new Set<Section>([
   "audiences",
   "contacts",
   "templates",
+  "mailboxes",
   "access",
 ]);
 
@@ -359,6 +365,7 @@ function Platform({
             />
           </>
         ) : null}
+        {section === "mailboxes" ? <MailboxesPanel /> : null}
         {section === "access" ? <AccessPanel getToken={getToken} /> : null}
       </main>
     </div>

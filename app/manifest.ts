@@ -22,7 +22,10 @@ export default function manifest(): MetadataRoute.Manifest {
       { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
       { src: "/icon-512.png", sizes: "512x512", type: "image/png" },
       {
-        src: "/icon-512.png",
+        // Its own file, with a wider safe zone: Android crops a maskable icon
+        // to a circle, and at the default padding the camera's corners get
+        // shaved off.
+        src: "/icon-maskable-512.png",
         sizes: "512x512",
         type: "image/png",
         purpose: "maskable",

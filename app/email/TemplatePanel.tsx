@@ -7,6 +7,7 @@ import {
   doc,
   getDocs,
   setDoc,
+  writeBatch,
   updateDoc,
 } from "firebase/firestore";
 import { useCallback, useEffect, useState } from "react";
@@ -69,25 +70,32 @@ export default function TemplatePanel({ access }: { access: EmailAccess }) {
     try {
       const db = getDb();
       const now = new Date().toISOString();
-      await Promise.all(
-        SEED_TEMPLATES.map((seed) =>
-          setDoc(
-            doc(db, "emailTemplates", `jm-${seed.key}`),
-            {
-              name: seed.name,
-              description: seed.description,
-              html: seed.html,
-              isDefault: seed.isDefault,
-              seedKey: seed.key,
-              updatedAt: now,
-              updatedBy: access.email,
-            },
-            { merge: true },
-          ),
-        ),
-      );
+
+      // One batch rather than three concurrent writes. Promise.all rejects on
+      // the first failure while the others may already have landed, so a
+      // partial install reported itself as a plain error and left some
+      // templates missing with nothing to explain it. A batch is all or
+      // nothing, and the count in the toast is then true.
+      const batch = writeBatch(db);
+      for (const seed of SEED_TEMPLATES) {
+        batch.set(
+          doc(db, "emailTemplates", `jm-${seed.key}`),
+          {
+            name: seed.name,
+            description: seed.description,
+            html: seed.html,
+            isDefault: seed.isDefault,
+            seedKey: seed.key,
+            updatedAt: now,
+            updatedBy: access.email,
+          },
+          { merge: true },
+        );
+      }
+      await batch.commit();
+
       toast(`${SEED_TEMPLATES.length} templates installed.`);
-      void load();
+      await load();
     } catch (err) {
       console.error("[email] seed install failed:", err);
       toast("Could not install the templates.", "error");

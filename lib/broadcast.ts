@@ -77,6 +77,56 @@ export function stripTokens(source: string): string {
   return source.replace(/\{\{\s*[A-Za-z0-9_]+\s*\}\}/g, "");
 }
 
+/**
+ * Removes the unsubscribe line from a template.
+ *
+ * A campaign must carry a working unsubscribe — that is the Spam Act, and
+ * validateCampaign refuses to send one without it. Direct correspondence is
+ * the opposite case: there is nothing to unsubscribe from, and offering it on
+ * a quote or an invoice invites someone to opt out of the mail they actually
+ * need. So the link is stripped on the one-to-one path only.
+ *
+ * Takes the trailing sentence with it ("...from Johnston Media updates.") and
+ * any <br> immediately before, so what's left reads as a finished line rather
+ * than an orphaned fragment. The sender identification above it stays.
+ *
+ * Run before merge, while the token is still there to match on.
+ */
+export function stripUnsubscribe(html: string): string {
+  return html.replace(
+    /(?:<br\s*\/?>\s*)?<a\b[^>]*\{\{\s*unsubscribe_url\s*\}\}[^>]*>[\s\S]*?<\/a>[^<]*/gi,
+    "",
+  );
+}
+
+/**
+ * Removes the table row containing a token, and the token with it.
+ *
+ * The studio's templates are table-based, so a call-to-action button is one
+ * <tr>. Blanking {{PRIMARY_URL}} alone would leave the button drawn with an
+ * empty link — a copper pill going nowhere — so the row has to go too.
+ *
+ * Deliberately simple: it walks back to the nearest opening <tr> and forward
+ * to the matching close. Email HTML doesn't nest rows inside a button cell,
+ * so there is no ambiguity to resolve.
+ */
+export function stripRowWith(html: string, token: string): string {
+  const needle = new RegExp(`\\{\\{\\s*${token}\\s*\\}\\}`, "i");
+  let out = html;
+
+  for (let guard = 0; guard < 10; guard += 1) {
+    const hit = out.search(needle);
+    if (hit === -1) break;
+
+    const open = out.lastIndexOf("<tr", hit);
+    const close = out.indexOf("</tr>", hit);
+    if (open === -1 || close === -1) break;
+
+    out = out.slice(0, open) + out.slice(close + "</tr>".length);
+  }
+  return out;
+}
+
 /** Escapes a value being dropped into HTML. */
 function escapeHtml(value: string): string {
   return value

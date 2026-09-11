@@ -3,6 +3,11 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   reactStrictMode: true,
 
+  // Next 16 writes AGENTS.md and CLAUDE.md into the repo root on every dev
+  // start. Nobody asked for them and they are not this project's conventions,
+  // so they are turned off rather than committed and then re-appearing.
+  agentRules: false,
+
   images: {
     // Firebase Storage serves the portfolio media; allow it through next/image.
     remotePatterns: [

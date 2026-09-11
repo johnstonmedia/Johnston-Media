@@ -78,6 +78,8 @@ export default function ComposeModal({
    */
   const [extras, setExtras] = useState<Record<string, string>>({});
   const [failure, setFailure] = useState<string | null>(null);
+  /** Most one-off mail wants no call-to-action button at all. */
+  const [includeButton, setIncludeButton] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -131,6 +133,7 @@ export default function ComposeModal({
           lead,
           primaryLabel,
           primaryUrl,
+          includeButton,
           footerNote,
           ...extras,
         }),
@@ -315,33 +318,51 @@ export default function ComposeModal({
               />
             </div>
 
-            <div className={styles.field2}>
-              <div className="jm-field">
-                <label className="jm-label" htmlFor="co-cta">
-                  Button text
-                </label>
-                <input
-                  id="co-cta"
-                  className="jm-input"
-                  value={primaryLabel}
-                  placeholder="Accept quote"
-                  onChange={(e) => setPrimaryLabel(e.target.value)}
-                />
+            <label className={styles.tick}>
+              <input
+                type="checkbox"
+                checked={includeButton}
+                onChange={(e) => setIncludeButton(e.target.checked)}
+              />
+              <span>
+                <strong>Include the button</strong>
+                <em>
+                  Off by default. A note to one person rarely needs a call to
+                  action, and the whole row is removed rather than left as a
+                  button that goes nowhere.
+                </em>
+              </span>
+            </label>
+
+            {includeButton ? (
+              <div className={styles.field2}>
+                <div className="jm-field">
+                  <label className="jm-label" htmlFor="co-cta">
+                    Button text
+                  </label>
+                  <input
+                    id="co-cta"
+                    className="jm-input"
+                    value={primaryLabel}
+                    placeholder="Accept quote"
+                    onChange={(e) => setPrimaryLabel(e.target.value)}
+                  />
+                </div>
+                <div className="jm-field">
+                  <label className="jm-label" htmlFor="co-cta-url">
+                    Button link
+                  </label>
+                  <input
+                    id="co-cta-url"
+                    className="jm-input"
+                    type="url"
+                    value={primaryUrl}
+                    placeholder="https://…"
+                    onChange={(e) => setPrimaryUrl(e.target.value)}
+                  />
+                </div>
               </div>
-              <div className="jm-field">
-                <label className="jm-label" htmlFor="co-cta-url">
-                  Button link
-                </label>
-                <input
-                  id="co-cta-url"
-                  className="jm-input"
-                  type="url"
-                  value={primaryUrl}
-                  placeholder="https://…"
-                  onChange={(e) => setPrimaryUrl(e.target.value)}
-                />
-              </div>
-            </div>
+            ) : null}
           </>
         ) : null}
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { doc, getDoc } from "firebase/firestore";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
 
 import Image from "next/image";
@@ -94,7 +94,6 @@ function Platform({
   const [access, setAccess] = useState<EmailAccess | null | "loading">(
     "loading",
   );
-  const router = useRouter();
   const params = useSearchParams();
 
   /**
@@ -146,15 +145,30 @@ function Platform({
     });
   }
 
-  /** Choosing a section on a phone should also put the drawer away. */
+  /**
+   * Choosing a section on a phone should also put the drawer away.
+   *
+   * The address bar is updated with history.replaceState rather than the Next
+   * router. router.replace() is a real client navigation, and because this
+   * component reads useSearchParams() it sits inside a Suspense boundary —
+   * so every section click re-suspended that boundary, tore down the auth
+   * gate beneath it and put the whole platform back to a loading screen that
+   * only a reload recovered from. Nothing here needs a navigation: the URL is
+   * a bookmark of the current state, not a route to fetch.
+   */
   function choose(next: Section) {
     setSection(next);
     setDrawer(false);
-    // Replace rather than push: flicking between sections shouldn't fill the
-    // back button with steps nobody wants to retrace.
-    router.replace(next === "inbox" ? "/email" : `/email?section=${next}`, {
-      scroll: false,
-    });
+    try {
+      const url =
+        next === "inbox"
+          ? window.location.pathname
+          : `${window.location.pathname}?section=${next}`;
+      window.history.replaceState(null, "", url);
+    } catch {
+      // An address bar that doesn't follow along is cosmetic; the section
+      // still changed.
+    }
   }
 
   /**

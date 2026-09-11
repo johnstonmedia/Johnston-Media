@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 
-import { merge, stripTokens } from "@/lib/broadcast";
+import {
+  merge,
+  stripRowWith,
+  stripTokens,
+  stripUnsubscribe,
+} from "@/lib/broadcast";
 import { canSendAs, requireEmailLevel } from "@/lib/emailAccess";
 import {
   TEMPLATE_EXTRAS,
@@ -147,7 +152,25 @@ export async function POST(request: Request) {
   let template: EmailTemplate | null = null;
   if (templateId) {
     const snap = await db.collection("emailTemplates").doc(templateId).get();
-    if (snap.exists) template = { id: snap.id, ...snap.data() } as EmailTemplate;
+    if (snap.exists) {
+      const found = { id: snap.id, ...snap.data() } as EmailTemplate;
+      // One-to-one mail carries no unsubscribe: there is nothing to leave,
+      // and offering it on a quote or invoice invites someone to opt out of
+      // the mail they actually need.
+      let html = stripUnsubscribe(found.html);
+
+      // A button with no link is a copper pill that goes nowhere, so the row
+      // comes out rather than the label being blanked. Same for the secondary
+      // link underneath it.
+      if (body.includeButton === false || !clean(body.primaryUrl, 600)) {
+        html = stripRowWith(html, "primary_url");
+      }
+      if (!clean(body.secondaryUrl, 600)) {
+        html = stripRowWith(html, "secondary_url");
+      }
+
+      template = { ...found, html };
+    }
   }
 
   const bodyHtml = paragraphs(message);

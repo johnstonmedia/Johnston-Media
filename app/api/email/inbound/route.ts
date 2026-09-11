@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 
 import type { HelpThread } from "@/lib/emailTypes";
 import { adminDb } from "@/lib/firebaseAdmin";
+import { notifyMailbox } from "@/lib/push";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -190,6 +191,17 @@ export async function POST(request: Request) {
       body,
       createdAt: now,
     });
+
+  // Wake any device subscribed to this mailbox. The mail is already filed, so
+  // this is a courtesy on top of it — notifyMailbox never throws, because a
+  // push service having a bad afternoon must not turn a received email into a
+  // failed webhook the provider then retries.
+  await notifyMailbox(mailbox, {
+    title: from.name || from.email,
+    body: normalised,
+    url: `/email?section=inbox&mailbox=${encodeURIComponent(mailbox)}&thread=${threadId}`,
+    tag: threadId,
+  });
 
   return NextResponse.json({ ok: true, threadId, mailbox });
 }

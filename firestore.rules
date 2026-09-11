@@ -193,6 +193,14 @@ service cloud.firestore {
       allow delete: if canDraft();
     }
 
+    // Push subscriptions are written only by /api/email/push, which checks
+    // that the device is asking for mailboxes its owner may actually read —
+    // otherwise a notification preview becomes a way to read the subject
+    // lines of mail you were never granted.
+    match /pushSubscriptions/{deviceId} {
+      allow read, write: if false;
+    }
+
     match /mailboxes/{address} {
       allow read: if hasEmailAccess();
       allow write: if isAdmin();

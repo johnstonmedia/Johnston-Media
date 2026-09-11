@@ -13,6 +13,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useToast } from "@/components/Toast";
+import NotifyButton from "./NotifyButton";
 import { getDb } from "@/lib/firebase";
 import {
   ALL_MAILBOXES,
@@ -495,6 +496,8 @@ export default function InboxPanel({
           );
         })}
 
+        <p className={styles.railHead}>This device</p>
+        <NotifyButton mailboxes={mailboxes} getToken={getToken} />
       </aside>
 
       {/* ── Conversations ─────────────────────────── */}

@@ -41,7 +41,15 @@ function authorised(request: Request, raw: string): boolean {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
-/** Pulls a field out of whichever shape the provider used. */
+/**
+ * Pulls a field out of whichever shape the provider used.
+ *
+ * Accepts an array as well as a string, and takes the first entry: Resend's
+ * inbound webhook sends `to` as a list. Read as a string only, it came back
+ * empty and every message fell through to the default mailbox — so mail to
+ * quote@ and invoice@ would all have been filed under help@, which is the
+ * one thing the inbox is built not to do.
+ */
 function pick(payload: Record<string, unknown>, ...keys: string[]): string {
   for (const key of keys) {
     const value = key.split(".").reduce<unknown>(
@@ -52,6 +60,12 @@ function pick(payload: Record<string, unknown>, ...keys: string[]): string {
       payload,
     );
     if (typeof value === "string" && value.trim()) return value.trim();
+    if (Array.isArray(value)) {
+      const first = value.find(
+        (entry) => typeof entry === "string" && entry.trim(),
+      );
+      if (typeof first === "string") return first.trim();
+    }
   }
   return "";
 }
@@ -91,18 +105,18 @@ export async function POST(request: Request) {
     );
   }
 
-  const fromRaw = pick(payload, "from", "sender", "envelope.from", "data.from");
+  const fromRaw = pick(payload, "data.from", "from", "sender", "envelope.from");
   // Which of our addresses this landed on — the inbox groups on it, so a
   // message with no usable To falls back to the configured default rather
   // than disappearing into an unnamed pile.
   const toRaw =
-    pick(payload, "to", "recipient", "envelope.to", "data.to") ||
+    pick(payload, "data.to", "to", "recipient", "envelope.to") ||
     process.env.EMAIL_HELP_ADDRESS ||
     "help@wjohnstonmedia.com";
   const subject =
-    pick(payload, "subject", "data.subject") || "(no subject)";
+    pick(payload, "data.subject", "subject") || "(no subject)";
   const body =
-    pick(payload, "text", "plain", "data.text", "body-plain", "html", "data.html") ||
+    pick(payload, "data.text", "text", "plain", "body-plain", "data.html", "html") ||
     "(empty message)";
 
   if (!fromRaw) {

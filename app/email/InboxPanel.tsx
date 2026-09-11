@@ -105,8 +105,13 @@ export default function InboxPanel({
   const [threads, setThreads] = useState<HelpThread[] | null>(null);
   const [messages, setMessages] = useState<HelpMessage[] | null>(null);
 
+  /**
+   * Open on your own address when you have one. Someone who runs marketing
+   * should land in marketing@, not in a merged pile of every address in the
+   * business — the shared mailboxes are still a click away.
+   */
   const [selected, setSelected] = useState<string>(
-    initialMailbox ?? ALL_MAILBOXES,
+    initialMailbox ?? access.primaryFrom ?? ALL_MAILBOXES,
   );
   const [view, setView] = useState<View>("inbox");
   const [openId, setOpenId] = useState<string | null>(null);
@@ -161,8 +166,18 @@ export default function InboxPanel({
         }
       }
       merged.sort((a, b) => (a.order ?? 99) - (b.order ?? 99));
-      setMailboxes(
-        restricted ? merged.filter((m) => limitedTo.includes(m.address)) : merged,
+      const readable = restricted
+        ? merged.filter((m) => limitedTo.includes(m.address))
+        : merged;
+      setMailboxes(readable);
+
+      // Their own address may be one they aren't allowed to read — a grant can
+      // be narrowed after it was handed out. Falling back beats showing an
+      // empty mailbox and no explanation for it.
+      setSelected((current) =>
+        current === ALL_MAILBOXES || readable.some((m) => m.address === current)
+          ? current
+          : ALL_MAILBOXES,
       );
 
       const rows = threadSnap.docs.map(
@@ -342,6 +357,17 @@ export default function InboxPanel({
 
   const selectedBox = mailboxes.find((m) => m.address === selected);
 
+  /**
+   * Your address, and everyone else's.
+   *
+   * "Mine" is only real if the address you've been given is one you're
+   * actually allowed to read — a My Inbox pointing at a mailbox the rules
+   * will refuse is worse than no My Inbox at all.
+   */
+  const mine =
+    mailboxes.find((m) => m.address === access.primaryFrom) ?? null;
+  const shared = mailboxes.filter((m) => m.address !== mine?.address);
+
   return (
     <div className={styles.mail} data-reading={openId ? "true" : "false"}>
       {/* ── Mailboxes ─────────────────────────────── */}
@@ -380,27 +406,68 @@ export default function InboxPanel({
           </button>
         ))}
 
-        <p className={styles.railHead}>Mailboxes</p>
+        {/* ── Your own address ───────────────────────
+            Listed on its own above the shared ones, because "my mail" and
+            "the company's mail" are different questions and someone who runs
+            marketing shouldn't have to find marketing@ in a list each time. */}
+        {mine ? (
+          <>
+            <p className={styles.railHead}>Mine</p>
+            <button
+              type="button"
+              className={`${styles.railItem} ${
+                selected === mine.address ? styles.railOn : ""
+              }`}
+              onClick={() => {
+                setSelected(mine.address);
+                setOpenId(null);
+              }}
+            >
+              <span className={styles.railIcon} aria-hidden="true">
+                ●
+              </span>
+              <span className={styles.railText}>
+                <strong>My Inbox</strong>
+                <em>{mine.address}</em>
+              </span>
+              {(unreadBy.get(mine.address) ?? 0) > 0 ? (
+                <span className={styles.railCount}>
+                  {unreadBy.get(mine.address)}
+                </span>
+              ) : null}
+            </button>
+          </>
+        ) : null}
 
-        <button
-          type="button"
-          className={`${styles.railItem} ${styles.railSmall} ${
-            selected === ALL_MAILBOXES ? styles.railOn : ""
-          }`}
-          onClick={() => {
-            setSelected(ALL_MAILBOXES);
-            setOpenId(null);
-          }}
-        >
-          <span className={styles.railIcon} aria-hidden="true">
-            ✉
-          </span>
-          <span className={styles.railText}>
-            <strong>All addresses</strong>
-          </span>
-        </button>
+        {/* Shared addresses, minus your own — it is already above. Only the
+            ones this person has been granted; the rest were never fetched. */}
+        {shared.length ? (
+          <p className={styles.railHead}>
+            {mine ? "Also mine to read" : "Mailboxes"}
+          </p>
+        ) : null}
 
-        {mailboxes.map((box) => {
+        {shared.length ? (
+          <button
+            type="button"
+            className={`${styles.railItem} ${styles.railSmall} ${
+              selected === ALL_MAILBOXES ? styles.railOn : ""
+            }`}
+            onClick={() => {
+              setSelected(ALL_MAILBOXES);
+              setOpenId(null);
+            }}
+          >
+            <span className={styles.railIcon} aria-hidden="true">
+              ✉
+            </span>
+            <span className={styles.railText}>
+              <strong>All addresses</strong>
+            </span>
+          </button>
+        ) : null}
+
+        {shared.map((box) => {
           const unread = unreadBy.get(box.address) ?? 0;
           return (
             <button

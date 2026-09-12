@@ -983,6 +983,16 @@
     padding: var(--space-md);
   }
 
+  /* .scriber bleeds to the edge of .screen with a negative margin and pays it
+     back as padding. The screen's padding drops to --space-md here, so the
+     margin has to drop with it — left at --space-lg it bled further than the
+     padding it was cancelling and hung 32px off the right of the phone,
+     clipped by the frame with no way to scroll to it. */
+  .scriber {
+    margin: calc(var(--space-md) * -1);
+    padding: var(--space-md);
+  }
+
   .scriberPanes,
   .payGrid {
     grid-template-columns: 1fr;

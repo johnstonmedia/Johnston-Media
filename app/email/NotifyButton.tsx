@@ -18,12 +18,45 @@ const STORE = "jm-mail-notify";
  * will not accept a view whose buffer might be shared.
  */
 function urlBase64ToBytes(base64: string): ArrayBuffer {
-  const padded = (base64 + "=".repeat((4 - (base64.length % 4)) % 4))
+  // Environment variables pick up stray characters on their way through a
+  // paste and a dashboard: wrapping quotes, a trailing newline, the "PUBLIC:"
+  // label from the generator. atob() rejects all of them with Safari's
+  // "The string did not match the expected pattern", which says nothing about
+  // where the bad character came from — so they are stripped here and what
+  // is left is checked before it reaches the push API.
+  const cleaned = base64.trim().replace(/^["']|["']$/g, "").replace(/\s+/g, "");
+
+  if (!/^[A-Za-z0-9_-]+$/.test(cleaned)) {
+    throw new Error(
+      "The VAPID public key has characters that don't belong in it — check " +
+        "NEXT_PUBLIC_VAPID_PUBLIC_KEY for stray quotes or spaces.",
+    );
+  }
+
+  const padded = (cleaned + "=".repeat((4 - (cleaned.length % 4)) % 4))
     .replace(/-/g, "+")
     .replace(/_/g, "/");
-  const raw = atob(padded);
+
+  let raw: string;
+  try {
+    raw = atob(padded);
+  } catch {
+    throw new Error("The VAPID public key isn't valid base64url.");
+  }
+
   const bytes = new Uint8Array(new ArrayBuffer(raw.length));
   for (let i = 0; i < raw.length; i += 1) bytes[i] = raw.charCodeAt(i);
+
+  // A P-256 public key is 65 bytes and begins 0x04 (an uncompressed point).
+  // Anything else is the wrong key entirely — most often the private half,
+  // which is 32 bytes, pasted into the public slot.
+  if (bytes.length !== 65 || bytes[0] !== 0x04) {
+    throw new Error(
+      `That VAPID key decodes to ${bytes.length} bytes, not 65 — it looks ` +
+        "like the private key or a truncated copy is in the public slot.",
+    );
+  }
+
   return bytes.buffer;
 }
 

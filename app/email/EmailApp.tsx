@@ -233,6 +233,10 @@ function Platform({
   return (
     <div
       className={styles.shell}
+      // Only the inbox is a fixed-height, scroll-inside app. Every other
+      // section is an ordinary page and has to scroll normally — on a phone
+      // the shell is what owns the height, so it has to know which it is.
+      data-full={section === "inbox" ? "true" : "false"}
       data-pinned={pinned ? "true" : "false"}
       data-drawer={drawer ? "open" : "shut"}
     >

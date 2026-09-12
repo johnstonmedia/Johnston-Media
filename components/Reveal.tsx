@@ -46,7 +46,14 @@ export default function Reveal({
           observer.unobserve(target);
         });
       },
-      { threshold: 0.15, rootMargin: "0px 0px -40px 0px" },
+      // threshold 0, not 0.15. A threshold measures a fraction of the
+      // *element*, so a block taller than about 6.7 viewports can never reach
+      // 15% and would sit at opacity 0 for good — a real risk on a phone,
+      // where the viewport is short and sections are long. Firing on first
+      // contact behaves the same at every height; the negative bottom margin
+      // holds it back until the element is properly in view rather than a
+      // pixel over the edge.
+      { threshold: 0, rootMargin: "0px 0px -10% 0px" },
     );
 
     observer.observe(el);

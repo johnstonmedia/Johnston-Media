@@ -247,6 +247,11 @@
   overflow: hidden;
 }
 
+/* Every other section scrolls with the page, as a page should. */
+.main[data-full="false"] {
+  overflow: visible;
+}
+
 .head {
   display: flex;
   align-items: flex-end;
@@ -581,9 +586,15 @@
   .shell,
   .shell[data-pinned="false"] {
     grid-template-columns: 1fr;
-    /* The phone header takes the first row and the content takes the rest.
-       The sidebar is fixed at this width, so it is out of the flow and does
-       not claim a row of its own. */
+  }
+
+  /* Only the inbox pins itself to the window. The phone header takes the
+     first row and the mail client takes the rest; the sidebar is fixed at
+     this width, so it is out of the flow and claims no row of its own.
+     Every other section is an ordinary page and must scroll normally —
+     applying this to the whole shell clipped Campaigns, Contacts, Templates
+     and Access at one screen with no way to reach the rest. */
+  .shell[data-full="true"] {
     grid-template-rows: auto minmax(0, 1fr);
     height: 100svh;
     overflow: hidden;

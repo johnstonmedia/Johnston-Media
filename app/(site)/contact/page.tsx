@@ -10,6 +10,7 @@ import { MEDIA_PACKAGES } from "@/lib/packages";
 import { PackageProvider } from "@/components/PackageContext";
 import QuoteForm from "@/components/QuoteForm";
 import Reveal from "@/components/Reveal";
+import SubscribeForm from "@/components/SubscribeForm";
 
 import { SITE_URL } from "@/lib/siteUrl";
 
@@ -132,6 +133,18 @@ export default function ContactPage() {
               </h2>
             </div>
             <ContactForm />
+          </Reveal>
+
+          <Reveal delay={80}>
+            <div
+              style={{
+                marginTop: "var(--space-2xl)",
+                paddingTop: "var(--space-xl)",
+                borderTop: "1px solid var(--jm-border)",
+              }}
+            >
+              <SubscribeForm source="contact page" />
+            </div>
           </Reveal>
         </div>
       </section>

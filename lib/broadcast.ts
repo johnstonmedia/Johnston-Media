@@ -53,6 +53,61 @@ export function verifyUnsubscribe(
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
+/**
+ * A signed link that confirms a subscription.
+ *
+ * Same trick as the unsubscribe link, for the same reason: no lookup table,
+ * nothing to expire, and nobody can forge one by editing a URL. It carries
+ * its own purpose in the payload so a confirm signature can never be replayed
+ * as an unsubscribe one, or the other way round.
+ */
+export function confirmUrl(contactId: string, email: string): string {
+  const sig = createHmac("sha256", UNSUB_SECRET)
+    .update(`confirm:${contactId}:${email.toLowerCase()}`)
+    .digest("base64url");
+  return `${SITE}/api/email/subscribe?c=${encodeURIComponent(contactId)}&e=${encodeURIComponent(email)}&s=${sig}`;
+}
+
+export function verifyConfirm(
+  contactId: string,
+  email: string,
+  sig: string,
+): boolean {
+  const expected = createHmac("sha256", UNSUB_SECRET)
+    .update(`confirm:${contactId}:${email.toLowerCase()}`)
+    .digest("base64url");
+  const a = Buffer.from(expected);
+  const b = Buffer.from(sig);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
+/**
+ * Turns a typed message into HTML, unless it already is HTML.
+ *
+ * The campaign body was a raw HTML textarea, so writing a newsletter meant
+ * writing <p> tags by hand and remembering that a blank line does nothing.
+ * Anything that looks like markup is passed through untouched — someone who
+ * wants to hand-write a layout still can — and anything else is treated as
+ * what it looks like: paragraphs separated by blank lines.
+ */
+export function bodyToHtml(text: string): string {
+  if (/<(p|div|table|h[1-6]|ul|ol|br|img|a)\b/i.test(text)) return text;
+
+  return text
+    .split(/\n{2,}/)
+    .map((block) => block.trim())
+    .filter(Boolean)
+    .map(
+      (block) =>
+        `<p style="margin:0 0 16px 0">${block
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/\n/g, "<br>")}</p>`,
+    )
+    .join("");
+}
+
 /** Replaces {{tokens}} in a string. Unknown tokens are left alone. */
 export function merge(
   source: string,
@@ -183,7 +238,7 @@ export function renderForContact(
     footer_note: escapeHtml(campaign.footerNote ?? ""),
   };
 
-  const body = merge(campaign.html, values);
+  const body = merge(bodyToHtml(campaign.html), values);
   // MESSAGE_BODY is the slot Will's templates use for the message; content is
   // the platform's own name for the same thing. Both work, so a template
   // written either way drops straight in.
@@ -298,8 +353,12 @@ export function validateCampaign(
   if (!campaign.fromEmail.trim()) return "The campaign needs a from-address.";
   if (!campaign.fromName.trim()) return "The campaign needs a sender name.";
 
+  // Case-insensitively: the studio's own templates write {{UNSUBSCRIBE_URL}}
+  // in caps, and merge() has always been case-insensitive — so a lowercase-
+  // only check here refused campaigns whose template carried the link all
+  // along, and the error told you to add the thing that was already there.
   const combined = `${template?.html ?? ""}${campaign.html}`;
-  if (!combined.includes("{{unsubscribe_url}}")) {
+  if (!/\{\{\s*unsubscribe_url\s*\}\}/i.test(combined)) {
     return (
       "No unsubscribe link. Australian law requires every marketing email to " +
       "carry one — add {{unsubscribe_url}} to the campaign or its template."

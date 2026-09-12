@@ -121,6 +121,22 @@ export interface Contact {
   source?: string;
   /** Set when a send hard-bounces, so they're skipped next time. */
   bounced?: boolean;
+  /**
+   * The consent record.
+   *
+   * The Spam Act puts the burden of proof on the sender: you have to be able
+   * to show that someone agreed, and when. A row saying subscribed:true is
+   * not evidence of anything on its own, so the moment they asked, what they
+   * were looking at, and the address the request came from are all kept.
+   *
+   * confirmedAt is the one that matters — it is set only after they click the
+   * link in the confirmation email, which proves the address belongs to the
+   * person who typed it rather than to someone they were signing up for spite.
+   */
+  consentAt?: string;
+  consentSource?: string;
+  consentIp?: string;
+  confirmedAt?: string;
   createdAt: string;
 }
 
@@ -274,6 +290,15 @@ export interface Mailbox {
   fromName?: string;
   /** Ordering in the rail; lower first. */
   order?: number;
+  /**
+   * Sends but never receives — no-reply@ and the like.
+   *
+   * It is still a real mailbox as far as sending goes: campaigns and
+   * automatic mail can go out from it. It just never appears as somewhere to
+   * read, because nothing arrives there, and an inbox you cannot get mail in
+   * is a promise the platform can't keep.
+   */
+  sendOnly?: boolean;
   createdAt?: string;
 }
 
@@ -332,6 +357,14 @@ export const DEFAULT_MAILBOXES: Mailbox[] = [
     description: "Ownership and business matters",
     fromName: "Will Johnston",
     order: 7,
+  },
+  {
+    address: "no-reply@wjohnstonmedia.com",
+    label: "No reply",
+    description: "Sends only — nothing arrives here",
+    fromName: "Johnston Media",
+    sendOnly: true,
+    order: 9,
   },
   {
     // Campaigns go out from here. It still receives, because a marketing

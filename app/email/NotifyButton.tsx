@@ -84,6 +84,8 @@ export default function NotifyButton({
   const [busy, setBusy] = useState(false);
   const [supported, setSupported] = useState<boolean | null>(null);
   const [needsInstall, setNeedsInstall] = useState(false);
+  /** What is wrong with the configured VAPID key, if anything. */
+  const [keyProblem, setKeyProblem] = useState<string | null>(null);
 
   useEffect(() => {
     const hasApi =
@@ -101,6 +103,18 @@ export default function NotifyButton({
 
     setSupported(hasApi && Boolean(VAPID_PUBLIC));
     setNeedsInstall(iOS && !standalone);
+
+    // Check the key on open rather than on click. A bad key is a deployment
+    // problem, not something the person tapping the checkbox did — telling
+    // them the moment the panel opens beats failing after they have chosen.
+    if (VAPID_PUBLIC) {
+      try {
+        urlBase64ToBytes(VAPID_PUBLIC);
+        setKeyProblem(null);
+      } catch (err) {
+        setKeyProblem(err instanceof Error ? err.message : "Unusable key.");
+      }
+    }
 
     try {
       const saved = localStorage.getItem(STORE);
@@ -241,6 +255,13 @@ export default function NotifyButton({
               </div>
             ) : null}
 
+            {keyProblem ? (
+              <div className={styles.warn} role="alert">
+                <strong>The push key on the server is wrong.</strong>{" "}
+                {keyProblem}
+              </div>
+            ) : null}
+
             {!supported && !needsInstall ? (
               <div className={styles.warn}>
                 This browser can&rsquo;t do push notifications
@@ -259,7 +280,7 @@ export default function NotifyButton({
                   <input
                     type="checkbox"
                     checked={chosen.includes(box.address)}
-                    disabled={busy || !supported}
+                    disabled={busy || !supported || Boolean(keyProblem)}
                     onChange={(e) =>
                       setChosen(
                         e.target.checked
@@ -284,7 +305,7 @@ export default function NotifyButton({
                 type="button"
                 className="jm-btn-primary"
                 onClick={() => void save(chosen)}
-                disabled={busy || !supported}
+                disabled={busy || !supported || Boolean(keyProblem)}
               >
                 {busy ? "Saving…" : "Save"}
               </button>

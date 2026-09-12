@@ -167,9 +167,13 @@ export default function InboxPanel({
         }
       }
       merged.sort((a, b) => (a.order ?? 99) - (b.order ?? 99));
+      // A send-only address has no inbox to show and never will, so it is
+      // left out of the rail entirely rather than sitting there permanently
+      // empty. It stays available to send as.
+      const inboxes = merged.filter((m) => !m.sendOnly);
       const readable = restricted
-        ? merged.filter((m) => limitedTo.includes(m.address))
-        : merged;
+        ? inboxes.filter((m) => limitedTo.includes(m.address))
+        : inboxes;
       setMailboxes(readable);
 
       // Their own address may be one they aren't allowed to read — a grant can

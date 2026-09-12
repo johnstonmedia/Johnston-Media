@@ -96,6 +96,7 @@ export default function MailboxesPanel() {
           description: editing.description?.trim() ?? "",
           fromName: editing.fromName?.trim() ?? "",
           order: Number(editing.order) || 99,
+          sendOnly: editing.sendOnly === true,
           createdAt: new Date().toISOString(),
         },
         { merge: true },
@@ -145,6 +146,7 @@ export default function MailboxesPanel() {
                 description: "",
                 fromName: "",
                 order: (boxes?.length ?? 0) + 1,
+                sendOnly: false,
               },
               true,
             )
@@ -172,6 +174,7 @@ export default function MailboxesPanel() {
                   {box.address}
                   {box.description ? ` · ${box.description}` : ""}
                   {box.fromName ? ` · replies as ${box.fromName}` : ""}
+                  {box.sendOnly ? " · sends only" : ""}
                 </p>
               </div>
               <div className={styles.rowActions}>
@@ -296,6 +299,24 @@ export default function MailboxesPanel() {
                 placeholder="Johnston Media Bookings"
               />
             </div>
+
+            <label className={styles.tick}>
+              <input
+                type="checkbox"
+                checked={editing.sendOnly === true}
+                onChange={(e) =>
+                  setEditing({ ...editing, sendOnly: e.target.checked })
+                }
+              />
+              <span>
+                <strong>Sends only</strong>
+                <em>
+                  For no-reply addresses. It stays available to send from and
+                  disappears from the inbox — a mailbox that can never receive
+                  shouldn&rsquo;t sit there looking permanently empty.
+                </em>
+              </span>
+            </label>
 
             <div className="jm-field">
               <label className="jm-label" htmlFor="mb-order">

@@ -27,6 +27,26 @@ const MAX_RECIPIENTS = 10;
 const SENDER_ADDRESS =
   process.env.EMAIL_SENDER_ADDRESS ?? "New South Wales, Australia";
 
+/**
+ * Plain text into line breaks, for the templated path.
+ *
+ * The studio's templates put {{MESSAGE_BODY}} *inside* a <p>, so wrapping the
+ * message in <p> tags as well produced <p><p>text</p></p> — invalid, and mail
+ * clients space it strangely. Breaks nest legally inside a paragraph and read
+ * the same.
+ */
+function breaks(text: string): string {
+  return escape(text).replace(/\n/g, "<br>");
+}
+
+/** Shared escaping, so neither path can ship an unescaped angle bracket. */
+function escape(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
 /** Plain text into simple paragraphs, so a typed message arrives readable. */
 function paragraphs(text: string): string {
   return text
@@ -78,6 +98,7 @@ export async function POST(request: Request) {
   const subject = clean(body.subject, 300);
   const message = cleanMultiline(body.message, 20000);
   const templateId = clean(body.templateId, 120);
+  const recipientName = clean(body.recipientName, 120);
 
   if (!from || !EMAIL_RE.test(from)) {
     return NextResponse.json(
@@ -173,14 +194,18 @@ export async function POST(request: Request) {
     }
   }
 
-  const bodyHtml = paragraphs(message);
+  // A template supplies the paragraph; a bare email has to make its own.
+  const bodyHtml = template ? breaks(message) : paragraphs(message);
   const now = new Date().toISOString();
   const results: { to: string; ok: boolean; error?: string }[] = [];
 
   for (const recipient of to) {
     const values: Record<string, string> = {
-      name: recipient.split("@")[0],
-      first_name: recipient.split("@")[0],
+      // "Hi wjohnston.media," is what guessing a name from an address gets
+      // you. If the sender didn't give one, the templates greet with "there",
+      // which reads as deliberate rather than broken.
+      name: recipientName || "there",
+      first_name: (recipientName || "there").split(/\s+/)[0],
       email: recipient,
       subject,
       preheader: "",

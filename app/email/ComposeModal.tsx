@@ -59,6 +59,8 @@ export default function ComposeModal({
   );
   const [to, setTo] = useState(initialTo);
   const [subject, setSubject] = useState(initialSubject);
+  /** Used for the greeting. Without it templates say "Hi there". */
+  const [recipientName, setRecipientName] = useState("");
   const [message, setMessage] = useState("");
   const [templateId, setTemplateId] = useState("");
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
@@ -126,6 +128,7 @@ export default function ComposeModal({
           // Commas or spaces, whichever they typed.
           to: to.split(/[,\s]+/).map((a) => a.trim()).filter(Boolean),
           subject,
+          recipientName,
           message,
           templateId,
           eyebrow,
@@ -261,6 +264,19 @@ export default function ComposeModal({
             value={to}
             placeholder="someone@example.com — or several, separated by commas"
             onChange={(e) => setTo(e.target.value)}
+          />
+        </div>
+
+        <div className="jm-field">
+          <label className="jm-label" htmlFor="co-name">
+            Their name
+          </label>
+          <input
+            id="co-name"
+            className="jm-input"
+            value={recipientName}
+            placeholder="Priya — optional, used for the greeting"
+            onChange={(e) => setRecipientName(e.target.value)}
           />
         </div>
 

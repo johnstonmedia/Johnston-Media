@@ -36,6 +36,18 @@ type Section =
   | "mailboxes"
   | "access";
 
+/**
+ * The phone tab bar. Five slots, compose raised in the middle — the shape a
+ * phone user already knows. Everything else stays in the drawer.
+ */
+const TABS: { id: string; label: string; icon: string }[] = [
+  { id: "inbox", label: "Inbox", icon: "✉" },
+  { id: "campaigns", label: "Campaigns", icon: "◈" },
+  { id: "compose", label: "Write", icon: "+" },
+  { id: "contacts", label: "Contacts", icon: "◉" },
+  { id: "overview", label: "Overview", icon: "◈" },
+];
+
 const NAV: {
   id: Section;
   label: string;
@@ -109,6 +121,8 @@ function Platform({
     linked && LINKABLE.has(linked) ? linked : "inbox",
   );
   const [unread, setUnread] = useState(0);
+  /** Bumped to ask the inbox to open compose, from the phone tab bar. */
+  const [composeNonce, setComposeNonce] = useState(0);
 
   /**
    * The sidebar has three states, not two.
@@ -373,12 +387,58 @@ function Platform({
               initialThreadId={params.get("thread") ?? undefined}
               initialMailbox={params.get("mailbox") ?? undefined}
               openCompose={params.get("compose") === "1"}
+              composeNonce={composeNonce}
             />
           </>
         ) : null}
         {section === "mailboxes" ? <MailboxesPanel /> : null}
         {section === "access" ? <AccessPanel getToken={getToken} /> : null}
       </main>
+
+      {/* ── Phone tab bar ────────────────────────────
+          A sidebar behind a hamburger is a desktop layout wearing a phone's
+          clothes. On a phone the few things you actually do live at the
+          bottom, under your thumb, with compose raised in the middle — which
+          is what every mail app does, because it works. */}
+      <nav className={styles.tabBar} aria-label="Sections">
+        {TABS.map((tab) =>
+          tab.id === "compose" ? (
+            <button
+              key="compose"
+              type="button"
+              className={styles.tabCompose}
+              onClick={() => {
+                // Compose lives in the inbox, which owns the mailbox list and
+                // the modal. Landing there first means one compose screen
+                // rather than two that drift apart.
+                setSection("inbox");
+                setComposeNonce((n) => n + 1);
+              }}
+              aria-label="Write an email"
+            >
+              +
+            </button>
+          ) : (
+            <button
+              key={tab.id}
+              type="button"
+              className={`${styles.tab} ${
+                section === tab.id ? styles.tabOn : ""
+              }`}
+              onClick={() => choose(tab.id as Section)}
+              aria-current={section === tab.id}
+            >
+              <span className={styles.tabIcon} aria-hidden="true">
+                {tab.icon}
+              </span>
+              <span className={styles.tabLabel}>{tab.label}</span>
+              {tab.id === "inbox" && unread > 0 ? (
+                <span className={styles.tabDot} aria-hidden="true" />
+              ) : null}
+            </button>
+          ),
+        )}
+      </nav>
     </div>
   );
 }

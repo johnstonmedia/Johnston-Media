@@ -82,6 +82,13 @@ export default function ComposeModal({
   const [failure, setFailure] = useState<string | null>(null);
   /** Most one-off mail wants no call-to-action button at all. */
   const [includeButton, setIncludeButton] = useState(false);
+  /**
+   * Compose opens on a choice, not a form. "A blank page with a template
+   * dropdown buried in it" is the thing that made this feel unlike a mail
+   * app — picking how you start is the first decision, so it is the first
+   * screen.
+   */
+  const [started, setStarted] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -196,7 +203,14 @@ export default function ComposeModal({
     >
       <div className="jm-modal" style={{ maxWidth: 640 }}>
         <div className="jm-modal-header">
-          <h2 className="jm-modal-title">New email</h2>
+          <h2 className="jm-modal-title">
+            {!started
+              ? "New email"
+              : templateId
+                ? (templates.find((t) => t.id === templateId)?.name ??
+                  "New email")
+                : "Blank email"}
+          </h2>
           <button
             type="button"
             className="jm-modal-close"
@@ -215,6 +229,59 @@ export default function ComposeModal({
           </p>
         ) : null}
 
+        {!started ? (
+          <div className={styles.startList}>
+            <button
+              type="button"
+              className={styles.startCard}
+              onClick={() => {
+                setTemplateId("");
+                setStarted(true);
+              }}
+            >
+              <span className={styles.startMark} aria-hidden="true">
+                ✎
+              </span>
+              <span>
+                <strong>Start blank</strong>
+                <em>
+                  Just write. It still goes out with the logo, your signature
+                  and the site address at the bottom.
+                </em>
+              </span>
+            </button>
+
+            {templates.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                className={styles.startCard}
+                onClick={() => {
+                  setTemplateId(t.id);
+                  setStarted(true);
+                }}
+              >
+                <span className={styles.startMark} aria-hidden="true">
+                  ◇
+                </span>
+                <span>
+                  <strong>{t.name}</strong>
+                  <em>{t.description || "A saved template."}</em>
+                </span>
+              </button>
+            ))}
+
+            {templates.length === 0 ? (
+              <p className={styles.rowMeta}>
+                No templates installed yet — Templates &rsaquo; Install
+                templates adds them.
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+
+        {started ? (
+        <>
         <div className={styles.field2}>
           <div className="jm-field">
             <label className="jm-label" htmlFor="co-from">
@@ -461,12 +528,22 @@ export default function ComposeModal({
           <button
             type="button"
             className="jm-btn-ghost"
+            onClick={() => setStarted(false)}
+            disabled={sending}
+          >
+            Back
+          </button>
+          <button
+            type="button"
+            className="jm-btn-ghost"
             onClick={onClose}
             disabled={sending}
           >
             Cancel
           </button>
         </div>
+        </>
+        ) : null}
       </div>
     </div>
   );

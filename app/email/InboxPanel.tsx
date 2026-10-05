@@ -10,7 +10,7 @@ import {
   where,
   updateDoc,
 } from "firebase/firestore";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useToast } from "@/components/Toast";
 import NotifyButton from "./NotifyButton";
@@ -91,6 +91,7 @@ export default function InboxPanel({
   initialThreadId,
   initialMailbox,
   openCompose = false,
+  composeNonce = 0,
 }: {
   access: EmailAccess;
   getToken: () => Promise<string | null>;
@@ -100,6 +101,8 @@ export default function InboxPanel({
   /** From ?mailbox= — selects that mailbox on arrival. */
   initialMailbox?: string;
   openCompose?: boolean;
+  /** Bumped by the phone tab bar to open compose from anywhere. */
+  composeNonce?: number;
 }) {
   const { toast } = useToast();
   const [mailboxes, setMailboxes] = useState<Mailbox[]>(DEFAULT_MAILBOXES);
@@ -359,6 +362,11 @@ export default function InboxPanel({
       setBusy(false);
     }
   }
+
+  const firstNonce = useRef(composeNonce);
+  useEffect(() => {
+    if (composeNonce !== firstNonce.current) setComposing(true);
+  }, [composeNonce]);
 
   const selectedBox = mailboxes.find((m) => m.address === selected);
 

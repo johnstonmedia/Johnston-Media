@@ -13,6 +13,7 @@ import {
   type HelpThread,
 } from "@/lib/emailTypes";
 import { adminDb } from "@/lib/firebaseAdmin";
+import { plainShell } from "@/lib/emailSignature";
 import { SITE_URL } from "@/lib/siteUrl";
 import { clean, cleanMultiline } from "@/lib/validation";
 
@@ -235,6 +236,9 @@ export async function POST(request: Request) {
       unsubscribe_url: SITE_URL,
     };
 
+    // No template still means a Johnston Media email, not a bare paragraph:
+    // the blank path gets the logo, a signature and the sender identification
+    // the Spam Act asks for in a commercial message.
     const html = stripTokens(
       template
         ? merge(template.html, {
@@ -242,7 +246,11 @@ export async function POST(request: Request) {
             content: bodyHtml,
             message_body: bodyHtml,
           })
-        : bodyHtml,
+        : plainShell(bodyHtml, subject, {
+            fromName,
+            fromEmail: from,
+            senderAddress: SENDER_ADDRESS,
+          }),
     );
 
     if (!KEY) {

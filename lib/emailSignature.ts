@@ -1,22 +1,34 @@
 import { SITE_URL } from "./siteUrl";
 
 /**
- * The shell a plain email goes in.
+ * The shell a blank email goes in.
  *
- * "Start blank" shouldn't mean a naked paragraph with no indication of who
- * sent it. A one-off note still comes from a business: it carries the logo,
- * the sender's name, the site and the postal identification — which is also
- * what the Spam Act asks for in a commercial message, template or not.
+ * Deliberately almost nothing. A blank email should look like an email
+ * somebody typed — the same plain, left-aligned body you'd get out of Gmail —
+ * not a marketing layout with a banner on top. The templates exist for when
+ * you want that.
  *
- * Table-based and inline-styled for the same reason the templates are: mail
- * clients don't reliably support anything else.
+ * So: no logo header, no coloured banner, no card on a grey page. Just the
+ * message in the house font at a readable size, a rule, and a signature. The
+ * only branded thing is the footer, which carries the logo, who sent it, the
+ * address a reply reaches, the site, and the postal identification the Spam
+ * Act asks of a commercial message.
+ *
+ * Fonts are the email-safe pairing the templates already use — Georgia for
+ * the name, Arial for everything else. Montserrat and Playfair are webfonts;
+ * mail clients mostly ignore them, and a font that silently falls back is
+ * worse than one chosen on purpose.
  */
 
 const COPPER = "#C15A32";
 const NAVY = "#0B2740";
 const INK = "#1D2730";
 const MUTED = "#66737D";
-const PAPER = "#E8E8E8";
+const RULE = "#E2E5E9";
+
+/** Body text: 15px/1.65 is the size most mail clients render comfortably. */
+const BODY_FONT =
+  "font-family:Arial, Helvetica, sans-serif; font-size:15px; mso-line-height-rule:exactly; line-height:25px;";
 
 function escapeHtml(value: string): string {
   return value
@@ -27,7 +39,7 @@ function escapeHtml(value: string): string {
 }
 
 export interface SignatureDetails {
-  /** Who it's from, as a person or a desk: "Will Johnston", "Johnston Media Help". */
+  /** Who it's from: "Will Johnston", "Johnston Media Help". */
   fromName: string;
   /** The address it goes out as — the one a reply reaches. */
   fromEmail: string;
@@ -36,7 +48,7 @@ export interface SignatureDetails {
 }
 
 /**
- * Wraps already-escaped body HTML in the branded shell.
+ * Wraps already-escaped body HTML.
  *
  * The body is inserted as-is, so whatever builds it owns the escaping — the
  * same contract the templates have with {{MESSAGE_BODY}}.
@@ -57,44 +69,41 @@ export function plainShell(
 <meta name="color-scheme" content="light dark" />
 <title>${escapeHtml(subject)}</title>
 <style>
-  body { margin:0; padding:0; width:100% !important; background:${PAPER}; }
+  body { margin:0; padding:0; background:#FFFFFF; }
   img { border:0; outline:none; text-decoration:none; }
   table { border-collapse:collapse !important; }
   a { color:${COPPER}; }
   @media only screen and (max-width:620px) {
     .jm-wrap { width:100% !important; }
-    .jm-pad { padding-left:22px !important; padding-right:22px !important; }
+    .jm-pad { padding-left:20px !important; padding-right:20px !important; }
   }
 </style></head>
-<body style="margin:0; padding:0; background:${PAPER};">
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:${PAPER};">
-<tr><td align="center" style="padding:32px 12px;">
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" align="center" class="jm-wrap" style="width:600px; max-width:600px; margin:0 auto; border-collapse:collapse; background:#FFFFFF;">
+<body style="margin:0; padding:0; background:#FFFFFF;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#FFFFFF;">
+<tr><td align="left" style="padding:0;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" align="left" class="jm-wrap" style="width:600px; max-width:600px; border-collapse:collapse;">
 
-  <tr><td align="center" style="padding:26px 32px 20px 32px; background:#FFFFFF;">
-    <img src="${SITE_URL}/logo.png" width="220" alt="Johnston Media — Your Vision. My Lens." style="display:block; width:220px; max-width:70%; height:auto; border:0;" />
-  </td></tr>
-  <tr><td style="height:3px; line-height:3px; font-size:0; background:${COPPER};">&nbsp;</td></tr>
-
-  <tr><td class="jm-pad" style="padding:34px 40px 10px 40px; background:#FFFFFF;">
-    <div style="font-family:Arial, Helvetica, sans-serif; font-size:15px; color:${INK}; mso-line-height-rule:exactly; line-height:26px;">${bodyHtml}</div>
+  <tr><td class="jm-pad" style="padding:28px 28px 8px 28px;">
+    <div style="${BODY_FONT} color:${INK};">${bodyHtml}</div>
   </td></tr>
 
-  <tr><td class="jm-pad" style="padding:18px 40px 32px 40px; background:#FFFFFF;">
-    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse; border-top:1px solid ${PAPER};">
-      <tr><td style="padding-top:18px; font-family:Arial, Helvetica, sans-serif; font-size:14px; color:${INK}; mso-line-height-rule:exactly; line-height:22px;">
-        <strong style="color:${NAVY};">${name}</strong><br />
-        <span style="color:${MUTED}; font-size:13px;">Johnston Media</span><br />
-        <a href="mailto:${email}" style="color:${COPPER}; text-decoration:none; font-size:13px;">${email}</a>
-        &nbsp;·&nbsp;
-        <a href="${SITE_URL}" style="color:${COPPER}; text-decoration:none; font-size:13px;">${escapeHtml(site)}</a>
+  <tr><td class="jm-pad" style="padding:8px 28px 28px 28px;">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">
+      <tr><td style="padding-top:20px; border-top:1px solid ${RULE};">
+
+        <img src="${SITE_URL}/logo.png" width="150" alt="Johnston Media" style="display:block; width:150px; max-width:60%; height:auto; border:0; margin-bottom:12px;" />
+
+        <p style="margin:0; font-family:Georgia,'Times New Roman',serif; font-size:16px; color:${NAVY}; mso-line-height-rule:exactly; line-height:22px;">${name}</p>
+        <p style="margin:2px 0 0 0; ${BODY_FONT} font-size:13px; line-height:20px; color:${MUTED};">Johnston Media &nbsp;·&nbsp; Sydney, NSW</p>
+        <p style="margin:6px 0 0 0; ${BODY_FONT} font-size:13px; line-height:20px;">
+          <a href="mailto:${email}" style="color:${COPPER}; text-decoration:none;">${email}</a>
+          &nbsp;·&nbsp;
+          <a href="${SITE_URL}" style="color:${COPPER}; text-decoration:none;">${escapeHtml(site)}</a>
+        </p>
+        <p style="margin:12px 0 0 0; ${BODY_FONT} font-size:11px; line-height:17px; color:#9AA5AE;">${address}</p>
+
       </td></tr>
     </table>
-  </td></tr>
-
-  <tr><td class="jm-pad" style="padding:20px 40px 24px 40px; background:${NAVY};">
-    <p style="margin:0 0 6px 0; font-family:Georgia,'Times New Roman',serif; font-style:italic; font-size:15px; color:#F2C88D; mso-line-height-rule:exactly; line-height:22px;">Your Vision. My Lens.</p>
-    <p style="margin:0; font-family:Arial, Helvetica, sans-serif; font-size:11px; color:#8FA3B4; mso-line-height-rule:exactly; line-height:18px;">${address}</p>
   </td></tr>
 
 </table>

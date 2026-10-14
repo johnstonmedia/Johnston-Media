@@ -43,6 +43,9 @@ export default function AccessPanel({
   const [allowedFrom, setAllowedFrom] = useState<string[]>([]);
   const [primaryFrom, setPrimaryFrom] = useState("");
   const [visible, setVisible] = useState<string[]>([]);
+  const [seesPersonal, setSeesPersonal] = useState(false);
+  /** An address of their own, created with the grant. */
+  const [createPersonal, setCreatePersonal] = useState("");
   const [mailboxes, setMailboxes] = useState<Mailbox[]>(DEFAULT_MAILBOXES);
   const [canBroadcast, setCanBroadcast] = useState(false);
   const [maxRecipients, setMaxRecipients] = useState("");
@@ -101,6 +104,18 @@ export default function AccessPanel({
     setAllowedFrom(person.access?.allowedFrom ?? []);
     setPrimaryFrom(person.access?.primaryFrom ?? "");
     setVisible(person.access?.visibleMailboxes ?? []);
+    setSeesPersonal(person.access?.seesPersonalMail ?? false);
+
+    // Suggest an address from their first name, but only when they have none
+    // already — re-opening a grant shouldn't offer to make a second one.
+    const hasOwn = mailboxes.some(
+      (m) => m.personal && m.address === person.access?.primaryFrom,
+    );
+    const first = (person.profile.name || person.profile.email)
+      .split(/[\s@]+/)[0]
+      .toLowerCase()
+      .replace(/[^a-z0-9.-]/g, "");
+    setCreatePersonal(hasOwn || !first ? "" : `${first}@wjohnstonmedia.com`);
     setCanBroadcast(person.access?.canBroadcast ?? false);
     setMaxRecipients(
       person.access?.maxRecipients ? String(person.access.maxRecipients) : "",
@@ -129,6 +144,8 @@ export default function AccessPanel({
           allowedFrom,
           primaryFrom,
           visibleMailboxes: visible,
+          seesPersonalMail: seesPersonal,
+          createPersonal,
           canBroadcast,
           maxRecipients,
         }),
@@ -301,6 +318,41 @@ export default function AccessPanel({
                 themselves.
               </p>
             </div>
+
+            <div className="jm-field">
+              <label className="jm-label" htmlFor="ac-personal">
+                Give them their own address
+              </label>
+              <input
+                id="ac-personal"
+                className="jm-input"
+                value={createPersonal}
+                placeholder="bob@wjohnstonmedia.com"
+                onChange={(e) => setCreatePersonal(e.target.value)}
+              />
+              <p className={styles.rowMeta} style={{ marginTop: "0.5rem" }}>
+                Created as a personal mailbox they own, set as the address they
+                write from, and private — nobody else reads it unless you tick
+                the box below on their grant. Clear the field to skip.
+              </p>
+            </div>
+
+            <label className={styles.tick}>
+              <input
+                type="checkbox"
+                checked={seesPersonal}
+                onChange={(e) => setSeesPersonal(e.target.checked)}
+              />
+              <span>
+                <strong>May read personal mailboxes</strong>
+                <em>
+                  Off means they can run the whole platform and still never see
+                  will@ or bob@. Running the mail system and reading the
+                  owner&rsquo;s correspondence are different permissions, so
+                  this stays off even for admins unless you say otherwise.
+                </em>
+              </span>
+            </label>
 
             <div className="jm-field">
               <span className="jm-label">May send as</span>

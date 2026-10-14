@@ -85,6 +85,32 @@ export function canSendAs(caller: EmailCaller, from: string): boolean {
   );
 }
 
+/**
+ * Whether this caller may read a given mailbox.
+ *
+ * Three rules, in order:
+ *   its owner always can, whatever else is set;
+ *   a personal mailbox needs seesPersonalMail, admin or not;
+ *   otherwise an empty visibleMailboxes means all of them.
+ *
+ * The middle rule is the point: "runs the mail platform" and "may read the
+ * owner's correspondence" are different permissions, and the common case — a
+ * manager who does neither of the other two — should be the default rather
+ * than something an admin has to remember to switch off.
+ */
+export function canReadMailbox(
+  caller: EmailCaller,
+  mailbox: { address: string; personal?: boolean; ownerUid?: string },
+): boolean {
+  if (mailbox.ownerUid && mailbox.ownerUid === caller.uid) return true;
+
+  if (mailbox.personal && !caller.access.seesPersonalMail) return false;
+
+  const allowed = caller.access.visibleMailboxes ?? [];
+  if (caller.access.level === "admin" || allowed.length === 0) return true;
+  return allowed.includes(mailbox.address.toLowerCase());
+}
+
 /** The most recipients this caller may reach in one send. */
 export function recipientCeiling(caller: EmailCaller): number {
   if (caller.access.level === "admin") return Number.POSITIVE_INFINITY;

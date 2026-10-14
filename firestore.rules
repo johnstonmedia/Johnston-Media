@@ -161,10 +161,41 @@ service cloud.firestore {
         .data.get('visibleMailboxes', []);
     }
 
+    function accessDoc() {
+      return get(/databases/$(database)/documents/emailAccess/$(request.auth.uid)).data;
+    }
+
+    function seesPersonalMail() {
+      return accessDoc().get('seesPersonalMail', false) == true;
+    }
+
+    /** The mailbox document, for the personal/owner flags. */
+    function boxDoc(address) {
+      return get(/databases/$(database)/documents/mailboxes/$(address)).data;
+    }
+
+    function isPersonalBox(address) {
+      return exists(/databases/$(database)/documents/mailboxes/$(address))
+        && boxDoc(address).get('personal', false) == true;
+    }
+
+    function ownsBox(address) {
+      return exists(/databases/$(database)/documents/mailboxes/$(address))
+        && boxDoc(address).get('ownerUid', '') == request.auth.uid;
+    }
+
+    /**
+     * Its owner always reads it. A personal mailbox otherwise needs
+     * seesPersonalMail, admin or not — running the platform is not the same
+     * permission as reading the owner's mail.
+     */
     function canReadMailbox(box) {
-      return isAdmin()
-        || visibleMailboxes().size() == 0
-        || box in visibleMailboxes();
+      return ownsBox(box)
+        || (isPersonalBox(box)
+              ? seesPersonalMail()
+              : (isAdmin()
+                  || visibleMailboxes().size() == 0
+                  || box in visibleMailboxes()));
     }
 
     match /emailAccess/{uid} {

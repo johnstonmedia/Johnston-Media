@@ -97,6 +97,7 @@ export default function MailboxesPanel() {
           fromName: editing.fromName?.trim() ?? "",
           order: Number(editing.order) || 99,
           sendOnly: editing.sendOnly === true,
+          personal: editing.personal === true,
           createdAt: new Date().toISOString(),
         },
         { merge: true },
@@ -175,6 +176,7 @@ export default function MailboxesPanel() {
                   {box.description ? ` · ${box.description}` : ""}
                   {box.fromName ? ` · replies as ${box.fromName}` : ""}
                   {box.sendOnly ? " · sends only" : ""}
+                  {box.personal ? " · personal" : ""}
                 </p>
               </div>
               <div className={styles.rowActions}>
@@ -299,6 +301,25 @@ export default function MailboxesPanel() {
                 placeholder="Johnston Media Bookings"
               />
             </div>
+
+            <label className={styles.tick}>
+              <input
+                type="checkbox"
+                checked={editing.personal === true}
+                onChange={(e) =>
+                  setEditing({ ...editing, personal: e.target.checked })
+                }
+              />
+              <span>
+                <strong>Personal</strong>
+                <em>
+                  Somebody&rsquo;s own address rather than a shared desk. Only
+                  its owner reads it, plus anyone you have given &ldquo;may
+                  read personal mailboxes&rdquo; under Access. Untick to make
+                  it an ordinary shared mailbox.
+                </em>
+              </span>
+            </label>
 
             <label className={styles.tick}>
               <input

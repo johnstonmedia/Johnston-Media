@@ -133,6 +133,8 @@ export async function POST(request: Request) {
     // Replying puts the thread in Sent too; it stays in the Inbox because
     // hasInbound is what put it there and nothing here clears it.
     hasOutbound: true,
+    lastAuthorName: caller.access.name || caller.email,
+    lastAuthorEmail: caller.email,
     lastMessageAt: now,
   });
 

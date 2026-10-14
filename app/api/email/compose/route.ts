@@ -319,6 +319,8 @@ export async function POST(request: Request) {
           messageCount: 1,
           unread: false,
           hasOutbound: true,
+          lastAuthorName: caller.access.name || caller.email,
+          lastAuthorEmail: caller.email,
           createdAt: now,
           lastMessageAt: now,
         };
@@ -331,6 +333,8 @@ export async function POST(request: Request) {
           snippet: message.replace(/\s+/g, " ").slice(0, 180),
           messageCount: (current.messageCount ?? 0) + 1,
           hasOutbound: true,
+          lastAuthorName: caller.access.name || caller.email,
+          lastAuthorEmail: caller.email,
           lastMessageAt: now,
         });
       }

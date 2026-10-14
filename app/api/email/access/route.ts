@@ -120,6 +120,7 @@ export async function POST(request: Request) {
 
   const db = adminDb();
   const user = await db.collection("users").doc(uid).get();
+
   if (!user.exists) {
     return NextResponse.json(
       { ok: false, error: "That person doesn't have an account yet." },
@@ -128,14 +129,73 @@ export async function POST(request: Request) {
   }
 
   const profile = user.data() ?? {};
+
+  /**
+   * Give them an address of their own.
+   *
+   * A person joining the team needs somewhere their mail lands, and asking an
+   * admin to go and create it by hand in another panel is how people end up
+   * sharing hello@. Created as personal, owned by them, and added to both the
+   * addresses they may send as and the mailboxes they may read.
+   */
+  const personalAddress = clean(body.createPersonal, 200).toLowerCase();
+  if (personalAddress) {
+    if (!EMAIL_RE.test(personalAddress)) {
+      return NextResponse.json(
+        { ok: false, error: `"${personalAddress}" isn't a valid address.` },
+        { status: 400 },
+      );
+    }
+
+    const existing = await db
+      .collection("mailboxes")
+      .doc(personalAddress)
+      .get();
+
+    // Never silently take over an address that already belongs to someone.
+    if (existing.exists && existing.data()?.ownerUid &&
+        existing.data()?.ownerUid !== uid) {
+      return NextResponse.json(
+        { ok: false, error: `${personalAddress} already belongs to someone else.` },
+        { status: 409 },
+      );
+    }
+
+    const label =
+      clean(body.personalLabel, 60) ||
+      (profile.name as string | undefined)?.split(/\s+/)[0] ||
+      personalAddress.split("@")[0];
+
+    await db.collection("mailboxes").doc(personalAddress).set(
+      {
+        label,
+        description: `${profile.name ?? personalAddress}'s own address`,
+        fromName: (profile.name as string | undefined) || label,
+        personal: true,
+        ownerUid: uid,
+        order: 50,
+        createdAt: new Date().toISOString(),
+      },
+      { merge: true },
+    );
+
+    if (!allowedFrom.includes(personalAddress)) allowedFrom.push(personalAddress);
+    if (visibleMailboxes.length && !visibleMailboxes.includes(personalAddress)) {
+      visibleMailboxes.push(personalAddress);
+    }
+  }
+
   const record: Omit<EmailAccess, "uid"> = {
     email: profile.email ?? "",
     name: profile.name ?? undefined,
     level,
     allowedFrom,
-    primaryFrom: primaryFrom || undefined,
+    primaryFrom: primaryFrom || personalAddress || undefined,
     visibleMailboxes,
     canBroadcast: body.canBroadcast === true,
+    // Off unless explicitly granted — running the platform is not the same
+    // permission as reading the owner's mail.
+    seesPersonalMail: body.seesPersonalMail === true,
     ...(maxRecipients !== undefined ? { maxRecipients } : {}),
     updatedAt: new Date().toISOString(),
     updatedBy: caller.email,

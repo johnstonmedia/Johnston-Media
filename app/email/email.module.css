@@ -1529,3 +1529,18 @@
     position: static;
   }
 }
+
+/* Who on the team last replied. In a shared mailbox the useful question is
+   "has anyone answered this, and who" — a name next to the time answers it
+   without opening the thread. */
+.threadBy {
+  flex-shrink: 0;
+  margin-left: auto;
+  padding: 0.05rem 0.4rem;
+  border-radius: var(--radius-pill);
+  background: var(--jm-hover-wash);
+  font-size: 0.6rem;
+  letter-spacing: 0.04em;
+  color: var(--jm-teal, var(--jm-muted));
+  white-space: nowrap;
+}

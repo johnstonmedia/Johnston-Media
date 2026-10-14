@@ -173,7 +173,18 @@ export default function InboxPanel({
       // A send-only address has no inbox to show and never will, so it is
       // left out of the rail entirely rather than sitting there permanently
       // empty. It stays available to send as.
-      const inboxes = merged.filter((m) => !m.sendOnly);
+      //
+      // Personal mailboxes are somebody's own mail: you see your own, and
+      // everyone else's only with seesPersonalMail. The rules enforce this —
+      // this is so the rail doesn't offer a mailbox that would come back
+      // empty and look broken.
+      const inboxes = merged.filter(
+        (m) =>
+          !m.sendOnly &&
+          (!m.personal ||
+            m.ownerUid === access.uid ||
+            access.seesPersonalMail === true),
+      );
       const readable = restricted
         ? inboxes.filter((m) => limitedTo.includes(m.address))
         : inboxes;
@@ -561,6 +572,11 @@ export default function InboxPanel({
                         {view === "sent" ? "To " : ""}
                         {thread.fromName || thread.fromEmail}
                       </span>
+                      {thread.lastAuthorName ? (
+                        <span className={styles.threadBy} title={`Last reply by ${thread.lastAuthorName}`}>
+                          {thread.lastAuthorName.split(/\s+/)[0]}
+                        </span>
+                      ) : null}
                       <span className={styles.threadWhen}>
                         {when(thread.lastMessageAt)}
                       </span>

@@ -80,6 +80,15 @@ export interface EmailAccess {
    */
   visibleMailboxes?: string[];
   /**
+   * Whether admin reaches into personal mailboxes too.
+   *
+   * Off by default, including for admins. Someone managing campaigns and
+   * audiences has no business in will@ or bob@, and the common case — a
+   * manager who runs the platform but does not read the owner's mail — should
+   * not require remembering to switch something off.
+   */
+  seesPersonalMail?: boolean;
+  /**
    * Marketing sends can go to thousands of people at once, so it's gated
    * separately from transactional sending even at level "send".
    */
@@ -299,6 +308,18 @@ export interface Mailbox {
    * is a promise the platform can't keep.
    */
   sendOnly?: boolean;
+  /**
+   * Somebody's own address rather than a shared desk — bob@, will@.
+   *
+   * Personal mail is private by default: a grant that can read every shared
+   * mailbox still cannot read these, because "runs the mail platform" and
+   * "may read the owner's correspondence" are not the same permission. Only
+   * an admin holding seesPersonalMail crosses that line, and you can mark an
+   * address non-personal to opt it out.
+   */
+  personal?: boolean;
+  /** The uid it belongs to. Its owner always reads it, whatever else says. */
+  ownerUid?: string;
   createdAt?: string;
 }
 
@@ -421,6 +442,15 @@ export interface HelpThread {
    */
   hasInbound?: boolean;
   hasOutbound?: boolean;
+  /**
+   * Who on the team sent the most recent outbound message.
+   *
+   * Shown in the list so a shared mailbox reads as "Bob replied to this"
+   * rather than an anonymous outbox — which is the thing you actually want to
+   * know when three people work the same inbox.
+   */
+  lastAuthorName?: string;
+  lastAuthorEmail?: string;
   createdAt: string;
   lastMessageAt: string;
 }

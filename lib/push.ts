@@ -58,6 +58,34 @@ export interface PushPayload {
 }
 
 /**
+ * Notifies this person's own devices, whatever they're subscribed to.
+ *
+ * Exists for the test button. Push has a long chain — VAPID keys, a service
+ * worker, browser permission, a stored subscription, a reachable push service
+ * — and until now the only thing that exercised it was a real inbound email,
+ * which needs DNS and a webhook on top. Being able to prove the first half
+ * works on its own is the difference between a five-minute fix and a day.
+ */
+export async function notifyUser(
+  uid: string,
+  payload: PushPayload,
+): Promise<{ sent: number; removed: number; devices: number }> {
+  if (!configure()) return { sent: 0, removed: 0, devices: 0 };
+
+  const db = adminDb();
+  const snap = await db
+    .collection("pushSubscriptions")
+    .where("uid", "==", uid)
+    .get();
+
+  const devices = snap.docs.map(
+    (d) => ({ id: d.id, ...d.data() }) as PushDevice,
+  );
+  const result = await push(devices, payload);
+  return { ...result, devices: devices.length };
+}
+
+/**
  * Notifies every device subscribed to this mailbox.
  *
  * Never throws: a notification is a courtesy on top of mail that has already
@@ -83,6 +111,15 @@ export async function notifyMailbox(
     return { sent: 0, removed: 0 };
   }
 
+  return push(devices, payload);
+}
+
+/** The send loop itself, shared by both entry points. */
+async function push(
+  devices: PushDevice[],
+  payload: PushPayload,
+): Promise<{ sent: number; removed: number }> {
+  const db = adminDb();
   const body = JSON.stringify({
     ...payload,
     url: payload.url ? `${SITE_URL}${payload.url}` : `${SITE_URL}/email`,

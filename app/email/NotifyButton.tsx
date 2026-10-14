@@ -86,6 +86,7 @@ export default function NotifyButton({
   const [needsInstall, setNeedsInstall] = useState(false);
   /** What is wrong with the configured VAPID key, if anything. */
   const [keyProblem, setKeyProblem] = useState<string | null>(null);
+  const [failure, setFailure] = useState<string | null>(null);
 
   useEffect(() => {
     const hasApi =
@@ -203,6 +204,36 @@ export default function NotifyButton({
     [getToken, toast],
   );
 
+  /** Proves the push chain end to end, without needing an email to arrive. */
+  async function test() {
+    setBusy(true);
+    setFailure(null);
+    try {
+      const token = await getToken();
+      if (!token) {
+        toast("Your session expired — sign in again.", "error");
+        return;
+      }
+      const response = await fetch("/api/email/push/test", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const result = await response.json();
+
+      if (!response.ok || !result.ok) {
+        setFailure(result.error ?? "The test didn't go through.");
+        return;
+      }
+      toast(
+        `Sent to ${result.sent} device${result.sent === 1 ? "" : "s"} — it should appear now.`,
+      );
+    } catch {
+      setFailure("Network error — try again in a moment.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (supported === null) return null;
 
   return (
@@ -297,6 +328,12 @@ export default function NotifyButton({
               ))}
             </div>
 
+            {failure ? (
+              <div className={styles.warn} role="alert">
+                {failure}
+              </div>
+            ) : null}
+
             <div
               className={styles.actions}
               style={{ marginTop: "var(--space-lg)" }}
@@ -308,6 +345,14 @@ export default function NotifyButton({
                 disabled={busy || !supported || Boolean(keyProblem)}
               >
                 {busy ? "Saving…" : "Save"}
+              </button>
+              <button
+                type="button"
+                className="jm-btn-ghost"
+                onClick={() => void test()}
+                disabled={busy || !supported || Boolean(keyProblem)}
+              >
+                Send a test
               </button>
               <button
                 type="button"

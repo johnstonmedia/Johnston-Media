@@ -738,15 +738,35 @@
    subjects.
    ============================================================ */
 
+/*
+ * Two panes, not three.
+ *
+ * The three-column layout — folders, a narrow list, a permanent reading pane
+ * — is the thing that made this feel unlike a mail client. Gmail and Outlook
+ * both put the list across the full width and let the conversation replace
+ * it, which is what makes a one-line row work: a 360px column cannot hold a
+ * sender, a subject, a preview and a date, so the subject and preview were
+ * being squeezed out of existence.
+ *
+ * So the list and the reader share one cell and swap, driven by data-reading.
+ */
 .mail {
   display: grid;
-  grid-template-columns: 232px 360px minmax(0, 1fr);
+  grid-template-columns: 232px minmax(0, 1fr);
   gap: 1px;
   background: var(--jm-border);
   overflow: hidden;
   /* Edge to edge inside the shell — the window is the frame, so a border and
      a radius here would just draw a box around the whole screen. */
   height: 100%;
+}
+
+.mail[data-reading="true"] .threadList {
+  display: none;
+}
+
+.mail[data-reading="false"] .reader {
+  display: none;
 }
 
 /* ── Mailbox rail ────────────────────────────────── */
@@ -782,9 +802,10 @@
   filter: brightness(1.08);
 }
 
-/* Only meaningful on a phone, where the reader covers the list. */
+/* The conversation replaces the list at every width now, so this is the way
+   back from it — not a phone-only affordance. */
 .backBtn {
-  display: none;
+  display: flex;
   align-items: center;
   gap: 0.3rem;
   background: none;
@@ -1248,15 +1269,6 @@
 @media (max-width: 1180px) {
   .mail {
     grid-template-columns: 180px minmax(0, 1fr);
-    height: auto;
-  }
-  /* The reading pane drops below rather than squeezing to nothing. */
-  .reader {
-    grid-column: 1 / -1;
-    min-height: 420px;
-  }
-  .threads {
-    max-height: 46svh;
   }
 }
 
@@ -1290,16 +1302,12 @@
   .railText em {
     display: none;
   }
-  /* One pane at a time: the reader takes over the whole width once a
-     conversation is open, and the back button brings the list back. */
+  /* The rail goes too once a conversation is open — at this width the
+     conversation wants every pixel. */
   .backBtn {
     display: flex;
   }
-  .mail[data-reading="true"] .threadList,
   .mail[data-reading="true"] .rail {
-    display: none;
-  }
-  .mail[data-reading="false"] .reader {
     display: none;
   }
   .threads {
@@ -1543,4 +1551,220 @@
   letter-spacing: 0.04em;
   color: var(--jm-teal, var(--jm-muted));
   white-space: nowrap;
+}
+
+/* ── Conventional message list ───────────────────────
+   One line per conversation — tick, star, sender, subject running into its
+   preview, date hard right — because that is the shape Gmail and Outlook use
+   and somebody arriving from either should not have to learn a new one. It
+   also fits roughly three times as many conversations on a screen as a
+   stacked card does.
+   ─────────────────────────────────────────────────── */
+
+.row2 {
+  /* Held as a variable so the hover actions can paint the same colour and
+     properly cover the date they sit on top of. */
+  --row-bg: var(--jm-bg);
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 0.6rem 0 0.5rem;
+  min-height: 40px;
+  border-bottom: 1px solid var(--jm-border);
+  background: var(--row-bg);
+  transition: background 0.15s ease;
+}
+
+.row2:hover {
+  background: var(--jm-hover-wash);
+}
+
+/* Unread is the one thing that must read at a glance. */
+.row2Unread {
+  --row-bg: var(--jm-surface);
+}
+
+.row2Unread .row2From,
+.row2Unread .row2Subject {
+  font-weight: 700;
+  color: var(--jm-white);
+}
+
+.row2Open {
+  box-shadow: inset 3px 0 0 var(--jm-copper);
+}
+
+.row2Picked {
+  background: var(--jm-hover-wash);
+}
+
+.pick {
+  flex-shrink: 0;
+  accent-color: var(--jm-copper);
+  cursor: pointer;
+}
+
+.row2Main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--jm-muted);
+}
+
+.row2From {
+  flex: 0 0 11rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--jm-white);
+}
+
+/* Subject and preview share one line and one ellipsis, so a long subject
+   simply eats the preview rather than wrapping. */
+.row2Text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row2Subject {
+  color: var(--jm-white);
+}
+
+.row2Snippet {
+  color: var(--jm-slate);
+}
+
+.row2Box {
+  flex-shrink: 0;
+  padding: 0.05rem 0.4rem;
+  border: 1px solid var(--jm-border-strong);
+  border-radius: var(--radius-pill);
+  font-size: 0.6rem;
+  color: var(--jm-slate);
+  white-space: nowrap;
+}
+
+.row2When {
+  flex: 0 0 auto;
+  min-width: 4.2rem;
+  text-align: right;
+  font-size: var(--text-xs);
+  color: var(--jm-slate);
+  white-space: nowrap;
+}
+
+/* ── Hover actions ───────────────────────────────── */
+
+.rowActions {
+  position: absolute;
+  right: 0.5rem;
+  display: none;
+  gap: 0.15rem;
+  padding-left: 1.2rem;
+  /* The wash over an opaque base: hover-wash alone is translucent, and the
+     date underneath showed straight through it. */
+  background:
+    linear-gradient(var(--jm-hover-wash), var(--jm-hover-wash)),
+    var(--row-bg);
+}
+
+.row2:hover .rowActions,
+.row2:focus-within .rowActions {
+  display: flex;
+}
+
+.rowAction {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--jm-muted);
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.rowAction:hover {
+  background: var(--jm-border-strong);
+  color: var(--jm-white);
+}
+
+/* Touch has no hover, so the actions simply stay out of the way there and
+   the reader's own buttons do the job. */
+@media (hover: none) {
+  .rowActions {
+    display: none !important;
+  }
+}
+
+/* ── Bulk toolbar ────────────────────────────────── */
+
+.bulkBar {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  padding: 0.5rem 0.6rem;
+  background: var(--jm-surface);
+  border-bottom: 1px solid var(--jm-border);
+}
+
+.bulkAll {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-right: auto;
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--jm-muted);
+  cursor: pointer;
+}
+
+.bulkAll input {
+  accent-color: var(--jm-copper);
+}
+
+.bulkBtn {
+  padding: 0.3rem 0.65rem;
+  border: 1px solid var(--jm-border-strong);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--jm-muted);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+}
+
+.bulkBtn:hover {
+  border-color: var(--jm-copper);
+  color: var(--jm-white);
+}
+
+/* On a phone the sender column and the mailbox chip are the first things to
+   go — the subject is what you are scanning for. */
+@media (max-width: 720px) {
+  .row2From {
+    flex-basis: 7rem;
+  }
+
+  .row2Box,
+  .threadBy {
+    display: none;
+  }
 }

@@ -9,6 +9,7 @@ import {
   query,
   where,
   updateDoc,
+  writeBatch,
 } from "firebase/firestore";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -331,6 +332,33 @@ export default function InboxPanel({
     }
   }
 
+  /**
+   * The same patch across every ticked thread.
+   *
+   * One batch rather than a loop of writes: a half-applied "archive these
+   * twelve" is worse than a failure, because you cannot see which six moved.
+   */
+  async function bulk(patch: Partial<HelpThread>) {
+    const ids = [...picked];
+    if (ids.length === 0) return;
+
+    setThreads(
+      (prev) =>
+        prev?.map((t) => (picked.has(t.id) ? { ...t, ...patch } : t)) ?? null,
+    );
+    setPicked(new Set());
+
+    try {
+      const db = getDb();
+      const batch = writeBatch(db);
+      for (const id of ids) batch.update(doc(db, "helpThreads", id), patch);
+      await batch.commit();
+    } catch {
+      toast("Could not apply that to all of them.", "error");
+      void load();
+    }
+  }
+
   async function send(close: boolean) {
     if (!openId || !reply.trim() || busy) return;
     setBusy(true);
@@ -373,6 +401,9 @@ export default function InboxPanel({
       setBusy(false);
     }
   }
+
+  /** Threads ticked for a bulk action. */
+  const [picked, setPicked] = useState<Set<string>>(new Set());
 
   const firstNonce = useRef(composeNonce);
   useEffect(() => {
@@ -537,6 +568,40 @@ export default function InboxPanel({
           />
         </div>
 
+        {/* Bulk toolbar. Appears only with a selection, the way Gmail's does
+            — a row of disabled buttons above an untouched list is noise. */}
+        {picked.size > 0 ? (
+          <div className={styles.bulkBar}>
+            <label className={styles.bulkAll}>
+              <input
+                type="checkbox"
+                checked={picked.size === visible.length && visible.length > 0}
+                onChange={(e) =>
+                  setPicked(
+                    e.target.checked
+                      ? new Set(visible.map((t) => t.id))
+                      : new Set(),
+                  )
+                }
+                aria-label="Select all"
+              />
+              <span>{picked.size} selected</span>
+            </label>
+            <button type="button" className={styles.bulkBtn} onClick={() => bulk({ archived: true })}>
+              Archive
+            </button>
+            <button type="button" className={styles.bulkBtn} onClick={() => bulk({ unread: false })}>
+              Mark read
+            </button>
+            <button type="button" className={styles.bulkBtn} onClick={() => bulk({ unread: true })}>
+              Mark unread
+            </button>
+            <button type="button" className={styles.bulkBtn} onClick={() => setPicked(new Set())}>
+              Cancel
+            </button>
+          </div>
+        ) : null}
+
         {threads === null ? (
           <p className={styles.mailEmpty}>Loading…</p>
         ) : visible.length === 0 ? (
@@ -551,49 +616,26 @@ export default function InboxPanel({
         ) : (
           <ul className={styles.threads}>
             {visible.map((thread) => (
-              <li key={thread.id}>
-                <button
-                  type="button"
-                  className={`${styles.threadRow} ${
-                    thread.unread ? styles.threadUnread : ""
-                  } ${openId === thread.id ? styles.threadOpen : ""}`}
-                  onClick={() => openThread(thread)}
-                >
-                  <span className={styles.avatar} aria-hidden="true">
-                    {initials(thread.fromName, thread.fromEmail)}
-                  </span>
-
-                  <span className={styles.threadMain}>
-                    <span className={styles.threadTop}>
-                      <span className={styles.threadFrom}>
-                        {/* In Sent, the useful name is the person it went to.
-                            The thread is keyed on the other party either way,
-                            so it is the same field — only the label changes. */}
-                        {view === "sent" ? "To " : ""}
-                        {thread.fromName || thread.fromEmail}
-                      </span>
-                      {thread.lastAuthorName ? (
-                        <span className={styles.threadBy} title={`Last reply by ${thread.lastAuthorName}`}>
-                          {thread.lastAuthorName.split(/\s+/)[0]}
-                        </span>
-                      ) : null}
-                      <span className={styles.threadWhen}>
-                        {when(thread.lastMessageAt)}
-                      </span>
-                    </span>
-                    <span className={styles.threadSubject}>
-                      {thread.subject}
-                    </span>
-                    <span className={styles.threadSnippet}>
-                      {thread.snippet}
-                    </span>
-                    {selected === ALL_MAILBOXES ? (
-                      <span className={styles.threadBox}>
-                        {mailboxOf(thread)}
-                      </span>
-                    ) : null}
-                  </span>
-                </button>
+              <li
+                key={thread.id}
+                className={`${styles.row2} ${
+                  thread.unread ? styles.row2Unread : ""
+                } ${openId === thread.id ? styles.row2Open : ""} ${
+                  picked.has(thread.id) ? styles.row2Picked : ""
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  className={styles.pick}
+                  checked={picked.has(thread.id)}
+                  onChange={(e) => {
+                    const next = new Set(picked);
+                    if (e.target.checked) next.add(thread.id);
+                    else next.delete(thread.id);
+                    setPicked(next);
+                  }}
+                  aria-label={`Select ${thread.subject}`}
+                />
 
                 <button
                   type="button"
@@ -604,6 +646,65 @@ export default function InboxPanel({
                 >
                   ★
                 </button>
+
+                {/* One line: who, then subject and preview running together,
+                    then the date hard right — the shape every mail client
+                    uses, because it fits three times as many conversations
+                    on a screen as a stacked card does. */}
+                <button
+                  type="button"
+                  className={styles.row2Main}
+                  onClick={() => openThread(thread)}
+                >
+                  <span className={styles.row2From}>
+                    {view === "sent" ? "To " : ""}
+                    {thread.fromName || thread.fromEmail}
+                  </span>
+                  <span className={styles.row2Text}>
+                    <span className={styles.row2Subject}>{thread.subject}</span>
+                    <span className={styles.row2Snippet}>
+                      {" "}
+                      — {thread.snippet}
+                    </span>
+                  </span>
+                  {selected === ALL_MAILBOXES ? (
+                    <span className={styles.row2Box}>{mailboxOf(thread)}</span>
+                  ) : null}
+                  {thread.lastAuthorName ? (
+                    <span
+                      className={styles.threadBy}
+                      title={`Last reply by ${thread.lastAuthorName}`}
+                    >
+                      {thread.lastAuthorName.split(/\s+/)[0]}
+                    </span>
+                  ) : null}
+                  <span className={styles.row2When}>
+                    {when(thread.lastMessageAt)}
+                  </span>
+                </button>
+
+                {/* Revealed on hover, hiding the date beneath — Gmail's trick,
+                    and the reason archiving a thread is one gesture. */}
+                <span className={styles.rowActions}>
+                  <button
+                    type="button"
+                    className={styles.rowAction}
+                    onClick={() => flag(thread, { archived: !thread.archived })}
+                    title={thread.archived ? "Unarchive" : "Archive"}
+                    aria-label={thread.archived ? "Unarchive" : "Archive"}
+                  >
+                    ▣
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.rowAction}
+                    onClick={() => flag(thread, { unread: !thread.unread })}
+                    title={thread.unread ? "Mark read" : "Mark unread"}
+                    aria-label={thread.unread ? "Mark read" : "Mark unread"}
+                  >
+                    {thread.unread ? "✉" : "◍"}
+                  </button>
+                </span>
               </li>
             ))}
           </ul>

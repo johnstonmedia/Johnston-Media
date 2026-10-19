@@ -22,24 +22,72 @@ export const dynamic = "force-dynamic";
  * straight into the team's inbox.
  */
 const SECRET = process.env.EMAIL_INBOUND_SECRET;
+/** The whsec_… Resend shows after creating a webhook. */
+const SIGNING_SECRET = process.env.EMAIL_INBOUND_SIGNING_SECRET;
 
+/** Either form of proof is configured. */
+function configured(): boolean {
+  return Boolean(SECRET || SIGNING_SECRET);
+}
+
+function sameString(a: string, b: string): boolean {
+  const x = Buffer.from(a);
+  const y = Buffer.from(b);
+  return x.length === y.length && timingSafeEqual(x, y);
+}
+
+/**
+ * Verifies a Svix-signed webhook, which is how Resend signs inbound mail.
+ *
+ * Svix signs `id.timestamp.body` with the webhook's secret — the base64 part
+ * of whsec_… — and sends the result base64 in a space-separated list of
+ * `v1,<signature>` entries, because a secret being rotated means two valid
+ * signatures for a while. Any one matching is enough.
+ *
+ * The timestamp is checked as well as the signature: without it a captured
+ * delivery could be replayed back at this endpoint forever.
+ */
+function verifySvix(raw: string, headers: Headers): boolean {
+  if (!SIGNING_SECRET) return false;
+
+  const id = headers.get("svix-id");
+  const timestamp = headers.get("svix-timestamp");
+  const header = headers.get("svix-signature");
+  if (!id || !timestamp || !header) return false;
+
+  const age = Math.abs(Date.now() / 1000 - Number(timestamp));
+  if (!Number.isFinite(age) || age > 300) return false;
+
+  const key = Buffer.from(SIGNING_SECRET.replace(/^whsec_/, ""), "base64");
+  const expected = createHmac("sha256", key)
+    .update(`${id}.${timestamp}.${raw}`)
+    .digest("base64");
+
+  return header
+    .split(" ")
+    .some((entry) => {
+      const [version, signature] = entry.split(",");
+      return version === "v1" && signature ? sameString(expected, signature) : false;
+    });
+}
+
+/**
+ * Two ways in, because providers differ on what they will accept.
+ *
+ * Svix signatures are the right one and need nothing in the URL — which
+ * matters, since Resend refuses a webhook endpoint carrying a query string.
+ * The ?key= form stays for forwarders that can't sign but can be pointed at
+ * an arbitrary URL.
+ */
 function authorised(request: Request, raw: string): boolean {
-  if (!SECRET) return false;
+  if (verifySvix(raw, request.headers)) return true;
 
-  const url = new URL(request.url);
-  const key = url.searchParams.get("key");
-  if (key && key === SECRET) return true;
+  if (SECRET) {
+    const key = new URL(request.url).searchParams.get("key");
+    if (key && sameString(SECRET, key)) return true;
+  }
 
-  const signature =
-    request.headers.get("x-inbound-signature") ??
-    request.headers.get("svix-signature") ??
-    "";
-  if (!signature) return false;
-
-  const expected = createHmac("sha256", SECRET).update(raw).digest("hex");
-  const a = Buffer.from(expected);
-  const b = Buffer.from(signature.replace(/^sha256=/, ""));
-  return a.length === b.length && timingSafeEqual(a, b);
+  return false;
 }
 
 /**
@@ -93,17 +141,18 @@ export async function POST(request: Request) {
   // "Not authorised", which is the same answer to two very different
   // questions — and the first one is a server misconfiguration nobody can
   // diagnose from the provider's end.
-  if (!SECRET) {
+  if (!configured()) {
     console.error(
-      "[inbound] EMAIL_INBOUND_SECRET is not set — refusing all inbound mail.",
+      "[inbound] neither EMAIL_INBOUND_SIGNING_SECRET nor EMAIL_INBOUND_SECRET " +
+        "is set — refusing all inbound mail.",
     );
     return NextResponse.json(
       {
         ok: false,
         error:
-          "This server has no EMAIL_INBOUND_SECRET set, so it refuses all " +
-          "inbound mail. Set one in the host's environment variables and " +
-          "redeploy, then use the same value as ?key= on this URL.",
+          "This server has no inbound secret set, so it refuses all inbound " +
+          "mail. Set EMAIL_INBOUND_SIGNING_SECRET to the whsec_… value the " +
+          "provider shows for this webhook, and redeploy.",
       },
       { status: 503 },
     );

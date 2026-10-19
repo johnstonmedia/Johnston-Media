@@ -220,7 +220,11 @@ export async function POST(request: Request) {
     const thread: Omit<HelpThread, "id"> = {
       subject: normalised,
       fromEmail: from.email.toLowerCase(),
-      fromName: from.name,
+      // Omitted rather than set to undefined: Firestore rejects an undefined
+      // value outright, and "bob@example.com" with no display name is the
+      // common case — so every such email crashed the webhook and never
+      // reached the inbox at all.
+      ...(from.name ? { fromName: from.name } : {}),
       mailbox,
       status: "Open",
       snippet: snippetOf(body),

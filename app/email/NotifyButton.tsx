@@ -234,6 +234,55 @@ export default function NotifyButton({
     }
   }
 
+  /**
+   * Shows a notification straight from the page, with no push service.
+   *
+   * This is the splitter. "Send a test" exercises the whole chain — server,
+   * VAPID, push service, service worker — and when nothing appears there is
+   * no way to tell a dead subscription from a browser that simply isn't
+   * allowed to show anything. This one skips every network hop: if it shows,
+   * permission and the worker are fine and the fault is in the subscription;
+   * if it doesn't, nothing else was ever going to work.
+   */
+  async function showLocal() {
+    setBusy(true);
+    setFailure(null);
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") {
+        setFailure(
+          `Notifications are "${permission}" for this site. Allow them in the ` +
+            "browser's site settings — on a phone, check the OS notification " +
+            "settings for the app too.",
+        );
+        return;
+      }
+
+      const registration = await navigator.serviceWorker.getRegistration();
+      if (!registration) {
+        setFailure(
+          "No service worker is registered on this device yet. Tick a mailbox " +
+            "and Save first — that's what registers it.",
+        );
+        return;
+      }
+
+      await registration.showNotification("Johnston Media", {
+        body: "Local test — the browser can show notifications.",
+        icon: "/icon-192.png",
+        badge: "/icon-192.png",
+        tag: "jm-local",
+      });
+      toast("Shown. If you can't see it, the block is your OS, not the site.");
+    } catch (err) {
+      setFailure(
+        err instanceof Error ? err.message : "Could not show a notification.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (supported === null) return null;
 
   return (
@@ -345,6 +394,14 @@ export default function NotifyButton({
                 disabled={busy || !supported || Boolean(keyProblem)}
               >
                 {busy ? "Saving…" : "Save"}
+              </button>
+              <button
+                type="button"
+                className="jm-btn-ghost"
+                onClick={() => void showLocal()}
+                disabled={busy || !supported}
+              >
+                Show a local one
               </button>
               <button
                 type="button"

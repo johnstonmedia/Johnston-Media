@@ -47,6 +47,13 @@ export async function POST(request: Request) {
     tag: "jm-test",
   });
 
+  // Logged unconditionally. The failure mode here is a push the server
+  // reports as sent and the device never shows, and without this the logs
+  // say nothing at all about which of those two happened.
+  console.log(
+    `[push/test] uid=${caller.uid} devices=${devices} sent=${sent} removed=${removed}`,
+  );
+
   if (devices === 0) {
     return NextResponse.json(
       {

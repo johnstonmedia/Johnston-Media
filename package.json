@@ -31,6 +31,8 @@
     "node": ">=20"
   },
   "overrides": {
-    "jose": "^5"
+    "jose": "^5",
+    "@grpc/grpc-js": "^1.14.6",
+    "uuid": "^11.1.1"
   }
 }

@@ -89,6 +89,26 @@ function snippetOf(body: string): string {
 export async function POST(request: Request) {
   const raw = await request.text();
 
+  // A blank EMAIL_INBOUND_SECRET and a wrong key both ended up as a flat
+  // "Not authorised", which is the same answer to two very different
+  // questions — and the first one is a server misconfiguration nobody can
+  // diagnose from the provider's end.
+  if (!SECRET) {
+    console.error(
+      "[inbound] EMAIL_INBOUND_SECRET is not set — refusing all inbound mail.",
+    );
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          "This server has no EMAIL_INBOUND_SECRET set, so it refuses all " +
+          "inbound mail. Set one in the host's environment variables and " +
+          "redeploy, then use the same value as ?key= on this URL.",
+      },
+      { status: 503 },
+    );
+  }
+
   if (!authorised(request, raw)) {
     return NextResponse.json(
       { ok: false, error: "Not authorised." },

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getEmailCaller } from "@/lib/emailAccess";
-import { isPushConfigured, notifyUser } from "@/lib/push";
+import { isPushConfigured, notifyUser, vapidPairMatches } from "@/lib/push";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,6 +35,25 @@ export async function POST(request: Request) {
           "The server has no VAPID keys, so it can't send a push. Check " +
           "NEXT_PUBLIC_VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY in Vercel, " +
           "then redeploy.",
+      },
+      { status: 503 },
+    );
+  }
+
+  // Checked before sending, because sending would succeed. A subscription
+  // created against one public key cannot be delivered to using a different
+  // private key — the push service accepts the request and drops it — so
+  // this is the one failure the "sent" count actively hides.
+  if (vapidPairMatches() === false) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          "The server's VAPID keys aren't a matching pair, so every push is " +
+          "accepted and delivered nowhere. Regenerate both keys together, " +
+          "update NEXT_PUBLIC_VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY in " +
+          "Vercel, redeploy, then turn notifications off and on again on " +
+          "each device.",
       },
       { status: 503 },
     );

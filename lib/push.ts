@@ -12,6 +12,8 @@
  */
 import "server-only";
 
+import { createECDH } from "node:crypto";
+
 import webpush from "web-push";
 
 import { adminDb } from "./firebaseAdmin";
@@ -26,11 +28,57 @@ export function isPushConfigured(): boolean {
   return Boolean(PUBLIC_KEY && PRIVATE_KEY);
 }
 
+/** base64 and base64url both turn up in environment variables. */
+function toBase64Url(value: string): string {
+  return value
+    .trim()
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
+
+/**
+ * Whether the configured VAPID keys are actually two halves of one pair.
+ *
+ * This is the failure that looks like nothing at all: a push service accepts
+ * a correctly-signed request for a subscription that was created against a
+ * *different* public key, reports success, and delivers to no-one. The server
+ * says "sent 1", the device shows nothing, and no log anywhere mentions keys.
+ *
+ * A P-256 public key is derivable from its private half, so the two can be
+ * checked against each other without the private key leaving this process.
+ *
+ * Returns null when there is nothing to check yet.
+ */
+export function vapidPairMatches(): boolean | null {
+  if (!PUBLIC_KEY || !PRIVATE_KEY) return null;
+  try {
+    const curve = createECDH("prime256v1");
+    curve.setPrivateKey(Buffer.from(PRIVATE_KEY.trim(), "base64url"));
+    return (
+      curve.getPublicKey().toString("base64url") === toBase64Url(PUBLIC_KEY)
+    );
+  } catch (err) {
+    // An unparseable private key is a mismatch as far as anybody cares.
+    console.error("[push] VAPID private key could not be read:", err);
+    return false;
+  }
+}
+
 let ready = false;
 function configure(): boolean {
   if (!isPushConfigured()) return false;
   if (!ready) {
-    webpush.setVapidDetails(SUBJECT, PUBLIC_KEY!, PRIVATE_KEY!);
+    // Said once, loudly, at the only moment anybody will be reading the logs
+    // for it. A mismatched pair still sends and still reports success.
+    if (vapidPairMatches() === false) {
+      console.error(
+        "[push] NEXT_PUBLIC_VAPID_PUBLIC_KEY is not the public half of " +
+          "VAPID_PRIVATE_KEY. Pushes will be accepted and delivered to " +
+          "nothing. Regenerate the pair and re-subscribe every device.",
+      );
+    }
+    webpush.setVapidDetails(SUBJECT, PUBLIC_KEY!.trim(), PRIVATE_KEY!.trim());
     ready = true;
   }
   return true;

@@ -5,6 +5,7 @@ import {
   doc,
   getDocs,
   limit,
+  onSnapshot,
   orderBy,
   query,
   where,
@@ -129,35 +130,63 @@ export default function InboxPanel({
 
   const canReply = atLeast(access.level, "draft");
 
-  const load = useCallback(async () => {
-    try {
-      const db = getDb();
-      // A restricted person must ask only for what they're allowed to read.
-      // Firestore evaluates the rule against every document a list returns,
-      // so an unconstrained query doesn't return a filtered list — it fails
-      // outright. The rules are the boundary; this is how you stay inside it.
-      const limitedTo = access.visibleMailboxes ?? [];
-      const restricted = limitedTo.length > 0;
+  /**
+   * Bumped by the Refresh button to re-read the mailbox rail and restart the
+   * live listener. The list keeps itself current on its own, but a button
+   * that visibly does something beats staring at a window wondering whether
+   * the silence is "no new mail" or "nothing is connected".
+   */
+  const [nonce, setNonce] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+  /** When the list last arrived, for the line next to the button. */
+  const [syncedAt, setSyncedAt] = useState<number | null>(null);
 
-      const [boxSnap, threadSnap] = await Promise.all([
-        getDocs(collection(db, "mailboxes")),
-        getDocs(
-          restricted
-            ? query(
-                collection(db, "helpThreads"),
-                // "in" takes at most 30 values, which is far more mailboxes
-                // than anyone is going to be granted.
-                where("mailbox", "in", limitedTo.slice(0, 30)),
-                orderBy("lastMessageAt", "desc"),
-                limit(300),
-              )
-            : query(
-                collection(db, "helpThreads"),
-                orderBy("lastMessageAt", "desc"),
-                limit(300),
-              ),
-        ),
-      ]);
+  /**
+   * A live listener answers from its cache in the same frame, so clearing the
+   * spinner when the data arrives would flash it for one frame and read as a
+   * button that does nothing. It spins for half a second instead.
+   */
+  const spinTimer = useRef<number | null>(null);
+  const refresh = useCallback(() => {
+    setRefreshing(true);
+    setNonce((n) => n + 1);
+    if (spinTimer.current) window.clearTimeout(spinTimer.current);
+    spinTimer.current = window.setTimeout(() => setRefreshing(false), 500);
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (spinTimer.current) window.clearTimeout(spinTimer.current);
+    },
+    [],
+  );
+
+  /**
+   * The mailboxes this person is allowed to read.
+   *
+   * A restricted person must ask only for what they're allowed to read.
+   * Firestore evaluates the rule against every document a list returns, so an
+   * unconstrained query does not come back filtered — it fails outright. The
+   * rules are the boundary; this is how you stay inside it.
+   */
+  const limitedKey = (access.visibleMailboxes ?? []).join(",");
+  const limitedTo = useMemo(
+    () => (limitedKey ? limitedKey.split(",") : []),
+    // Keyed on the joined value, not the array: a parent that rebuilds its
+    // access object each render would otherwise re-subscribe the listener —
+    // and every re-subscribe is a fresh full read of the collection.
+    [limitedKey],
+  );
+
+  /**
+   * The mailbox rail, read once.
+   *
+   * Addresses change when somebody edits the mailbox list, which is roughly
+   * never — so this is a plain fetch rather than a second live listener.
+   */
+  const loadMailboxes = useCallback(async () => {
+    try {
+      const boxSnap = await getDocs(collection(getDb(), "mailboxes"));
 
       // Configured mailboxes win; the defaults fill in so a fresh install
       // still has somewhere for mail to land.
@@ -186,9 +215,10 @@ export default function InboxPanel({
             m.ownerUid === access.uid ||
             access.seesPersonalMail === true),
       );
-      const readable = restricted
-        ? inboxes.filter((m) => limitedTo.includes(m.address))
-        : inboxes;
+      const readable =
+        limitedTo.length > 0
+          ? inboxes.filter((m) => limitedTo.includes(m.address))
+          : inboxes;
       setMailboxes(readable);
 
       // Their own address may be one they aren't allowed to read — a grant can
@@ -199,31 +229,81 @@ export default function InboxPanel({
           ? current
           : ALL_MAILBOXES,
       );
-
-      const rows = threadSnap.docs.map(
-        (d) => ({ id: d.id, ...d.data() }) as HelpThread,
-      );
-      setThreads(rows);
-      onCount(
-        rows.filter(
-          (t) =>
-            t.unread &&
-            (t.hasInbound ?? !t.hasOutbound) &&
-            !t.archived &&
-            t.status !== "Closed",
-        )
-          .length,
-      );
     } catch (err) {
-      console.error("[email] inbox failed:", err);
-      setThreads([]);
-      toast("Could not load the inbox.", "error");
+      console.error("[email] mailboxes failed:", err);
     }
-  }, [toast, onCount]);
+  }, [access.uid, access.seesPersonalMail, limitedTo]);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    void loadMailboxes();
+  }, [loadMailboxes, nonce]);
+
+  /**
+   * Callbacks held in a ref rather than in the dependency list.
+   *
+   * The listener below must not tear down and re-subscribe because a parent
+   * re-rendered and handed us a new function identity — every resubscribe is
+   * a fresh full read of the collection.
+   */
+  const onCountRef = useRef(onCount);
+  const toastRef = useRef(toast);
+  useEffect(() => {
+    onCountRef.current = onCount;
+    toastRef.current = toast;
+  }, [onCount, toast]);
+
+  /**
+   * The conversation list, live.
+   *
+   * onSnapshot rather than a single read: mail arrives while the window is
+   * open, and an inbox that only shows what existed at page load makes a
+   * delivered email look lost — which is exactly how this looked while the
+   * inbound webhook was being debugged. Firestore pushes the change, so
+   * there is nothing to poll and no cost to an idle tab.
+   */
+  useEffect(() => {
+    const db = getDb();
+    const col = collection(db, "helpThreads");
+    const wanted =
+      limitedTo.length > 0
+        ? query(
+            col,
+            // "in" takes at most 30 values, which is far more mailboxes than
+            // anyone is going to be granted.
+            where("mailbox", "in", limitedTo.slice(0, 30)),
+            orderBy("lastMessageAt", "desc"),
+            limit(300),
+          )
+        : query(col, orderBy("lastMessageAt", "desc"), limit(300));
+
+    const stop = onSnapshot(
+      wanted,
+      (snap) => {
+        const rows = snap.docs.map(
+          (d) => ({ id: d.id, ...d.data() }) as HelpThread,
+        );
+        setThreads(rows);
+        setSyncedAt(Date.now());
+        onCountRef.current(
+          rows.filter(
+            (t) =>
+              t.unread &&
+              (t.hasInbound ?? !t.hasOutbound) &&
+              !t.archived &&
+              t.status !== "Closed",
+          ).length,
+        );
+      },
+      (err) => {
+        console.error("[email] inbox failed:", err);
+        setThreads([]);
+        setRefreshing(false);
+        toastRef.current("Could not load the inbox.", "error");
+      },
+    );
+
+    return stop;
+  }, [limitedTo, nonce]);
 
   const mailboxOf = (thread: HelpThread) => thread.mailbox ?? LEGACY_MAILBOX;
 
@@ -328,7 +408,7 @@ export default function InboxPanel({
       await updateDoc(doc(getDb(), "helpThreads", thread.id), patch);
     } catch {
       toast("Could not save that.", "error");
-      void load();
+      refresh();
     }
   }
 
@@ -355,7 +435,7 @@ export default function InboxPanel({
       await batch.commit();
     } catch {
       toast("Could not apply that to all of them.", "error");
-      void load();
+      refresh();
     }
   }
 
@@ -393,7 +473,8 @@ export default function InboxPanel({
         result.emailed ? "success" : "error",
       );
       setReply("");
-      await load();
+      // The list updates itself — the listener sees the write. Only the open
+      // conversation needs re-reading, for the message that was just sent.
       if (current) void openThread(current);
     } catch {
       toast("Network error — please try again.", "error");
@@ -566,7 +647,44 @@ export default function InboxPanel({
             onChange={(e) => setSearch(e.target.value)}
             aria-label="Search mail"
           />
+          {/* The list is live, so this is a reassurance control rather than
+              the only way to see new mail: it re-reads the mailbox rail and
+              restarts the listener, and the timestamp underneath says when
+              anything last arrived. */}
+          <button
+            type="button"
+            className={styles.refreshBtn}
+            onClick={refresh}
+            disabled={refreshing}
+            title={
+              syncedAt
+                ? `Last updated ${new Date(syncedAt).toLocaleTimeString([], {
+                    hour: "numeric",
+                    minute: "2-digit",
+                  })}`
+                : "Refresh"
+            }
+            aria-label="Refresh"
+          >
+            <span
+              className={refreshing ? styles.refreshSpin : undefined}
+              aria-hidden="true"
+            >
+              ⟳
+            </span>
+          </button>
         </div>
+
+        <p className={styles.syncLine}>
+          {refreshing
+            ? "Refreshing…"
+            : syncedAt
+              ? `Live · updated ${new Date(syncedAt).toLocaleTimeString([], {
+                  hour: "numeric",
+                  minute: "2-digit",
+                })}`
+              : "Connecting…"}
+        </p>
 
         {/* Bulk toolbar. Appears only with a selection, the way Gmail's does
             — a row of disabled buttons above an untouched list is noise. */}
@@ -855,10 +973,7 @@ export default function InboxPanel({
           mailboxes={mailboxes}
           getToken={getToken}
           onClose={() => setComposing(false)}
-          onSent={() => {
-            setComposing(false);
-            void load();
-          }}
+          onSent={() => setComposing(false)}
         />
       ) : null}
     </div>

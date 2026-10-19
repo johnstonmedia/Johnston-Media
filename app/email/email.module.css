@@ -928,10 +928,14 @@
   padding: 0.6rem;
   border-bottom: 1px solid var(--jm-border);
   background: var(--jm-surface);
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
 }
 
 .search {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   padding: 0.5rem 0.85rem;
   border: 1px solid var(--jm-border-strong);
   border-radius: var(--radius-pill);
@@ -944,6 +948,70 @@
 .search:focus-visible {
   outline: 2px solid var(--jm-copper);
   outline-offset: 1px;
+}
+
+/* ── Refresh ─────────────────────────────────────
+   The list is a live listener, so this is here for the moment you are
+   waiting on an email and want to be told the window is actually connected
+   rather than quietly dead. */
+.refreshBtn {
+  flex: 0 0 auto;
+  width: 2.1rem;
+  height: 2.1rem;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--jm-border-strong);
+  border-radius: 50%;
+  background: var(--jm-input-bg);
+  color: var(--jm-muted);
+  font-size: 1.05rem;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    color 0.18s var(--ease-out),
+    border-color 0.18s var(--ease-out);
+}
+
+.refreshBtn:hover:not(:disabled) {
+  color: var(--jm-white);
+  border-color: var(--jm-copper);
+}
+
+.refreshBtn:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.refreshSpin {
+  display: inline-block;
+  animation: jmRefreshSpin 0.9s linear infinite;
+}
+
+/* Someone who has asked their system not to animate things still needs to
+   see that the button did something, so the icon dims instead of turning. */
+@media (prefers-reduced-motion: reduce) {
+  .refreshSpin {
+    animation: none;
+    opacity: 0.5;
+  }
+}
+
+@keyframes jmRefreshSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.syncLine {
+  margin: 0;
+  padding: 0.3rem 0.75rem;
+  border-bottom: 1px solid var(--jm-border);
+  background: var(--jm-surface);
+  color: var(--jm-muted);
+  font-family: var(--font-body);
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .threads {

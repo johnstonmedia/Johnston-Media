@@ -11,6 +11,17 @@ const VAPID_PUBLIC = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
 /** Which mailboxes this device wants, remembered so the UI can show it. */
 const STORE = "jm-mail-notify";
 
+/** A user-agent string is unreadable; this pulls out the part people know. */
+function deviceName(agent: string): string {
+  if (/iPhone/i.test(agent)) return "iPhone";
+  if (/iPad/i.test(agent)) return "iPad";
+  if (/Android/i.test(agent)) return "Android";
+  if (/Macintosh|Mac OS/i.test(agent)) return "Mac";
+  if (/Windows/i.test(agent)) return "Windows PC";
+  if (/Linux/i.test(agent)) return "Linux";
+  return "Unknown device";
+}
+
 /**
  * The push API wants raw bytes; VAPID keys travel as base64url.
  *
@@ -87,6 +98,11 @@ export default function NotifyButton({
   /** What is wrong with the configured VAPID key, if anything. */
   const [keyProblem, setKeyProblem] = useState<string | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
+  const [devices, setDevices] = useState<
+    { id: string; label: string; mailboxes: string[] }[] | null
+  >(null);
+  /** This browser's own device id, so its row can be marked. */
+  const [myId, setMyId] = useState<string | null>(null);
 
   useEffect(() => {
     const hasApi =
@@ -204,6 +220,69 @@ export default function NotifyButton({
     [getToken, toast],
   );
 
+  /**
+   * The id the server files this device under: sha256 of the endpoint, first
+   * 40 hex. Computed here so a row can be labelled "this device" without the
+   * server handing back endpoints, which are capability URLs.
+   */
+  const identify = useCallback(async () => {
+    try {
+      const registration = await navigator.serviceWorker.getRegistration();
+      const subscription = await registration?.pushManager.getSubscription();
+      if (!subscription) return;
+
+      const bytes = new TextEncoder().encode(subscription.endpoint);
+      const digest = await crypto.subtle.digest("SHA-256", bytes);
+      setMyId(
+        [...new Uint8Array(digest)]
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join("")
+          .slice(0, 40),
+      );
+    } catch {
+      // Only cosmetic — the list still works without the marker.
+    }
+  }, []);
+
+  const loadDevices = useCallback(async () => {
+    try {
+      const token = await getToken();
+      if (!token) return;
+      const response = await fetch("/api/email/push", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const result = await response.json();
+      if (result.ok) setDevices(result.devices);
+    } catch {
+      // A list that won't load shouldn't block subscribing.
+    }
+  }, [getToken]);
+
+  async function forget(id: string) {
+    setBusy(true);
+    try {
+      const token = await getToken();
+      if (!token) return;
+      await fetch(`/api/email/push?id=${encodeURIComponent(id)}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      // If it was this device, drop the browser subscription too, so saving
+      // again mints a fresh one rather than re-registering the dead endpoint.
+      if (id === myId) {
+        const registration = await navigator.serviceWorker.getRegistration();
+        const subscription = await registration?.pushManager.getSubscription();
+        await subscription?.unsubscribe().catch(() => {});
+        setChosen([]);
+        setMyId(null);
+      }
+      toast("Device removed.");
+      void loadDevices();
+    } finally {
+      setBusy(false);
+    }
+  }
+
   /** Proves the push chain end to end, without needing an email to arrive. */
   async function test() {
     setBusy(true);
@@ -290,7 +369,11 @@ export default function NotifyButton({
       <button
         type="button"
         className={styles.railItem}
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setOpen(true);
+          void loadDevices();
+          void identify();
+        }}
       >
         <span className={styles.railIcon} aria-hidden="true">
           ◔
@@ -353,6 +436,43 @@ export default function NotifyButton({
               Chosen per device, so your phone can buzz for the mailboxes you
               actually want without your laptop doing the same.
             </p>
+
+            {devices && devices.length > 0 ? (
+              <div className="jm-field">
+                <span className="jm-label">Subscribed devices</span>
+                <div className={styles.tickList}>
+                  {devices.map((device) => (
+                    <div key={device.id} className={styles.tick}>
+                      <span>
+                        <strong>
+                          {device.id === myId ? "This device" : deviceName(device.label)}
+                        </strong>
+                        <em>
+                          {device.mailboxes.length} mailbox
+                          {device.mailboxes.length === 1 ? "" : "es"}
+                          {device.id === myId ? "" : ` · ${deviceName(device.label)}`}
+                        </em>
+                      </span>
+                      <button
+                        type="button"
+                        className="jm-btn-ghost jm-btn-sm"
+                        style={{ marginLeft: "auto" }}
+                        onClick={() => void forget(device.id)}
+                        disabled={busy}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <p className={styles.rowMeta} style={{ marginTop: "0.5rem" }}>
+                  A push service saying &ldquo;accepted&rdquo; isn&rsquo;t a
+                  device showing anything. If one of these is a browser you no
+                  longer use, remove it — a dead subscription counts as sent
+                  and stays silent.
+                </p>
+              </div>
+            ) : null}
 
             <div className={styles.tickList}>
               {mailboxes.map((box) => (

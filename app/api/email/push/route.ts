@@ -16,6 +16,78 @@ function deviceId(endpoint: string): string {
 }
 
 /**
+ * The devices this person has subscribed, so they can be seen and cleared.
+ *
+ * A push service answering "accepted" is not the same as a device showing
+ * anything: a subscription left behind by a browser profile that no longer
+ * exists is still a row here, still counted as sent, and silent forever.
+ * Until this existed there was no way to notice that, let alone remove it.
+ *
+ * Endpoints are capability URLs — anyone holding one can push to that device
+ * — so the id goes out instead, hashed the same way the client can hash its
+ * own, which is enough to mark which row is the device you are looking at.
+ */
+export async function GET(request: Request) {
+  const caller = await getEmailCaller(request);
+  if (!caller) {
+    return NextResponse.json(
+      { ok: false, error: "Sign in to see your devices." },
+      { status: 403 },
+    );
+  }
+
+  const snap = await adminDb()
+    .collection("pushSubscriptions")
+    .where("uid", "==", caller.uid)
+    .get();
+
+  const devices = snap.docs.map((d) => {
+    const data = d.data();
+    return {
+      id: d.id,
+      label: (data.label as string) || "Unknown device",
+      mailboxes: (data.mailboxes as string[]) ?? [],
+      createdAt: (data.createdAt as string) ?? "",
+    };
+  });
+
+  return NextResponse.json({ ok: true, devices });
+}
+
+/** Removes one device by id, whichever device is asking. */
+export async function DELETE(request: Request) {
+  const caller = await getEmailCaller(request);
+  if (!caller) {
+    return NextResponse.json(
+      { ok: false, error: "Sign in to remove a device." },
+      { status: 403 },
+    );
+  }
+
+  const id = clean(new URL(request.url).searchParams.get("id"), 64);
+  if (!id) {
+    return NextResponse.json(
+      { ok: false, error: "Which device?" },
+      { status: 400 },
+    );
+  }
+
+  const ref = adminDb().collection("pushSubscriptions").doc(id);
+  const snap = await ref.get();
+
+  // Yours to remove, nobody else's.
+  if (!snap.exists || snap.data()?.uid !== caller.uid) {
+    return NextResponse.json(
+      { ok: false, error: "That isn't one of your devices." },
+      { status: 404 },
+    );
+  }
+
+  await ref.delete();
+  return NextResponse.json({ ok: true });
+}
+
+/**
  * Registers, updates or removes this device's push subscription.
  *
  * A subscription is per-device rather than per-person: your phone can buzz

@@ -410,6 +410,59 @@ start 404ing.
 
 ---
 
+## Connecting an assistant — MCP
+
+The site speaks [MCP](https://modelcontextprotocol.io) at `/api/mcp`, which
+means Claude — or any MCP client — can work the studio directly: read the
+inbox, answer an email, look up a quote, say what is waiting. It is the same
+data the mail platform shows, without a browser in the way.
+
+### What it can do
+
+| Tool | What it is for |
+| --- | --- |
+| `studio_overview` | One call for "what is happening": unread per address, conversations waiting on a reply, unanswered quote requests, live jobs. |
+| `list_mailboxes` | Every address, with its unread count. |
+| `list_threads` | Conversations, filtered by mailbox, unread, sent or archived. |
+| `read_thread` | A whole conversation, in order, with who was copied. |
+| `send_email` | A new email from a studio address, in the house shell. |
+| `reply_to_thread` | An answer that stays on the same thread in the recipient's client. |
+| `update_thread` | Read, unread, archive, star, open/waiting/done. |
+| `list_quotes` | Quote requests from the site and where each has got to. |
+| `list_projects` | Jobs in production. |
+| `list_contacts` | The mailing list, with consent state. |
+
+### Setting it up
+
+1. **Make a token.** Any long random string. In a browser console:
+   `crypto.randomUUID()` twice, joined — or anything else unguessable.
+2. **Set it in Vercel** as `MCP_TOKEN`, and redeploy. Without it the endpoint
+   refuses every request rather than serving the mailbox to the internet.
+3. **Point a client at it.** In Claude Code:
+
+   ```bash
+   claude mcp add --transport http johnston-media \
+     https://wjohnstonmedia.com/api/mcp \
+     --header "Authorization: Bearer YOUR_TOKEN"
+   ```
+
+   In a desktop client's config file, the same URL and header.
+
+### What the token is
+
+It is the mailbox. Anyone holding it can read every conversation and send
+mail as the business, because that is what the tools do — there is no
+per-person access to enforce behind a single token, and pretending otherwise
+would be worse than saying it plainly. So: it lives in the client's config
+and nowhere else, it never goes in the repository, and rotating it is one
+environment variable.
+
+There is no OAuth here on purpose. One person connecting their own site does
+not need an authorisation server, and three moving parts that can each be
+misconfigured is worse security than one that cannot.
+
+---
+
 ## Being found — search and AI answers
 
 ### Search engines

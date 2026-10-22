@@ -7,12 +7,9 @@ import {
   stripUnsubscribe,
 } from "@/lib/broadcast";
 import { canSendAs, requireEmailLevel } from "@/lib/emailAccess";
-import {
-  TEMPLATE_EXTRAS,
-  type EmailTemplate,
-  type HelpThread,
-} from "@/lib/emailTypes";
+import { TEMPLATE_EXTRAS, type EmailTemplate } from "@/lib/emailTypes";
 import { adminDb } from "@/lib/firebaseAdmin";
+import { fileOutbound } from "@/lib/mailThreads";
 import { plainShell } from "@/lib/emailSignature";
 import { SITE_URL } from "@/lib/siteUrl";
 import { clean, cleanMultiline } from "@/lib/validation";
@@ -350,66 +347,24 @@ export async function POST(request: Request) {
       // is still a conversation with each of them, and their replies arrive
       // separately — the inbound webhook keys on the sender, so this is the
       // shape their answers will come back into.
+      //
+      // Shared with every other way this site sends mail, because a thread
+      // filed even slightly differently is a reply that lands somewhere else.
       for (const person of batch) {
-        const existing = await db
-          .collection("helpThreads")
-          .where("fromEmail", "==", person)
-          .where("subject", "==", subject)
-          .where("mailbox", "==", from)
-          .limit(1)
-          .get();
-
-        let threadId: string;
-        if (existing.empty) {
-          const thread: Omit<HelpThread, "id"> = {
-            subject,
-            fromEmail: person,
-            mailbox: from,
-            status: "Waiting",
-            snippet: message.replace(/\s+/g, " ").slice(0, 180),
-            messageCount: 1,
-            unread: false,
-            hasOutbound: true,
-            lastAuthorName: caller.access.name || caller.email,
-            lastAuthorEmail: caller.email,
-            createdAt: now,
-            lastMessageAt: now,
-          };
-          threadId = (await db.collection("helpThreads").add(thread)).id;
-        } else {
-          threadId = existing.docs[0].id;
-          const current = existing.docs[0].data() as HelpThread;
-          await existing.docs[0].ref.update({
-            status: "Waiting",
-            snippet: message.replace(/\s+/g, " ").slice(0, 180),
-            messageCount: (current.messageCount ?? 0) + 1,
-            hasOutbound: true,
-            lastAuthorName: caller.access.name || caller.email,
-            lastAuthorEmail: caller.email,
-            lastMessageAt: now,
-          });
-        }
-
-        await db
-          .collection("helpThreads")
-          .doc(threadId)
-          .collection("messages")
-          .add({
-            direction: "out",
-            fromEmail: from,
-            toEmail: person,
-            body: message,
-            // The email as it actually went out, signature and all. Reading
-            // your own sent mail should show what the other person is
-            // looking at, not a transcript of the box you typed in.
-            html,
-            ...(copied.length ? { cc: copied } : {}),
-            // Only ever on a thread the sender can see, which is the whole
-            // point of a blind copy.
-            ...(bcc.length ? { bcc } : {}),
-            authorEmail: caller.email,
-            createdAt: now,
-          });
+        await fileOutbound(db, {
+          from,
+          to: person,
+          subject,
+          message,
+          // The email as it actually went out, signature and all. Reading
+          // your own sent mail should show what the other person is looking
+          // at, not a transcript of the box you typed in.
+          html,
+          cc: copied,
+          bcc,
+          authorEmail: caller.email,
+          authorName: caller.access.name || caller.email,
+        });
       }
     } catch (err) {
       console.error("[compose] could not file the thread:", err);

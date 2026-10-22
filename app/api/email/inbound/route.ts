@@ -25,8 +25,17 @@ export const dynamic = "force-dynamic";
 const SECRET = process.env.EMAIL_INBOUND_SECRET;
 /** The whsec_… Resend shows after creating a webhook. */
 const SIGNING_SECRET = process.env.EMAIL_INBOUND_SIGNING_SECRET;
-/** Needed to fetch the message itself — see fetchContent below. */
-const RESEND_KEY = process.env.RESEND_API_KEY;
+/**
+ * The key used to fetch the message itself — see fetchContent below.
+ *
+ * Its own variable, falling back to the sending key. Reading received mail
+ * needs a full-access key, and the key this site sends with is restricted to
+ * sending: that restriction is worth keeping, because a sending key that
+ * leaks can send mail as the business, while a full-access one can also read
+ * every message it has ever received. So the powerful key is set separately
+ * and used by this one route.
+ */
+const RESEND_KEY = process.env.RESEND_INBOUND_KEY || process.env.RESEND_API_KEY;
 
 /**
  * A mail client's HTML runs to kilobytes; a marketing one runs to hundreds.
@@ -188,10 +197,17 @@ async function fetchContent(
       if (response.status === 404) continue;
 
       if (!response.ok) {
-        console.error(
-          `[inbound] could not fetch ${emailId}: ${response.status} ` +
-            (await response.text()).slice(0, 200),
-        );
+        const detail = (await response.text()).slice(0, 200);
+        console.error(`[inbound] could not fetch ${emailId}: ${response.status} ${detail}`);
+        // Worth naming, because the symptom is an inbox full of empty
+        // messages and the cause is one word in a dashboard.
+        if (response.status === 401 || response.status === 403) {
+          console.error(
+            "[inbound] that key cannot read received mail. Create a " +
+              "full-access key in Resend and set it as RESEND_INBOUND_KEY " +
+              "in Vercel — the sending key can stay restricted.",
+          );
+        }
         return null;
       }
 

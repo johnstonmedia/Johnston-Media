@@ -28,6 +28,7 @@ import {
 } from "@/lib/emailTypes";
 
 import ComposeModal from "./ComposeModal";
+import MessageBody from "./MessageBody";
 import styles from "./email.module.css";
 
 /** Threads recorded before mailboxes existed all came from help@. */
@@ -49,6 +50,14 @@ const VIEWS: { id: View; label: string; icon: string }[] = [
  */
 function received(t: HelpThread): boolean {
   return t.hasInbound ?? !t.hasOutbound;
+}
+
+/** Commas, semicolons, spaces or newlines — whichever they typed or pasted. */
+function addresses(value: string): string[] {
+  return value
+    .split(/[,;\s]+/)
+    .map((entry) => entry.trim())
+    .filter(Boolean);
 }
 
 function initials(name: string | undefined, email: string): string {
@@ -123,6 +132,10 @@ export default function InboxPanel({
   const [openId, setOpenId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [reply, setReply] = useState("");
+  /** Copies on a reply. Hidden until asked for, as in any mail client. */
+  const [replyCc, setReplyCc] = useState("");
+  const [replyBcc, setReplyBcc] = useState("");
+  const [showReplyCopies, setShowReplyCopies] = useState(false);
   const [busy, setBusy] = useState(false);
   const [composing, setComposing] = useState(openCompose);
   /** So a linked thread only auto-opens once, not on every reload of the list. */
@@ -366,6 +379,9 @@ export default function InboxPanel({
     }
     setMessages(null);
     setReply("");
+    setReplyCc("");
+    setReplyBcc("");
+    setShowReplyCopies(false);
     try {
       const snap = await getDocs(
         query(
@@ -455,7 +471,13 @@ export default function InboxPanel({
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ threadId: openId, message: reply, close }),
+        body: JSON.stringify({
+          threadId: openId,
+          message: reply,
+          close,
+          cc: addresses(replyCc),
+          bcc: addresses(replyBcc),
+        }),
       });
       const result = await response.json();
 
@@ -473,6 +495,8 @@ export default function InboxPanel({
         result.emailed ? "success" : "error",
       );
       setReply("");
+      setReplyCc("");
+      setReplyBcc("");
       // The list updates itself — the listener sees the write. Only the open
       // conversation needs re-reading, for the message that was just sent.
       if (current) void openThread(current);
@@ -921,7 +945,17 @@ export default function InboxPanel({
                         </em>
                       </span>
                     </div>
-                    <div className={styles.mailMsgBody}>{message.body}</div>
+                    {message.cc?.length ? (
+                      <p className={styles.mailMsgCc}>
+                        cc {message.cc.join(", ")}
+                      </p>
+                    ) : null}
+                    {message.bcc?.length ? (
+                      <p className={styles.mailMsgCc}>
+                        bcc {message.bcc.join(", ")}
+                      </p>
+                    ) : null}
+                    <MessageBody html={message.html} text={message.body} />
                   </article>
                 ))
               )}
@@ -929,6 +963,24 @@ export default function InboxPanel({
 
             {canReply ? (
               <footer className={styles.composeBar}>
+                {showReplyCopies ? (
+                  <div className={styles.replyCopies}>
+                    <input
+                      className={styles.composeBox}
+                      value={replyCc}
+                      placeholder="Cc — everyone on the reply can see these"
+                      onChange={(e) => setReplyCc(e.target.value)}
+                      aria-label="Cc"
+                    />
+                    <input
+                      className={styles.composeBox}
+                      value={replyBcc}
+                      placeholder="Bcc — nobody on the reply can see these"
+                      onChange={(e) => setReplyBcc(e.target.value)}
+                      aria-label="Bcc"
+                    />
+                  </div>
+                ) : null}
                 <textarea
                   className={styles.composeBox}
                   rows={3}
@@ -953,6 +1005,15 @@ export default function InboxPanel({
                   >
                     Send &amp; done
                   </button>
+                  {!showReplyCopies ? (
+                    <button
+                      type="button"
+                      className={styles.ccToggle}
+                      onClick={() => setShowReplyCopies(true)}
+                    >
+                      Cc / Bcc
+                    </button>
+                  ) : null}
                 </div>
               </footer>
             ) : (

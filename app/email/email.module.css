@@ -1284,6 +1284,71 @@
   word-break: break-word;
 }
 
+/* To, with Cc and Bcc as words on the end of the line rather than two
+   permanently empty boxes above the subject. */
+.toRow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.toRow input {
+  flex: 1;
+  min-width: 0;
+}
+
+.ccToggle {
+  flex: 0 0 auto;
+  padding: 0.35rem 0.5rem;
+  border: 0;
+  background: none;
+  color: var(--jm-slate);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.ccToggle:hover {
+  color: var(--jm-copper);
+}
+
+.ccNote {
+  margin: -0.35rem 0 0;
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: var(--jm-slate);
+}
+
+.replyCopies {
+  display: grid;
+  gap: 0.4rem;
+  margin-bottom: 0.4rem;
+}
+
+/* Copies, under the sender's name. Quiet: it matters who else is on the
+   message, but not as much as the message. */
+.mailMsgCc {
+  margin: 0;
+  padding: 0.35rem var(--space-md) 0;
+  font-family: var(--font-body);
+  font-size: 0.68rem;
+  color: var(--jm-slate);
+  word-break: break-word;
+}
+
+/* The frame an email's own HTML is rendered in. White because that is what
+   the sender wrote against; the border keeps it reading as a quoted document
+   inside the platform rather than as part of it. */
+.mailFrame {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: #ffffff;
+  color-scheme: light;
+}
+
 .composeBar {
   border-top: 1px solid var(--jm-border);
   padding: var(--space-md);

@@ -461,7 +461,24 @@ export interface HelpMessage {
   direction: "in" | "out";
   fromEmail: string;
   fromName?: string;
+  /** Plain text. What the preview, the search box and notifications read. */
   body: string;
+  /**
+   * The message as it was actually written, cleaned to an allowlist on the
+   * way in. Shown in preference to the text when it exists, because a reply
+   * with a signature and a logo in it should read as the sender sent it.
+   */
+  html?: string;
+  /** Which of our addresses it came to. */
+  toEmail?: string;
+  /** Carbon copies — visible to everyone on the message. */
+  cc?: string[];
+  /**
+   * Blind copies. Only ever set on mail this platform sent, and only visible
+   * to the people who can see the mailbox it went from: that is the whole
+   * point of a blind copy.
+   */
+  bcc?: string[];
   /** Set on replies — who sent it. */
   authorEmail?: string;
   createdAt: string;

@@ -2,7 +2,7 @@
   "name": "johnston-media",
   "version": "2.0.0",
   "private": true,
-  "description": "Johnston Media \u2014 cinematic photography, videography, aerial media and web development. Your Vision. My Lens.",
+  "description": "Johnston Media — cinematic photography, videography, aerial media and web development. Your Vision. My Lens.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@types/sanitize-html": "^2.16.2",
     "@types/web-push": "^3.6.4",
     "firebase": "^11.1.0",
     "firebase-admin": "^14.4.0",
@@ -18,6 +19,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "resend": "^4.1.1",
+    "sanitize-html": "^2.18.1",
     "server-only": "^0.0.1",
     "web-push": "^3.6.7"
   },

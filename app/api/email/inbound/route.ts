@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 import type { HelpThread } from "@/lib/emailTypes";
 import { adminDb } from "@/lib/firebaseAdmin";
 import { notifyMailbox } from "@/lib/push";
+import { cleanEmailHtml, htmlToText } from "@/lib/sanitizeEmail";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,6 +25,16 @@ export const dynamic = "force-dynamic";
 const SECRET = process.env.EMAIL_INBOUND_SECRET;
 /** The whsec_… Resend shows after creating a webhook. */
 const SIGNING_SECRET = process.env.EMAIL_INBOUND_SIGNING_SECRET;
+/** Needed to fetch the message itself — see fetchContent below. */
+const RESEND_KEY = process.env.RESEND_API_KEY;
+
+/**
+ * A mail client's HTML runs to kilobytes; a marketing one runs to hundreds.
+ * A Firestore document is capped at a megabyte, so a newsletter with its
+ * images inlined could fail the write and lose the message entirely. Better
+ * a long email that ends early than no email at all.
+ */
+const MAX_HTML = 400_000;
 
 /** Either form of proof is configured. */
 function configured(): boolean {
@@ -119,6 +130,96 @@ function pick(payload: Record<string, unknown>, ...keys: string[]): string {
   return "";
 }
 
+/** Every value of a field that may be a list — cc, to, and so on. */
+function pickList(payload: Record<string, unknown>, ...keys: string[]): string[] {
+  for (const key of keys) {
+    const value = key.split(".").reduce<unknown>(
+      (acc, part) =>
+        acc && typeof acc === "object"
+          ? (acc as Record<string, unknown>)[part]
+          : undefined,
+      payload,
+    );
+    if (Array.isArray(value)) {
+      const list = value.filter(
+        (entry): entry is string => typeof entry === "string" && Boolean(entry.trim()),
+      );
+      if (list.length) return list.map((entry) => entry.trim());
+    }
+    if (typeof value === "string" && value.trim()) {
+      return value.split(",").map((entry) => entry.trim()).filter(Boolean);
+    }
+  }
+  return [];
+}
+
+/**
+ * Fetches the message itself, because the webhook does not carry it.
+ *
+ * Resend's email.received payload is metadata only — from, to, subject,
+ * cc, attachments and an email_id. No text, no html. Reading the body out of
+ * the webhook therefore always came back empty, which is why every message
+ * in the inbox read "(empty message)" however well it had arrived.
+ *
+ * Returns null rather than throwing. A message whose body could not be
+ * fetched is still a message that arrived, and the webhook must not fail —
+ * the provider would retry it, and the thread would be filed twice.
+ */
+async function fetchContent(
+  emailId: string,
+): Promise<{ text: string; html: string } | null> {
+  if (!RESEND_KEY || !emailId) return null;
+
+  const id = encodeURIComponent(emailId);
+  // Receiving is newer than the rest of the API and has moved once already.
+  // Trying the second name costs one request on a 404 and saves a silent
+  // inbox full of empty messages if it moves again.
+  const paths = [
+    `https://api.resend.com/emails/receiving/${id}`,
+    `https://api.resend.com/emails/received/${id}`,
+  ];
+
+  for (const url of paths) {
+    try {
+      const response = await fetch(url, {
+        headers: { Authorization: `Bearer ${RESEND_KEY}` },
+      });
+
+      if (response.status === 404) continue;
+
+      if (!response.ok) {
+        console.error(
+          `[inbound] could not fetch ${emailId}: ${response.status} ` +
+            (await response.text()).slice(0, 200),
+        );
+        return null;
+      }
+
+      const parsed = (await response.json()) as Record<string, unknown>;
+      // Wrapped in "data" on some endpoints and bare on others; take
+      // whichever of the two actually has the fields.
+      const inner =
+        parsed.data && typeof parsed.data === "object"
+          ? (parsed.data as Record<string, unknown>)
+          : parsed;
+
+      return {
+        text: typeof inner.text === "string" ? inner.text : "",
+        html: typeof inner.html === "string" ? inner.html : "",
+      };
+    } catch (err) {
+      console.error(`[inbound] could not fetch ${emailId}:`, err);
+      return null;
+    }
+  }
+
+  console.error(
+    `[inbound] no content endpoint accepted ${emailId} — the message was ` +
+      "filed without a body.",
+  );
+  return null;
+}
+
 /** "Jane Doe <jane@example.com>" → { name, email } */
 function parseAddress(raw: string): { name?: string; email: string } {
   const match = raw.match(/^\s*(.*?)\s*<([^>]+)>\s*$/);
@@ -185,9 +286,30 @@ export async function POST(request: Request) {
     "help@wjohnstonmedia.com";
   const subject =
     pick(payload, "data.subject", "subject") || "(no subject)";
-  const body =
-    pick(payload, "data.text", "text", "plain", "body-plain", "data.html", "html") ||
-    "(empty message)";
+  const cc = pickList(payload, "data.cc", "cc");
+
+  // Some providers put the message in the webhook; Resend does not, and
+  // hands over an id to fetch it with instead. Try the payload first so this
+  // keeps working for a forwarder that does include it.
+  let text = pick(payload, "data.text", "text", "plain", "body-plain");
+  let rawHtml = pick(payload, "data.html", "html");
+
+  if (!text && !rawHtml) {
+    const fetched = await fetchContent(
+      pick(payload, "data.email_id", "email_id", "data.id"),
+    );
+    if (fetched) {
+      text = fetched.text;
+      rawHtml = fetched.html;
+    }
+  }
+
+  // Stored already cleaned, so nothing dangerous is ever in the database and
+  // the reading pane has one less thing to get right.
+  const html = cleanEmailHtml(rawHtml).slice(0, MAX_HTML);
+  // The text part is what the preview, the search box and the notification
+  // read, so an HTML-only email needs one made for it.
+  const body = text || htmlToText(html) || "(empty message)";
 
   if (!fromRaw) {
     return NextResponse.json(
@@ -262,6 +384,10 @@ export async function POST(request: Request) {
       fromName: from.name ?? null,
       toEmail: mailbox,
       body,
+      // Kept alongside the text rather than instead of it: the HTML is how
+      // the message is meant to look, the text is what everything else reads.
+      ...(html ? { html } : {}),
+      ...(cc.length ? { cc } : {}),
       createdAt: now,
     });
 

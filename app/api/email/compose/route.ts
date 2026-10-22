@@ -126,19 +126,38 @@ export async function POST(request: Request) {
     );
   }
 
-  // Recipients.
-  const rawTo = Array.isArray(body.to) ? body.to : [body.to];
-  const to: string[] = [];
-  for (const entry of rawTo) {
-    const address = clean(entry, 200).toLowerCase();
-    if (!address) continue;
-    if (!EMAIL_RE.test(address)) {
-      return NextResponse.json(
-        { ok: false, error: `"${address}" isn't a valid email address.` },
-        { status: 400 },
-      );
+  // Recipients. Each list is cleaned the same way and checked the same way:
+  // a typo in Bcc is as much a failed send as a typo in To, and finding that
+  // out from the provider's error message is finding it out too late.
+  let bad = "";
+  const addresses = (value: unknown): string[] => {
+    const raw = Array.isArray(value) ? value : [value];
+    const list: string[] = [];
+    for (const entry of raw) {
+      const address = clean(entry, 200).toLowerCase();
+      if (!address) continue;
+      if (!EMAIL_RE.test(address)) {
+        bad = bad || address;
+        continue;
+      }
+      if (!list.includes(address)) list.push(address);
     }
-    if (!to.includes(address)) to.push(address);
+    return list;
+  };
+
+  const to = addresses(body.to);
+  const cc = addresses(body.cc);
+  // Someone already in To does not also need a copy, and would get two.
+  const bcc = addresses(body.bcc).filter(
+    (address) => !to.includes(address) && !cc.includes(address),
+  );
+  const copied = cc.filter((address) => !to.includes(address));
+
+  if (bad) {
+    return NextResponse.json(
+      { ok: false, error: `"${bad}" isn't a valid email address.` },
+      { status: 400 },
+    );
   }
 
   if (to.length === 0) {
@@ -147,11 +166,13 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
-  if (to.length > MAX_RECIPIENTS) {
+
+  const total = to.length + copied.length + bcc.length;
+  if (total > MAX_RECIPIENTS) {
     return NextResponse.json(
       {
         ok: false,
-        error: `That's ${to.length} recipients. Anything past ${MAX_RECIPIENTS} should be a campaign, so the unsubscribe rules apply.`,
+        error: `That's ${total} recipients. Anything past ${MAX_RECIPIENTS} should be a campaign, so the unsubscribe rules apply.`,
       },
       { status: 400 },
     );
@@ -198,9 +219,28 @@ export async function POST(request: Request) {
   // A template supplies the paragraph; a bare email has to make its own.
   const bodyHtml = template ? breaks(message) : paragraphs(message);
   const now = new Date().toISOString();
-  const results: { to: string; ok: boolean; error?: string }[] = [];
+  const results: {
+    to: string;
+    ok: boolean;
+    error?: string;
+    count?: number;
+  }[] = [];
 
-  for (const recipient of to) {
+  /**
+   * One message, or one each.
+   *
+   * Two people in To with no copies get a message each, so neither learns
+   * the other was written to — which is the right default for a studio
+   * mailing two clients the same thing. The moment a copy is added that
+   * stops being true by definition: a Cc is there to be seen, so everyone
+   * goes on one message and can see each other, exactly as in any mail
+   * client.
+   */
+  const shared = copied.length > 0 || bcc.length > 0;
+  const batches = shared ? [to] : to.map((address) => [address]);
+
+  for (const batch of batches) {
+    const recipient = batch[0];
     const values: Record<string, string> = {
       // "Hi wjohnston.media," is what guessing a name from an address gets
       // you. If the sender didn't give one, the templates greet with "there",
@@ -254,7 +294,11 @@ export async function POST(request: Request) {
     );
 
     if (!KEY) {
-      results.push({ to: recipient, ok: false, error: "RESEND_API_KEY is not set." });
+      results.push({
+        to: batch.join(", "),
+        ok: false,
+        error: "RESEND_API_KEY is not set.",
+      });
       continue;
     }
 
@@ -267,7 +311,9 @@ export async function POST(request: Request) {
         },
         body: JSON.stringify({
           from: `${fromName} <${from}>`,
-          to: [recipient],
+          to: batch,
+          ...(copied.length ? { cc: copied } : {}),
+          ...(bcc.length ? { bcc } : {}),
           subject,
           reply_to: from,
           html,
@@ -277,16 +323,16 @@ export async function POST(request: Request) {
 
       if (!response.ok) {
         results.push({
-          to: recipient,
+          to: batch.join(", "),
           ok: false,
           error: (await response.text()).slice(0, 200),
         });
         continue;
       }
-      results.push({ to: recipient, ok: true });
+      results.push({ to: batch.join(", "), ok: true, count: batch.length });
     } catch (err) {
       results.push({
-        to: recipient,
+        to: batch.join(", "),
         ok: false,
         error: err instanceof Error ? err.message : "network error",
       });
@@ -300,62 +346,81 @@ export async function POST(request: Request) {
     // webhook matches on — so their reply lands on this thread rather than
     // starting a second one.
     try {
-      const existing = await db
-        .collection("helpThreads")
-        .where("fromEmail", "==", recipient)
-        .where("subject", "==", subject)
-        .where("mailbox", "==", from)
-        .limit(1)
-        .get();
+      // One thread per person in To. A copied message is one email, but it
+      // is still a conversation with each of them, and their replies arrive
+      // separately — the inbound webhook keys on the sender, so this is the
+      // shape their answers will come back into.
+      for (const person of batch) {
+        const existing = await db
+          .collection("helpThreads")
+          .where("fromEmail", "==", person)
+          .where("subject", "==", subject)
+          .where("mailbox", "==", from)
+          .limit(1)
+          .get();
 
-      let threadId: string;
-      if (existing.empty) {
-        const thread: Omit<HelpThread, "id"> = {
-          subject,
-          fromEmail: recipient,
-          mailbox: from,
-          status: "Waiting",
-          snippet: message.replace(/\s+/g, " ").slice(0, 180),
-          messageCount: 1,
-          unread: false,
-          hasOutbound: true,
-          lastAuthorName: caller.access.name || caller.email,
-          lastAuthorEmail: caller.email,
-          createdAt: now,
-          lastMessageAt: now,
-        };
-        threadId = (await db.collection("helpThreads").add(thread)).id;
-      } else {
-        threadId = existing.docs[0].id;
-        const current = existing.docs[0].data() as HelpThread;
-        await existing.docs[0].ref.update({
-          status: "Waiting",
-          snippet: message.replace(/\s+/g, " ").slice(0, 180),
-          messageCount: (current.messageCount ?? 0) + 1,
-          hasOutbound: true,
-          lastAuthorName: caller.access.name || caller.email,
-          lastAuthorEmail: caller.email,
-          lastMessageAt: now,
-        });
+        let threadId: string;
+        if (existing.empty) {
+          const thread: Omit<HelpThread, "id"> = {
+            subject,
+            fromEmail: person,
+            mailbox: from,
+            status: "Waiting",
+            snippet: message.replace(/\s+/g, " ").slice(0, 180),
+            messageCount: 1,
+            unread: false,
+            hasOutbound: true,
+            lastAuthorName: caller.access.name || caller.email,
+            lastAuthorEmail: caller.email,
+            createdAt: now,
+            lastMessageAt: now,
+          };
+          threadId = (await db.collection("helpThreads").add(thread)).id;
+        } else {
+          threadId = existing.docs[0].id;
+          const current = existing.docs[0].data() as HelpThread;
+          await existing.docs[0].ref.update({
+            status: "Waiting",
+            snippet: message.replace(/\s+/g, " ").slice(0, 180),
+            messageCount: (current.messageCount ?? 0) + 1,
+            hasOutbound: true,
+            lastAuthorName: caller.access.name || caller.email,
+            lastAuthorEmail: caller.email,
+            lastMessageAt: now,
+          });
+        }
+
+        await db
+          .collection("helpThreads")
+          .doc(threadId)
+          .collection("messages")
+          .add({
+            direction: "out",
+            fromEmail: from,
+            toEmail: person,
+            body: message,
+            // The email as it actually went out, signature and all. Reading
+            // your own sent mail should show what the other person is
+            // looking at, not a transcript of the box you typed in.
+            html,
+            ...(copied.length ? { cc: copied } : {}),
+            // Only ever on a thread the sender can see, which is the whole
+            // point of a blind copy.
+            ...(bcc.length ? { bcc } : {}),
+            authorEmail: caller.email,
+            createdAt: now,
+          });
       }
-
-      await db
-        .collection("helpThreads")
-        .doc(threadId)
-        .collection("messages")
-        .add({
-          direction: "out",
-          fromEmail: from,
-          body: message,
-          authorEmail: caller.email,
-          createdAt: now,
-        });
     } catch (err) {
       console.error("[compose] could not file the thread:", err);
     }
   }
 
-  const sent = results.filter((r) => r.ok).length;
+  // People, not messages: one copied email to three recipients is "sent to
+  // 3", because that is what the person who pressed send did.
+  const sent = results
+    .filter((r) => r.ok)
+    .reduce((count, r) => count + (r.count ?? 1), 0);
   const errors = results.filter((r) => !r.ok).map((r) => `${r.to}: ${r.error}`);
 
   if (sent === 0) {
@@ -366,7 +431,7 @@ export async function POST(request: Request) {
     {
       ok: sent > 0,
       sent,
-      failed: results.length - sent,
+      failed: results.filter((r) => !r.ok).length,
       errors,
       // The provider's own words. Sending is the one place where a vague
       // "it didn't work" costs an afternoon — an unverified domain and a

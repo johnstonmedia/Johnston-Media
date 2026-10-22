@@ -15,6 +15,14 @@ import {
 
 import styles from "./email.module.css";
 
+/** Commas, spaces or newlines — whichever they typed or pasted. */
+function addresses(value: string): string[] {
+  return value
+    .split(/[,;\s]+/)
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
 interface ComposeModalProps {
   access: EmailAccess;
   mailboxes: Mailbox[];
@@ -58,6 +66,15 @@ export default function ComposeModal({
       : (allowed[0] ?? ""),
   );
   const [to, setTo] = useState(initialTo);
+  const [cc, setCc] = useState("");
+  const [bcc, setBcc] = useState("");
+  /**
+   * Hidden until asked for, the way every mail client does it. Most mail is
+   * to one person, and two empty fields above the subject line on every
+   * email is two more things to read past.
+   */
+  const [showCc, setShowCc] = useState(false);
+  const [showBcc, setShowBcc] = useState(false);
   const [subject, setSubject] = useState(initialSubject);
   /** Used for the greeting. Without it templates say "Hi there". */
   const [recipientName, setRecipientName] = useState("");
@@ -133,7 +150,9 @@ export default function ComposeModal({
         body: JSON.stringify({
           from,
           // Commas or spaces, whichever they typed.
-          to: to.split(/[,\s]+/).map((a) => a.trim()).filter(Boolean),
+          to: addresses(to),
+          cc: addresses(cc),
+          bcc: addresses(bcc),
           subject,
           recipientName,
           message,
@@ -325,14 +344,77 @@ export default function ComposeModal({
           <label className="jm-label" htmlFor="co-to">
             To
           </label>
-          <input
-            id="co-to"
-            className="jm-input"
-            value={to}
-            placeholder="someone@example.com — or several, separated by commas"
-            onChange={(e) => setTo(e.target.value)}
-          />
+          <div className={styles.toRow}>
+            <input
+              id="co-to"
+              className="jm-input"
+              value={to}
+              placeholder="someone@example.com — or several, separated by commas"
+              onChange={(e) => setTo(e.target.value)}
+            />
+            {/* Where Gmail and Outlook both put them: at the end of the To
+                line, as two words you click rather than two empty boxes. */}
+            {!showCc ? (
+              <button
+                type="button"
+                className={styles.ccToggle}
+                onClick={() => setShowCc(true)}
+              >
+                Cc
+              </button>
+            ) : null}
+            {!showBcc ? (
+              <button
+                type="button"
+                className={styles.ccToggle}
+                onClick={() => setShowBcc(true)}
+              >
+                Bcc
+              </button>
+            ) : null}
+          </div>
         </div>
+
+        {showCc ? (
+          <div className="jm-field">
+            <label className="jm-label" htmlFor="co-cc">
+              Cc
+            </label>
+            <input
+              id="co-cc"
+              className="jm-input"
+              value={cc}
+              placeholder="Everyone on the message can see these"
+              onChange={(e) => setCc(e.target.value)}
+            />
+          </div>
+        ) : null}
+
+        {showBcc ? (
+          <div className="jm-field">
+            <label className="jm-label" htmlFor="co-bcc">
+              Bcc
+            </label>
+            <input
+              id="co-bcc"
+              className="jm-input"
+              value={bcc}
+              placeholder="Nobody on the message can see these"
+              onChange={(e) => setBcc(e.target.value)}
+            />
+          </div>
+        ) : null}
+
+        {/* Said once, at the point it changes what happens. Without a copy
+            each recipient gets their own message and cannot see the others;
+            with one they are all on the same thread, which is what a copy
+            means. */}
+        {cc.trim() || bcc.trim() ? (
+          <p className={styles.ccNote}>
+            With a copy on it, everyone in To is on one message and can see
+            each other. Without one, each person gets their own.
+          </p>
+        ) : null}
 
         <div className="jm-field">
           <label className="jm-label" htmlFor="co-name">

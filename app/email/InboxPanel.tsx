@@ -22,6 +22,7 @@ import {
   atLeast,
   DEFAULT_MAILBOXES,
   type EmailAccess,
+  type EmailDraft,
   type HelpMessage,
   type HelpThread,
   type Mailbox,
@@ -29,16 +30,25 @@ import {
 
 import ComposeModal from "./ComposeModal";
 import MessageBody from "./MessageBody";
+import ReplyBox, { type ReplyPayload } from "./ReplyBox";
+import { deleteDraft, loadDrafts } from "./useAutosave";
 import styles from "./email.module.css";
 
 /** Threads recorded before mailboxes existed all came from help@. */
 const LEGACY_MAILBOX = "help@wjohnstonmedia.com";
 
-type View = "inbox" | "sent" | "starred" | "archived" | "closed";
+type View =
+  | "inbox"
+  | "sent"
+  | "drafts"
+  | "starred"
+  | "archived"
+  | "closed";
 
 const VIEWS: { id: View; label: string; icon: string }[] = [
   { id: "inbox", label: "Inbox", icon: "▤" },
   { id: "sent", label: "Sent", icon: "➤" },
+  { id: "drafts", label: "Drafts", icon: "✎" },
   { id: "starred", label: "Starred", icon: "★" },
   { id: "archived", label: "Archived", icon: "▣" },
   { id: "closed", label: "Done", icon: "✓" },
@@ -131,11 +141,16 @@ export default function InboxPanel({
   const [view, setView] = useState<View>("inbox");
   const [openId, setOpenId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [reply, setReply] = useState("");
-  /** Copies on a reply. Hidden until asked for, as in any mail client. */
-  const [replyCc, setReplyCc] = useState("");
-  const [replyBcc, setReplyBcc] = useState("");
-  const [showReplyCopies, setShowReplyCopies] = useState(false);
+  /**
+   * Everything half-written, this person's own.
+   *
+   * Held here rather than fetched per screen so the count on the rail is
+   * right the moment something is saved, and so opening a conversation can
+   * put back what was being typed in it without another round trip.
+   */
+  const [drafts, setDrafts] = useState<EmailDraft[]>([]);
+  /** The draft the composer was opened on, if it was opened on one. */
+  const [openDraft, setOpenDraft] = useState<EmailDraft | null>(null);
   const [busy, setBusy] = useState(false);
   const [composing, setComposing] = useState(openCompose);
   /** So a linked thread only auto-opens once, not on every reload of the list. */
@@ -172,6 +187,40 @@ export default function InboxPanel({
       if (spinTimer.current) window.clearTimeout(spinTimer.current);
     },
     [],
+  );
+
+  /**
+   * Re-reads this person's drafts.
+   *
+   * Through the API rather than a live listener: a draft is written by the
+   * same browser that would be listening to it, so there is nothing to find
+   * out from the server that is not already on screen. It is re-read after
+   * sending, after closing the composer, and on a refresh.
+   */
+  const refreshDrafts = useCallback(async () => {
+    try {
+      setDrafts(await loadDrafts(getToken));
+    } catch {
+      // A drafts list that will not load must not take the inbox with it.
+    }
+  }, [getToken]);
+
+  useEffect(() => {
+    void refreshDrafts();
+  }, [refreshDrafts, nonce]);
+
+  /** Thrown away on purpose. */
+  const removeDraft = useCallback(
+    async (id: string) => {
+      setDrafts((prev) => prev.filter((d) => d.id !== id));
+      try {
+        await deleteDraft(id, getToken);
+      } catch {
+        toast("Could not delete that draft.", "error");
+        void refreshDrafts();
+      }
+    },
+    [getToken, refreshDrafts, toast],
   );
 
   /**
@@ -378,10 +427,6 @@ export default function InboxPanel({
       // Not worth failing the click over.
     }
     setMessages(null);
-    setReply("");
-    setReplyCc("");
-    setReplyBcc("");
-    setShowReplyCopies(false);
     try {
       const snap = await getDocs(
         query(
@@ -413,6 +458,28 @@ export default function InboxPanel({
     setLinkHandled(true);
     if (wanted) void openThread(wanted);
   }, [initialThreadId, threads, linkHandled, openThread]);
+
+  /**
+   * Picks up something half-written.
+   *
+   * A reply draft belongs to a conversation, so it opens the conversation —
+   * the words come back in the reply box underneath it. A new email opens
+   * the composer on the form, not on the "how do you want to start" screen.
+   */
+  const openDraftEntry = useCallback(
+    (entry: EmailDraft) => {
+      if (entry.kind === "reply" && entry.threadId) {
+        const wanted = threads?.find((t) => t.id === entry.threadId);
+        setView("inbox");
+        if (wanted) void openThread(wanted);
+        else toast("That conversation is no longer in the list.", "error");
+        return;
+      }
+      setOpenDraft(entry);
+      setComposing(true);
+    },
+    [threads, openThread, toast],
+  );
 
   /** Optimistic flag toggles — starring shouldn't feel like a round trip. */
   async function flag(thread: HelpThread, patch: Partial<HelpThread>) {
@@ -455,14 +522,18 @@ export default function InboxPanel({
     }
   }
 
-  async function send(close: boolean) {
-    if (!openId || !reply.trim() || busy) return;
+  /**
+   * Sends a reply. Resolves true only if it actually went, so the box knows
+   * whether it may throw away what was typed.
+   */
+  async function sendReply(payload: ReplyPayload): Promise<boolean> {
+    if (!openId || !payload.message.trim() || busy) return false;
     setBusy(true);
     try {
       const token = await getToken();
       if (!token) {
         toast("Your session expired — sign in again.", "error");
-        return;
+        return false;
       }
 
       const response = await fetch("/api/email/reply", {
@@ -473,35 +544,35 @@ export default function InboxPanel({
         },
         body: JSON.stringify({
           threadId: openId,
-          message: reply,
-          close,
-          cc: addresses(replyCc),
-          bcc: addresses(replyBcc),
+          message: payload.message,
+          close: payload.close,
+          cc: addresses(payload.cc),
+          bcc: addresses(payload.bcc),
         }),
       });
       const result = await response.json();
 
       if (!response.ok) {
         toast(result.error ?? "Could not send that reply.", "error");
-        return;
+        return false;
       }
 
       toast(
         result.emailed
-          ? close
+          ? payload.close
             ? "Replied and marked done."
             : "Reply sent."
           : "Saved, but the email didn't send — check Resend.",
         result.emailed ? "success" : "error",
       );
-      setReply("");
-      setReplyCc("");
-      setReplyBcc("");
       // The list updates itself — the listener sees the write. Only the open
       // conversation needs re-reading, for the message that was just sent.
       if (current) void openThread(current);
+      void refreshDrafts();
+      return true;
     } catch {
       toast("Network error — please try again.", "error");
+      return false;
     } finally {
       setBusy(false);
     }
@@ -562,6 +633,9 @@ export default function InboxPanel({
             </span>
             {item.id === "inbox" && totalUnread > 0 ? (
               <span className={styles.railCount}>{totalUnread}</span>
+            ) : null}
+            {item.id === "drafts" && drafts.length > 0 ? (
+              <span className={styles.railCount}>{drafts.length}</span>
             ) : null}
           </button>
         ))}
@@ -744,7 +818,58 @@ export default function InboxPanel({
           </div>
         ) : null}
 
-        {threads === null ? (
+        {view === "drafts" ? (
+          drafts.length === 0 ? (
+            <div className={styles.mailEmpty}>
+              <strong>Nothing half-written</strong>
+              Anything you start writing is saved here by itself, so you can
+              close the window mid-sentence and pick it up later.
+            </div>
+          ) : (
+            <ul className={styles.threads}>
+              {drafts.map((entry) => (
+                <li key={entry.id} className={styles.row2}>
+                  <button
+                    type="button"
+                    className={styles.row2Main}
+                    onClick={() => openDraftEntry(entry)}
+                  >
+                    <span className={styles.row2From}>
+                      {entry.kind === "reply"
+                        ? `Reply to ${entry.to || entry.threadSubject || "a conversation"}`
+                        : entry.to || "No recipient yet"}
+                    </span>
+                    <span className={styles.row2Subject}>
+                      {entry.subject ||
+                        (entry.kind === "reply"
+                          ? `Re: ${entry.threadSubject ?? ""}`
+                          : "No subject")}
+                    </span>
+                    <span className={styles.row2Snippet}>
+                      {entry.message?.replace(/\s+/g, " ").slice(0, 120) ||
+                        "Nothing written yet"}
+                    </span>
+                    <span className={styles.row2When}>
+                      {when(entry.updatedAt)}
+                    </span>
+                  </button>
+
+                  <span className={styles.rowActions}>
+                    <button
+                      type="button"
+                      className={styles.rowAction}
+                      onClick={() => void removeDraft(entry.id)}
+                      title="Delete draft"
+                      aria-label="Delete draft"
+                    >
+                      ✕
+                    </button>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )
+        ) : threads === null ? (
           <p className={styles.mailEmpty}>Loading…</p>
         ) : visible.length === 0 ? (
           <div className={styles.mailEmpty}>
@@ -962,60 +1087,22 @@ export default function InboxPanel({
             </div>
 
             {canReply ? (
-              <footer className={styles.composeBar}>
-                {showReplyCopies ? (
-                  <div className={styles.replyCopies}>
-                    <input
-                      className={styles.composeBox}
-                      value={replyCc}
-                      placeholder="Cc — everyone on the reply can see these"
-                      onChange={(e) => setReplyCc(e.target.value)}
-                      aria-label="Cc"
-                    />
-                    <input
-                      className={styles.composeBox}
-                      value={replyBcc}
-                      placeholder="Bcc — nobody on the reply can see these"
-                      onChange={(e) => setReplyBcc(e.target.value)}
-                      aria-label="Bcc"
-                    />
-                  </div>
-                ) : null}
-                <textarea
-                  className={styles.composeBox}
-                  rows={3}
-                  value={reply}
-                  placeholder={`Reply from ${mailboxOf(current)}…`}
-                  onChange={(e) => setReply(e.target.value)}
-                />
-                <div className={styles.composeActions}>
-                  <button
-                    type="button"
-                    className="jm-btn-primary jm-btn-sm"
-                    onClick={() => send(false)}
-                    disabled={busy || !reply.trim()}
-                  >
-                    {busy ? "Sending…" : "Send"}
-                  </button>
-                  <button
-                    type="button"
-                    className="jm-btn-ghost jm-btn-sm"
-                    onClick={() => send(true)}
-                    disabled={busy || !reply.trim()}
-                  >
-                    Send &amp; done
-                  </button>
-                  {!showReplyCopies ? (
-                    <button
-                      type="button"
-                      className={styles.ccToggle}
-                      onClick={() => setShowReplyCopies(true)}
-                    >
-                      Cc / Bcc
-                    </button>
-                  ) : null}
-                </div>
-              </footer>
+              // Keyed on the conversation, so each one gets its own box and
+              // its own draft. One box shared across threads is how half an
+              // answer to one person ends up saved against another.
+              <ReplyBox
+                key={current.id}
+                thread={current}
+                mailbox={mailboxOf(current)}
+                draft={
+                  drafts.find(
+                    (d) => d.kind === "reply" && d.threadId === current.id,
+                  ) ?? null
+                }
+                getToken={getToken}
+                busy={busy}
+                onSend={sendReply}
+              />
             ) : (
               <footer className={styles.composeBar}>
                 <p className={styles.readerMeta}>
@@ -1030,11 +1117,25 @@ export default function InboxPanel({
 
       {composing ? (
         <ComposeModal
+          // Keyed on the draft, so opening a second one replaces the form
+          // rather than pouring the new words into the old one.
+          key={openDraft?.id ?? "new"}
           access={access}
           mailboxes={mailboxes}
           getToken={getToken}
-          onClose={() => setComposing(false)}
-          onSent={() => setComposing(false)}
+          draft={openDraft}
+          onClose={() => {
+            setComposing(false);
+            setOpenDraft(null);
+            // Closing mid-sentence is the case drafts exist for, so the
+            // folder has to be right the moment the window goes away.
+            void refreshDrafts();
+          }}
+          onSent={() => {
+            setComposing(false);
+            setOpenDraft(null);
+            void refreshDrafts();
+          }}
         />
       ) : null}
     </div>

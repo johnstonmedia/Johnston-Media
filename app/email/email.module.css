@@ -1321,6 +1321,16 @@
   color: var(--jm-slate);
 }
 
+/* "Saved to Drafts", at the quietest volume that still counts as telling
+   somebody. */
+.saveState {
+  margin-left: auto;
+  align-self: center;
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  color: var(--jm-slate);
+}
+
 .replyCopies {
   display: grid;
   gap: 0.4rem;

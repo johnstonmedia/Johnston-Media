@@ -8,10 +8,13 @@ import { getDb } from "@/lib/firebase";
 import {
   TEMPLATE_EXTRAS,
   type EmailAccess,
+  type EmailDraft,
   type EmailTemplate,
   type Mailbox,
   type TemplateExtraKey,
 } from "@/lib/emailTypes";
+
+import { useAutosave } from "./useAutosave";
 
 import styles from "./email.module.css";
 
@@ -32,6 +35,8 @@ interface ComposeModalProps {
   /** Pre-fill, for "write to this person" from elsewhere. */
   initialTo?: string;
   initialSubject?: string;
+  /** Reopening something half-written. Everything comes back as it was. */
+  draft?: EmailDraft | null;
 }
 
 /**
@@ -50,6 +55,7 @@ export default function ComposeModal({
   onSent,
   initialTo = "",
   initialSubject = "",
+  draft = null,
 }: ComposeModalProps) {
   const { toast } = useToast();
 
@@ -61,25 +67,27 @@ export default function ComposeModal({
 
   // Their own address first — the common case should take no thought.
   const [from, setFrom] = useState(
-    access.primaryFrom && allowed.includes(access.primaryFrom)
-      ? access.primaryFrom
-      : (allowed[0] ?? ""),
+    draft?.from && allowed.includes(draft.from)
+      ? draft.from
+      : access.primaryFrom && allowed.includes(access.primaryFrom)
+        ? access.primaryFrom
+        : (allowed[0] ?? ""),
   );
-  const [to, setTo] = useState(initialTo);
-  const [cc, setCc] = useState("");
-  const [bcc, setBcc] = useState("");
+  const [to, setTo] = useState(draft?.to ?? initialTo);
+  const [cc, setCc] = useState(draft?.cc ?? "");
+  const [bcc, setBcc] = useState(draft?.bcc ?? "");
   /**
    * Hidden until asked for, the way every mail client does it. Most mail is
    * to one person, and two empty fields above the subject line on every
    * email is two more things to read past.
    */
-  const [showCc, setShowCc] = useState(false);
-  const [showBcc, setShowBcc] = useState(false);
-  const [subject, setSubject] = useState(initialSubject);
+  const [showCc, setShowCc] = useState(Boolean(draft?.cc));
+  const [showBcc, setShowBcc] = useState(Boolean(draft?.bcc));
+  const [subject, setSubject] = useState(draft?.subject ?? initialSubject);
   /** Used for the greeting. Without it templates say "Hi there". */
-  const [recipientName, setRecipientName] = useState("");
-  const [message, setMessage] = useState("");
-  const [templateId, setTemplateId] = useState("");
+  const [recipientName, setRecipientName] = useState(draft?.recipientName ?? "");
+  const [message, setMessage] = useState(draft?.message ?? "");
+  const [templateId, setTemplateId] = useState(draft?.templateId ?? "");
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
   const [sending, setSending] = useState(false);
 
@@ -95,7 +103,9 @@ export default function ComposeModal({
    * The shoot-specific slots. Kept as one map rather than seven useStates
    * because they're offered as a group and sent as a group.
    */
-  const [extras, setExtras] = useState<Record<string, string>>({});
+  const [extras, setExtras] = useState<Record<string, string>>(
+    draft?.extras ?? {},
+  );
   const [failure, setFailure] = useState<string | null>(null);
   /** Most one-off mail wants no call-to-action button at all. */
   const [includeButton, setIncludeButton] = useState(false);
@@ -105,7 +115,9 @@ export default function ComposeModal({
    * app — picking how you start is the first decision, so it is the first
    * screen.
    */
-  const [started, setStarted] = useState(false);
+  // A restored draft opens on the form, not on the "how do you want to
+  // start" screen: that decision was made the first time.
+  const [started, setStarted] = useState(Boolean(draft));
 
   useEffect(() => {
     (async () => {
@@ -119,6 +131,30 @@ export default function ComposeModal({
       }
     })();
   }, []);
+
+  /**
+   * Everything typed, kept without being asked.
+   *
+   * Only once they have started: a composer opened and closed again should
+   * leave nothing behind, and the first screen is a choice rather than a
+   * form, so there is nothing to save until it has been made.
+   */
+  const autosave = useAutosave(
+    {
+      kind: "compose",
+      from,
+      to,
+      cc,
+      bcc,
+      subject,
+      recipientName,
+      message,
+      templateId,
+      extras,
+    },
+    getToken,
+    { id: draft?.id ?? null, enabled: started },
+  );
 
   async function send() {
     if (sending) return;
@@ -186,6 +222,9 @@ export default function ComposeModal({
           ? `Sent to ${result.sent}, ${result.failed} failed.`
           : `Sent to ${result.sent === 1 ? to.trim() : `${result.sent} people`}.`,
       );
+      // Sent is no longer a draft. Done before onSent so the Drafts folder
+      // it reloads is already right.
+      await autosave.discard();
       onSent();
     } catch {
       toast("Network error — please try again.", "error");
@@ -621,8 +660,21 @@ export default function ComposeModal({
             onClick={onClose}
             disabled={sending}
           >
-            Cancel
+            Close
           </button>
+
+          {/* Quiet, and only once there is something to say about. The
+              point of autosave is not having to think about it; the point
+              of saying so is knowing you do not have to. */}
+          <span className={styles.saveState} aria-live="polite">
+            {autosave.state === "saving"
+              ? "Saving…"
+              : autosave.state === "failed"
+                ? "Not saved — check your connection"
+                : autosave.state === "saved"
+                  ? "Saved to Drafts"
+                  : ""}
+          </span>
         </div>
         </>
         ) : null}

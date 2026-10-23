@@ -484,6 +484,36 @@ export interface HelpMessage {
   createdAt: string;
 }
 
+/**
+ * Something half-written.
+ *
+ * Fields are stored exactly as typed rather than parsed — a recipient list
+ * mid-word is still what the person had on screen, and a draft that tidies
+ * up what you typed while you are typing it is a draft that fights you.
+ */
+export interface EmailDraft {
+  id: string;
+  uid: string;
+  email?: string;
+  /** A new email, or an answer to a conversation. */
+  kind: "compose" | "reply";
+  /** Set on a reply draft — the conversation it belongs to. */
+  threadId?: string;
+  threadSubject?: string;
+  from?: string;
+  to?: string;
+  cc?: string;
+  bcc?: string;
+  subject?: string;
+  recipientName?: string;
+  message?: string;
+  templateId?: string;
+  /** The chosen template's own slots, whatever they happen to be. */
+  extras?: Record<string, string>;
+  createdAt: string;
+  updatedAt: string;
+}
+
 /** "Jane Doe <jane@example.com>" */
 export function formatAddress(name: string | undefined, email: string): string {
   return name?.trim() ? `${name.trim()} <${email}>` : email;

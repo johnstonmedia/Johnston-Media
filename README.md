@@ -399,6 +399,26 @@ Inbound, Cloudflare Email Workers and SendGrid Inbound Parse produce, so it
 isn't welded to whichever one you pick. **With no secret set it refuses
 everything** — an open inbound endpoint is a spam funnel into the team's inbox.
 
+### Drafts
+
+**Nothing typed is ever lost.** The composer, the reply box and the campaign
+editor all save as you write — about a second after you stop, and again
+immediately if the window is closed or the tab goes away. Close it
+mid-sentence, lose the connection, answer the door: the words are still there.
+
+Drafts live in `emailDrafts/{id}`, not in the browser, because a draft
+stranded in one laptop's local storage is a draft you cannot find from your
+phone. They are **per person**: a half-finished reply says more about whoever
+is writing it than about the conversation, so nobody else in the business sees
+it. That is enforced in `/api/email/drafts` rather than in rules — the route
+writes with the Admin SDK and checks `uid` on every read, update and delete.
+
+A draft is created on the first real keystroke, not when the window opens, and
+deleted when it is emptied or sent — so the folder holds what you are actually
+part-way through, rather than a pile of blanks. Reply drafts open the
+conversation they belong to with the words back in the box; a new email opens
+the composer on the form.
+
 ### DNS for the subdomain
 
 Add `mail.wjohnstonmedia.com` as a domain on the same Vercel project (it serves

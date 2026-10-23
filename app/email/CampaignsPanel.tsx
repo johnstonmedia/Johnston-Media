@@ -10,7 +10,7 @@ import {
   query,
   updateDoc,
 } from "firebase/firestore";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useToast } from "@/components/Toast";
 import { getDb } from "@/lib/firebase";
@@ -68,6 +68,10 @@ export default function CampaignsPanel({
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
   const [editing, setEditing] = useState<Campaign | null>(null);
   const [busy, setBusy] = useState(false);
+  /** Quiet autosave state, for the line next to the Save button. */
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "failed">(
+    "idle",
+  );
   const [preview, setPreview] = useState(false);
 
   const canEdit = atLeast(access.level, "draft");
@@ -144,6 +148,60 @@ export default function CampaignsPanel({
       setBusy(false);
     }
   }
+
+  /**
+   * A campaign saves itself while it is being written.
+   *
+   * It already existed as a row the moment it was started — but everything
+   * typed after that lived only in this component until somebody pressed
+   * Save, so closing the tab halfway through writing a campaign lost the lot.
+   * Now the button is a way to be sure rather than the only way to keep it.
+   *
+   * A sent campaign is a record and is never written to.
+   */
+  const written = useRef<string>("");
+  const editingId = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!editing || !canEdit) return;
+    if (editing.status === "Sent" || editing.status === "Sending") return;
+
+    const serialised = JSON.stringify(editing);
+
+    // Opened, or switched to a different campaign: this is what is on record,
+    // not an edit. Saving it straight back would be a write for every click.
+    if (editingId.current !== editing.id) {
+      editingId.current = editing.id;
+      written.current = serialised;
+      setSaveState("idle");
+      return;
+    }
+
+    if (serialised === written.current) return;
+
+    const timer = window.setTimeout(async () => {
+      setSaveState("saving");
+      try {
+        const { id, ...rest } = editing;
+        await updateDoc(doc(getDb(), "campaigns", id), {
+          ...rest,
+          updatedAt: new Date().toISOString(),
+        });
+        written.current = serialised;
+        setCampaigns(
+          (prev) => prev?.map((c) => (c.id === id ? editing : c)) ?? null,
+        );
+        setSaveState("saved");
+      } catch (err) {
+        console.error("[email] autosave failed:", err);
+        // Said rather than swallowed: a campaign that silently is not
+        // saving is worse than one you know you have to save yourself.
+        setSaveState("failed");
+      }
+    }, 1200);
+
+    return () => window.clearTimeout(timer);
+  }, [editing, canEdit]);
 
   async function remove(campaign: Campaign) {
     if (campaign.status === "Sent") {
@@ -542,14 +600,25 @@ export default function CampaignsPanel({
               </div>
 
               {canEdit && !locked ? (
-                <button
-                  type="button"
-                  className="jm-btn-primary"
-                  onClick={() => save(editing)}
-                  disabled={busy}
-                >
-                  {busy ? "Saving…" : "Save draft"}
-                </button>
+                <div className={styles.actions}>
+                  <button
+                    type="button"
+                    className="jm-btn-primary"
+                    onClick={() => save(editing)}
+                    disabled={busy}
+                  >
+                    {busy ? "Saving…" : "Save draft"}
+                  </button>
+                  <span className={styles.saveState} aria-live="polite">
+                    {saveState === "saving"
+                      ? "Saving…"
+                      : saveState === "failed"
+                        ? "Not saved — check your connection"
+                        : saveState === "saved"
+                          ? "Saved automatically"
+                          : ""}
+                  </span>
+                </div>
               ) : null}
             </div>
 
